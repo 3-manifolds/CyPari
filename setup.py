@@ -7,11 +7,9 @@ pari_ver = 'pari-2.5.1'
 pari_include_dir = os.path.join(pari_ver, 'include')
 pari_library_dir = os.path.join(pari_ver, 'lib')
 pari_library = os.path.join(pari_library_dir, 'libpari.a')
-command = sys.argv[1]
-print "HI THERE: " + command
 
-if ( command in ['build', 'build_ext', 'install', 'bdist_egg'] and
-     not os.path.exists(pari_library) ):
+#if ( command in ['build', 'build_ext', 'install', 'bdist_egg'] and
+if not os.path.exists(pari_library):
     os.system('sh build_pari.sh')
     
 class clean(Command):

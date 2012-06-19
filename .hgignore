@@ -1,0 +1,6 @@
+pari-2.5.1
+build
+cypari.egg-info
+dist
+cypari/gen.c
+cypari/gen.h
