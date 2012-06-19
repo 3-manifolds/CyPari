@@ -11,10 +11,12 @@
 
 if [ ! -e pari-2.5.1.tar.gz ]; then
     echo "Downloading Pari 2.5.1..."
-    curl --remote-name http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.1.tar.gz
+   python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.1.tar.gz", "pari-2.5.1.tar.gz")'
 fi
+
 echo "Untarring Pari..."
 tar xzf pari-2.5.1.tar.gz
+
 cd pari-2.5.1
 
 echo "Building Pari libary..." 
