@@ -1430,7 +1430,7 @@ cdef class gen:
         else:
             return eval(s)
 
-    def __hex__(gen self):
+    def hex(gen self):
         """
         Return the hexadecimal digits of self in lower case.
         
@@ -1650,12 +1650,6 @@ cdef class gen:
             V.append(self.__getitem__(n))
         return V
 
-    def __long__(gen self):
-        """
-        Return Python long.
-        """
-        return long(int(self))
-    
     def __float__(gen self):
         """
         Return Python float.
