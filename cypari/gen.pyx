@@ -44,12 +44,12 @@ Arithmetic obeys the usual coercion rules::
 
 GUIDE TO REAL PRECISION AND THE PARI LIBRARY
 
-Pari stores all numeric values as arrays of so-called longwords, which
+PARI stores all numeric values as arrays of so-called longwords, which
 may be either 64 bits or 32 bits.  Usually the longword size is 32
-bits on 32 bit systems and 64 bits on 64 bit systems.  The Pari
+bits on 32 bit systems and 64 bits on 64 bit systems.  The PARI
 library maintains an environment variable, referred to as the real
 precision.  The meaning of this is as follows.  If the real precision
-is N then all Pari real numbers are printed to at most N
+is N then all PARI real numbers are printed to at most N
 significant decimal digits (even if the internal values are more
 precise), and all new values are created with a binary precision which
 is the smallest multiple of the longword size which can provide a
@@ -59,12 +59,12 @@ A standard floating point number has a binary precision of 53 bits,
 which is approximately equivalent to 15 decimal digits.
 In this package the default real precision is 15, which allows imported
 floating point values to be printed to their full decimal precision.
-However, this means that the default Pari representation has a
+However, this means that the default PARI representation has a
 precision of 64 bits.
 The default real precision for floating point numbers is
-53 bits.  Inexact Pari objects are therefore printed by default to 15
+53 bits.  Inexact PARI objects are therefore printed by default to 15
 decimal digits (even if they are actually more precise).  In fact, the
-default real precision in Pari is 64 bits.
+default real precision in PARI is 64 bits.
 
 Default precision example (53 bits, 15 significant decimals)::
 
@@ -76,13 +76,13 @@ Default precision example (53 bits, 15 significant decimals)::
 It is possible to change the real precision.
 
     >>> old_prec = pari.set_real_precision(60)  # 60 decimals printed
-    >>> a = pari(1.23); a  # Pari imports the float with 64 bits of precision.
+    >>> a = pari(1.23); a  # PARI imports the float with 64 bits of precision.
     1.2299999999999999823
-    >>> a.length() # It occupies 1 Pari longword (on 64 bit systems)
+    >>> a.length() # It occupies 1 PARI longword (on 64 bit systems)
     1
-    >>> a = pari('1.23'); a  # Now Pari will generate a 60 digit value
+    >>> a = pari('1.23'); a  # Now PARI will generate a 60 digit value
     1.23000000000000000000000000000000000000000000000000000000000
-    >>> a.length() # It has 256 bits of precision in Pari.
+    >>> a.length() # It has 256 bits of precision in PARI.
     4
     >>> a.sin()
     0.942488801931697510023823565389244541461287405627650302135039
@@ -91,7 +91,7 @@ It is possible to change the real precision.
     >>> pari.set_real_precision(old_prec)  # restore the default behavior
     60
 
-Unless otherwise indicated in the docstring, most Pari functions
+Unless otherwise indicated in the docstring, most PARI functions
 that return inexact objects use the precision of their arguments to
 decide the precision of the computation. However, if some of these
 arguments happen to be exact numbers (integers, rationals, etc.),
@@ -180,7 +180,7 @@ else: # Python 2
     str_to_chars = lambda s : s
     chars_to_str = lambda s : s
     
-# Our unique Pari instance.
+# Our unique PARI instance.
 cdef PariInstance pari_instance, P
 pari_instance = PariInstance(16000000, 500000)
 P = pari_instance   # shorthand notation
@@ -223,7 +223,7 @@ cdef pari_sp mytop
 # a "default precision" for internal computations, which always use
 # the actual precision of arguments together (where relevant) with a
 # "prec" parameter.  In ALL cases (for real computations) the prec
-# parameter is a WORD precision and NOT decimal precision.  Pari reals
+# parameter is a WORD precision and NOT decimal precision.  PARI reals
 # with word precision w have bit precision (of the mantissa) equal to
 # 32*(w-2) or 64*(w-2).
 #
@@ -1069,7 +1069,7 @@ cdef class gen:
 
         if isinstance(n, tuple):
             if pari_type != t_MAT:
-                raise TypeError, "self must be of pari type t_MAT"
+                raise TypeError, "self must be of PARI type t_MAT"
             if len(n) != 2:
                 raise IndexError, "index must be an integer or a 2-tuple (i,j)"
             i = int(n[0])
@@ -1190,7 +1190,7 @@ cdef class gen:
     
     def _gen_length(gen self):
         """
-        Return the length of self as a Pari object, *including*
+        Return the length of self as a PARI object, *including*
         codewords.
         
         EXAMPLES::
@@ -1209,7 +1209,7 @@ cdef class gen:
         
             
             -  The indexing is 0-based, like everywhere else in Python, but
-               *unlike* in Pari/GP.
+               *unlike* in PARI/GP.
         
             -  Assignment sets the nth entry to a reference to y, assuming y is
                an object of type gen. This is the same as in Python, but
@@ -1304,7 +1304,7 @@ cdef class gen:
 
             if isinstance(n, tuple):
                 if typ(self.g) != t_MAT:
-                    raise TypeError, "cannot index Pari type %s by tuple"%typ(self.g)
+                    raise TypeError, "cannot index PARI type %s by tuple"%typ(self.g)
     
                 if len(n) != 2:
                     raise ValueError, "matrix index must be of the form [row, column]"
@@ -2047,7 +2047,7 @@ cdef class gen:
         sign(x): Return the sign of x, where x is of type integer, real or
         fraction.
         """
-        # Pari throws an error if you attempt to take the sign of
+        # PARI throws an error if you attempt to take the sign of
         # a complex number.
         sig_on()
         return gsigne(x.g)
@@ -5453,7 +5453,7 @@ cdef class gen:
 
     def ellinit(self, int flag=0, precision=0):
         """
-        Return the Pari elliptic curve object with Weierstrass coefficients
+        Return the PARI elliptic curve object with Weierstrass coefficients
         given by self, a list with 5 elements.
         
         INPUT:
@@ -5462,12 +5462,12 @@ cdef class gen:
         -  ``self`` - a list of 5 coefficients
         
         -  ``flag (optional, default: 0)`` - if 0, ask for a
-           Pari ell structure with 19 components; if 1, ask for a Pari sell
+           PARI ell structure with 19 components; if 1, ask for a PARI sell
            structure with only the first 13 components
         
         -  ``precision (optional, default: 0)`` - the real
            precision to be used in the computation of the components of the
-           Pari (s)ell structure; if 0, use the default 53 bits.
+           PARI (s)ell structure; if 0, use the default 53 bits.
         
            .. note::
 
@@ -5481,8 +5481,8 @@ cdef class gen:
         OUTPUT:
         
         
-        -  ``gen`` - either a Pari ell structure with 19
-           components (if flag=0), or a Pari sell structure with 13 components
+        -  ``gen`` - either a PARI ell structure with 19
+           components (if flag=0), or a PARI sell structure with 13 components
            (if flag=1)
         
         
@@ -5506,7 +5506,7 @@ cdef class gen:
             >>> pari.set_real_precision(old_prec)
             45
             
-        Using flag=1 returns a short elliptic curve Pari object::
+        Using flag=1 returns a short elliptic curve PARI object::
         
             >>> pari([0,1,0,1,0]).ellinit(flag=1)
             [0, 1, 0, 1, 0, 4, 2, 0, -1, -32, 224, -48, 2048/3]
@@ -8519,12 +8519,12 @@ cdef class gen:
 
     def type(gen self):
         """
-        Return the Pari type of self as a string.
+        Return the PARI type of self as a string.
         
         .. note::
 
            In Cython, it is much faster to simply use typ(self.g) for
-           checking Pari types.
+           checking PARI types.
         
         EXAMPLES::
         
@@ -8545,7 +8545,7 @@ cdef class gen:
         # machines, and errors about freeing non-aligned
         # pointers on others. So we settle for the following
         # fast but ugly code. Note that should the list of
-        # valid Pari types ever be updated, this code would
+        # valid PARI types ever be updated, this code would
         # need to be updated accordingly.
         #
         cdef long t = typ(self.g)
@@ -8572,7 +8572,7 @@ cdef class gen:
         elif t == t_VECSMALL: return 't_VECSMALL'
         elif t == t_CLOSURE:  return 't_CLOSURE'
         else:
-            raise TypeError, "Unknown Pari type: %s"%t
+            raise TypeError, "Unknown PARI type: %s"%t
 
 
     def polinterpolate(self, ya, x):
@@ -8886,11 +8886,16 @@ cdef class PariInstance:
         # The size here doesn't really matter, because we will allocate
         # our own stack anyway. We ask PARI not to set up signal handlers.
 #        pari_init_opts(10000, maxprime, INIT_JMPm | INIT_DFTm)
-        pari_init_opts(10000, maxprime, INIT_DFTm)
+        global set_pari_signals, unset_pari_signals, pari_signal_handler
+        pari_signal_handler = SIG_DFL
+        set_pari_signals()  # this saves our handlers.
+        pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
+        pari_signal_handler = signal(SIGINT, SIG_DFL) # steal the pointer
+        unset_pari_signals() # restores our handlers
         num_primes = maxprime
-        error_flag = 0
         set_error_handler(&pari_error_handler)
         set_error_recoverer(&pari_error_recoverer)
+        set_sigint_handler(&pari_sigint_handler)
         
         # NOTE: sig_on() can only come AFTER pari_init_opts()!
         # compiler complains
@@ -8901,7 +8906,6 @@ cdef class PariInstance:
         init_stack(size)
         
         GP_DATA.fmt.prettyp = 0
-
         prec = prec_bits_to_words(53)
         GP_DATA.fmt.sigd = prec_bits_to_dec(53)
 
@@ -8911,8 +8915,8 @@ cdef class PariInstance:
         pariOut.putch = py_putchar
         pariOut.puts = py_puts
         pariOut.flush = py_flush
-        self.speak_up()
         #sig_off()
+        self.speak_up()
 
     def _unsafe_deallocate_pari_stack(self):
         if bot:
@@ -9148,7 +9152,7 @@ cdef class PariInstance:
 
     cdef gen double_to_gen_c(self, double x):
         """
-        Create a new gen with the value of the double x, using Pari's
+        Create a new gen with the value of the double x, using PARI's
         dbltor.
         
         EXAMPLES::
@@ -9160,14 +9164,14 @@ cdef class PariInstance:
             >>> pari.double_to_gen(0)
             0.E-15
         """
-        # Pari has an odd concept where it attempts to track the accuracy
+        # PARI has an odd concept where it attempts to track the accuracy
         # of floating-point 0; a floating-point zero might be 0.0e-20
         # (meaning roughly that it might represent any number in the
         # range -1e-20 <= x <= 1e20).
 
-        # Pari's dbltor converts a floating-point 0 into the Pari real
-        # 0.0e-307; Pari treats this as an extremely precise 0.  This
-        # can cause problems; for instance, the Pari incgam() function can
+        # PARI's dbltor converts a floating-point 0 into the PARI real
+        # 0.0e-307; PARI treats this as an extremely precise 0.  This
+        # can cause problems; for instance, the PARI incgam() function can
         # be very slow if the first argument is very precise.
 
         # So we translate 0 into a floating-point 0 with 53 bits
@@ -9210,9 +9214,9 @@ cdef class PariInstance:
         .. note::
 
            As a rule, there should never be more than one sage gen
-           pointing to a given Pari GEN. So that means there is only
+           pointing to a given PARI GEN. So that means there is only
            one case where this function should be used: when a
-           complicated Pari GEN is allocated with a single gen
+           complicated PARI GEN is allocated with a single gen
            pointing to it, and one needs a gen pointing to one of its
            components.
         
@@ -9429,7 +9433,7 @@ cdef class PariInstance:
     def _primelimit(self):
         """
         Return the number of primes already computed
-        in this Pari instance.
+        in this PARI instance.
 
         EXAMPLES:
             >>> print( pari._primelimit() )
@@ -9929,12 +9933,12 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
         return v
 
 #######################
-# Pari Error handling
+# PARI Error handling
 #######################
 
 
-# About Pari exceptions -- MC
-# ---------------------
+# About PARI exceptions -- MC
+# ---------------------------
 # Since this is largely undocumented, as far as I can tell, I will try to
 # explain it.
 #
@@ -9995,6 +9999,23 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 # called setjmp.  I don't think it is needed now, but it helped with
 # debugging.
 
+# About PARI signal handling -- MC
+# --------------------------------
+#
+# PARI provides a callback, cb_pari_sigint, for dealing with user
+# interrupts.  PARI's pari_sighandler calls this on SIGINT or
+# SIGBREAK, and for SIGSEGV, SIGBUS, SIGFPE, SIGPIPE it prints a message
+# and calls pari_error with error number bugparier.  The call
+# pari_sig_init(pari_sighandler) installs PARI's signal handler on
+# all 6 signals.  However, pari_sighandler is a static function.
+# So we just let pari initialize its own signals and then save
+# the handler.
+#
+# The default sigint handler used by pari calls pari_err.  Ours
+# does the same thing, after setting a flag.  The flag is checked
+# by pari_error_handler.  If set it raises the PariError with
+# errno=-1, which produces an appropriate message.
+
 cdef extern from "pari/pari.h":
     char *errmessage[]
     int talker2, bugparier, alarmer, openfiler, talker, flagerr, impl, \
@@ -10003,10 +10024,11 @@ cdef extern from "pari/pari.h":
         constpoler, notpoler, redpoler, zeropoler, operi, operf, gdiver, \
         memer, negexper, sqrter5, noer
     int warner, warnprec, warnfile, warnmem
-    int  (*cb_pari_handle_exception)(long)
-    void (*cb_pari_err_recover)(long)
+    int  (*cb_pari_handle_exception)(long)  # called by pari_error
+    void (*cb_pari_err_recover)(long)       # called if above returns 0
+    void (*cb_pari_sigint)()    # called by PARI on SIGINT, SIGBREAK
 
-# Our exception class for Pari exceptions.
+# Our exception class for PARI exceptions.
 
 class PariError(Exception):
 
@@ -10026,6 +10048,8 @@ class PariError(Exception):
         global noer
         if 0 < d <= noer:
             return chars_to_str(errmessage[d])
+        elif d == -1:
+            return "PARI was interrupted!"
         else:
             return "unknown"
 
@@ -10035,22 +10059,55 @@ class PariError(Exception):
     def set_errnum(self, errnum):
         self.args = (errnum,)
 
-# Global variables we use for error handling
+# Global variables we use for error handling and signals
 cdef extern from "pari_errors.h":
     int    setjmp_active
+    int    interrupt_flag
+    char*  interrupt_msg
     int    pari_error_number
     void   set_error_handler( int(*)(long ) except 0)
     void   set_error_recoverer( void(*)(long ) )
+    void   set_sigint_handler( void(*)() )
     int    sig_on "SIG_ON_MACRO" ()
 setjmp_active = 0
-pari_error_number = noer
+interrupt_flag = 0
 cdef public jmp_buf jmp_env
 
-# Our sig_off just resets the flags    
+cdef extern from "signal.h":
+    ctypedef void (*sig_t) (int) 
+    sig_t SIG_DFL
+    int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE
+    sig_t signal(int sig, sig_t func)
+
+cdef sig_t handler[5]
+cdef sig_t pari_signal_handler
+cdef int num_signals = 3 if sys.platform == 'win32' else 5
+# http://trac.cython.org/cython_trac/ticket/113
+pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE)
+cdef int pari_sig[5]
+cdef int n
+for n in range(5):
+    pari_sig[n] = pari_signals[n]
+
+cdef public void set_pari_signals(): # called by sig_on
+    cdef int n
+    global num_signals, pari_sig
+    for n in range(num_signals):
+        handler[n] = signal(pari_sig[n], pari_signal_handler)
+
+cdef public void unset_pari_signals(): # called by sig_off
+    cdef int n
+    global num_signals, pari_sig
+    for n in range(num_signals):
+        signal(pari_sig[n], handler[n])
+
+# Our sig_off just resets the flags and signals
 cdef inline void sig_off():
-    global pari_error_number, noer, setjmp_active, sig_on_sig_off
+    global pari_error_number, noer, setjmp_active, interrupt_flag
     pari_error_number = noer
     setjmp_active = 0
+    interrupt_flag = 0
+    unset_pari_signals()
 
 # We don't use sig_str, but Sage did.  If needed, write this.
 cdef inline int sig_str(char *message):
@@ -10062,18 +10119,30 @@ cdef inline int sig_str(char *message):
 # cb_pari_err_recover.
 
 cdef int pari_error_handler(long errno) except 0:
-    #print '\nerror handler: %d'%errno
-    raise PariError(errno)
+    #print('\nerror_handler: %d'%errno)
+    global interrupt_flag
+    if interrupt_flag:
+        raise PariError(-1)
+    else:
+        raise PariError(errno)
 
 # The callback to be assigned to cp_pari_err_recover.  Resets
 # flags and calls longjmp.
 
 cdef void pari_error_recoverer(long errno):
     global setjmp_active
-    #print '\nerror recover: %d  setjmp_active: %d'%(errno, setjmp_active)
+    #print('\nerror_recoverer: %d  setjmp_active: %d'%(errno, setjmp_active))
     if setjmp_active:
         sig_off()
         longjmp(jmp_env, errno)
+
+# The callback to be assigned to cb_pari_sigint.  Sets the
+# interrupt flag and then behaves like PARI's default handler.
+
+cdef void pari_sigint_handler():
+    global interrupt_flag, interrupt_msg
+    interrupt_flag = 1
+    pari_err(talker, interrupt_msg)
 
 #####################################
     
@@ -10081,6 +10150,8 @@ cdef extern from "misc.h":
     int     factorint_withproof_sage(GEN* ans, GEN x, GEN cutoff)
     int     gcmp_sage(GEN x, GEN y)
 
+# Not used
+##########
 # We expose a trap function to C.
 # If this function returns without raising an exception,
 # the code is retried.
