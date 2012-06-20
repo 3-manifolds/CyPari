@@ -37,10 +37,10 @@ EXAMPLES::
 
 Arithmetic obeys the usual coercion rules::
 
-    >>> type(pari(1) + 1)
-    <type 'cypari.gen.gen'>
-    >>> type(1 + pari(1))
-    <type 'cypari.gen.gen'>
+    >>> isinstance((pari(1) + 1), gen)
+    True
+    >>> isinstance(1 + pari(1), gen)
+    True
 
 GUIDE TO REAL PRECISION AND THE PARI LIBRARY
 
@@ -155,7 +155,7 @@ Check that output from PARI's print command is actually seen::
 from __future__ import print_function
 try:
     from future_builtins import hex
-except ImportError:
+except ImportError: # Python 3
     pass
 
 ### Use python's malloc
@@ -174,13 +174,13 @@ import operator
 
 if sys.version_info[0] == 3: # Python 3
     xrange = range
-    to_bytes = lambda s : bytes(s, 'utf8')
-    to_str = lambda b : b.decode()
+    str_to_chars = lambda s : bytes(s, 'utf8')
+    chars_to_str = lambda b : b.decode()
 else: # Python 2
-    to_bytes = lambda s : s
-    to_str = lambda s : s
+    str_to_chars = lambda s : s
+    chars_to_str = lambda s : s
     
-# The unique running Pari instance.
+# Our unique Pari instance.
 cdef PariInstance pari_instance, P
 pari_instance = PariInstance(16000000, 500000)
 P = pari_instance   # shorthand notation
@@ -423,7 +423,7 @@ cdef class gen:
 
     def __repr__(self):
         sig_on()
-        return to_str(P.new_gen_to_bytes(self.g))
+        return chars_to_str(P.new_gen_to_bytes(self.g))
 
     def __hash__(self):
         """
@@ -431,8 +431,8 @@ cdef class gen:
         
         TESTS::
         
-            >>> type(pari('1 + 2.0*I').__hash__())
-            <type 'int'>
+            >>> isinstance( pari('1 + 2.0*I').__hash__(), int )
+            True
         """
         cdef long h
         # Can't use sig_on for functions returning int
@@ -462,10 +462,10 @@ cdef class gen:
             >>> L = pari("vector(10,i,i^2)").list()
             >>> L
             [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-            >>> type(L)
-            <type 'list'>
-            >>> type(L[0])
-            <type 'cypari.gen.gen'>
+            >>> isinstance(L, list)
+            True
+            >>> isinstance(L[0], gen)
+            True
 
         For polynomials, list() behaves as for ordinary Sage polynomials::
 
@@ -752,9 +752,9 @@ cdef class gen:
             >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
             >>> s = K.nf_get_sign(); s
             [4, 0]
-            >>> type(s); type(s[0])
-            <type 'list'>
-            <type 'int'>
+            >>> isinstance(s, list); isinstance(s[0], int)
+            True
+            True
             >>> pari.polcyclo(15).nfinit().nf_get_sign()
             [0, 4]
         """
@@ -1028,8 +1028,8 @@ cdef class gen:
             >>> sv = pari('Vecsmall([1,2,3])')
             >>> sv[2]
             3
-            >>> type(sv[2])
-            <type 'int'>
+            >>> isinstance(sv[2], int)
+            True
             >>> tuple(pari('3/5'))
             (3, 5)
             >>> tuple(pari('1 + 5*I'))
@@ -1271,8 +1271,8 @@ cdef class gen:
             >>> s[:1]=[1]
             >>> s
             [1, 0]
-            >>> type(s[0])
-            <type 'cypari.gen.gen'>
+            >>> isinstance(s[0], gen)
+            True
             >>> s = pari(range(20)) ; s
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
             >>> s[0:10:2] = range(50,55) ; s
@@ -1287,8 +1287,8 @@ cdef class gen:
             >>> v[:] = xrange(20,30)
             >>> v
             [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-            >>> type(v[0])
-            <type 'cypari.gen.gen'>
+            >>> isinstance(v[0], gen)
+            True
         """
         cdef int i, j
         cdef gen x
@@ -1567,8 +1567,8 @@ cdef class gen:
             't_VEC'
             >>> pari('[3,4,5]').intvec_unsafe()
             [3, 4, 5]
-            >>> type(pari('[3,4,5]').intvec_unsafe()[0])
-            <type 'int'>
+            >>> isinstance(pari('[3,4,5]').intvec_unsafe()[0], int)
+            True
         
         TESTS::
         
@@ -1607,8 +1607,8 @@ cdef class gen:
             >>> w = v.python_list_small()
             >>> w
             [1, 2, 3, 10, 102, 10]
-            >>> type(w[0])
-            <type 'int'>
+            >>> isinstance(w[0], int)
+            True
         """
         cdef long n
         if typ(self.g) != t_VECSMALL:
@@ -1637,8 +1637,8 @@ cdef class gen:
             >>> w = v.python_list()
             >>> w
             [1, 2, 3, 10, 102, 10]
-            >>> type(w[0])
-            <type 'cypari.gen.gen'>
+            >>> isinstance(w[0], gen)
+            True
             >>> pari("[1,2,3]").python_list()
             [1, 2, 3]
         """
@@ -5660,10 +5660,10 @@ cdef class gen:
             []
             >>> v = e.ellan(10, python_ints=True); v
             [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
-            >>> type(v)
-            <type 'list'>
-            >>> type(v[0])
-            <type 'int'>
+            >>> isinstance(v, list)
+            True
+            >>> isinstance(v[0], int)
+            True
         """
         sig_on()
         cdef GEN g
@@ -5766,18 +5766,18 @@ cdef class gen:
             >>> e = pari([0, -1, 1, -10, -20]).ellinit()
             >>> v = e.ellaplist(10); v
             [-2, -1, 1, -2]
-            >>> type(v)
-            <type 'cypari.gen.gen'>
+            >>> isinstance(v, gen)
+            True
             >>> v.type()
             't_VEC'
             >>> e.ellan(10)
             [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
             >>> v = e.ellaplist(10, python_ints=True); v
             [-2, -1, 1, -2]
-            >>> type(v)
-            <type 'list'>
-            >>> type(v[0])
-            <type 'int'>
+            >>> isinstance(v, list)
+            True
+            >>> isinstance(v[0], int)
+            True
         """
         # 1. make a table of primes up to n.
         sig_on()
@@ -8826,13 +8826,13 @@ cdef extern from *: # avoid compiler warnings
     ctypedef char* const_char_star "const char*"
     
 cdef void py_putchar(char c):
-    cdef char str[2]
-    str[0] = c
-    str[1] = 0
-    sys.stdout.write(to_str(str))
+    cdef char s[2]
+    s[0] = c
+    s[1] = 0
+    sys.stdout.write(chars_to_str(s))
 
 cdef void py_puts(const_char_star s):
-    sys.stdout.write(to_str(s))
+    sys.stdout.write(chars_to_str(s))
 
 cdef void py_flush():
     sys.stdout.flush()
@@ -8999,7 +8999,7 @@ cdef class PariInstance:
         cdef unsigned long k
         
         k = GP_DATA.fmt.sigd
-        s = to_bytes(str(n))
+        s = str_to_chars(str(n))
         sig_on()
         sd_realprecision(s, 2)
         sig_off()
@@ -9297,7 +9297,7 @@ cdef class PariInstance:
         # In the generic case, convert the object to a byte array and
         # hope that PARI can parse it.
         global gnil
-        t = to_bytes(str(s))
+        t = str_to_chars(str(s))
         set_mark()
         sig_on()
         z = gp_read_str(t)
@@ -9329,7 +9329,7 @@ cdef class PariInstance:
         global jmp_env
         cdef int save
         if v != -1:
-            s = to_bytes(str(v))
+            s = str_to_chars(str(v))
             # sig_on not allowed here - does not return an object.
             return fetch_user_var(s)
         return -1
@@ -9419,7 +9419,7 @@ cdef class PariInstance:
             >>> pari('mysquare(12)')
             144
         """
-        cdef fname = to_bytes(filename)
+        cdef fname = str_to_chars(filename)
         sig_on()
         return self.new_gen(gp_read_file(fname))
 
@@ -10025,7 +10025,7 @@ class PariError(Exception):
     def errmessage(self, d):
         global noer
         if 0 < d <= noer:
-            return to_str(errmessage[d])
+            return chars_to_str(errmessage[d])
         else:
             return "unknown"
 
