@@ -28,7 +28,7 @@ cdef class PariInstance:
     cdef gen new_gen(self, GEN x)
     cdef gen new_gen_with_sp(self, GEN x)
     cdef gen new_leaf_gen(self, GEN x)
-    cdef object new_gen_to_string(self, GEN x)
+    cdef object new_gen_to_bytes(self, GEN x)
     cdef gen new_gen_noclear(self, GEN x)
     cdef gen new_gen_from_int(self, int value)
     cdef gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)

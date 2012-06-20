@@ -1,5 +1,3 @@
-# we should switch to python 3 print function with __future__
-
 """
 PARI C-library interface
 
@@ -152,6 +150,13 @@ Check that output from PARI's print command is actually seen::
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
+# Python 3 compatibility
+
+from __future__ import print_function
+try:
+    from future_builtins import hex
+except ImportError:
+    pass
 
 ### Use python's malloc
 cdef extern from "Python.h":
@@ -159,12 +164,22 @@ cdef extern from "Python.h":
     void* PyMem_Malloc(size_t size)
     void PyMem_Free(void* mem)
 
+# Size of pari "longword"
+cdef int sizeof_pari_word = BITS_IN_LONG >> 3
+
 import sys
 import math
 import types
 import operator
 
-
+if sys.version_info[0] == 3: # Python 3
+    xrange = range
+    to_bytes = lambda s : bytes(s, 'utf8')
+    to_str = lambda b : b.decode()
+else: # Python 2
+    to_bytes = lambda s : s
+    to_str = lambda s : s
+    
 # The unique running Pari instance.
 cdef PariInstance pari_instance, P
 pari_instance = PariInstance(16000000, 500000)
@@ -182,9 +197,6 @@ pari_instance.PARI_TWO  = pari_instance.new_gen_noclear(gen_2)
 # Used in integer factorization
 cdef gen _tmp = pari_instance.new_gen_noclear(gp_read_str('1000000000000000'))
 cdef GEN ten_to_15 = _tmp.g
-
-# Size of pari "longword"
-cdef int sizeof_pari_word = BITS_IN_LONG >> 3
 
 # Used by new_gen_with_sp, which improves speed of new_gen a bit.
 cdef pari_sp stack_mark
@@ -411,7 +423,7 @@ cdef class gen:
 
     def __repr__(self):
         sig_on()
-        return P.new_gen_to_string(self.g)
+        return to_str(P.new_gen_to_bytes(self.g))
 
     def __hash__(self):
         """
@@ -520,7 +532,7 @@ cdef class gen:
         sig_on()
         return P.new_gen_with_sp(gmul(left.g, right.g))
 
-    def __div__(self, other):
+    def __truediv__(self, other):  # Python 3
         cdef gen left, right
         left = self if isinstance(self, gen) else P(self)
         right = other if isinstance(other, gen) else P(other)
@@ -528,6 +540,14 @@ cdef class gen:
         sig_on()
         return P.new_gen_with_sp(gdiv(left.g, right.g))
 
+    def __div__(self, other):  # Pyth0n 2
+        cdef gen left, right
+        left = self if isinstance(self, gen) else P(self)
+        right = other if isinstance(other, gen) else P(other)
+        set_mark()
+        sig_on()
+        return P.new_gen_with_sp(gdiv(left.g, right.g))
+    
     def _add_one(gen self):
         """
         Return self + 1.
@@ -1430,61 +1450,46 @@ cdef class gen:
         else:
             return eval(s)
 
-    def hex(gen self):
+    def __index__(gen self):
         """
-        Return the hexadecimal digits of self in lower case.
+        Return a python integer representing self.  Used by the hex builtin.
         
         EXAMPLES::
         
-            >>> print hex(pari(0))
+            >>> print( hex(pari(0)) )
+            0x0
+            >>> print( hex(pari(15)) )
+            0xf
+            >>> print( hex(pari(16)) )
+            0x10
+            >>> print( hex(pari(16938402384092843092843098243)) )
+            0x36bb1e3929d1a8fe2802f083
+            >>> print( hex(pari(-16938402384092843092843098243)) )
+            -0x36bb1e3929d1a8fe2802f083
+        """
+        return int(self)
+
+    def hex(self):
+        """
+        Return a string containing the hexadecimal digits of self, with sign.
+        
+        EXAMPLES::
+        
+            >>> print( pari(0).hex() )
             0
-            >>> print hex(pari(15))
+            >>> print( pari(15).hex() )
             f
-            >>> print hex(pari(16))
+            >>> print( pari(16).hex() )
             10
-            >>> print hex(pari(16938402384092843092843098243))
+            >>> print( pari(16938402384092843092843098243).hex() )
             36bb1e3929d1a8fe2802f083
-            >>> print hex(long(16938402384092843092843098243))
-            0x36bb1e3929d1a8fe2802f083L
-            >>> print hex(pari(-16938402384092843092843098243))
+            >>> print( hex(16938402384092843092843098243) )
+            0x36bb1e3929d1a8fe2802f083
+            >>> print( pari(-16938402384092843092843098243).hex() )
             -36bb1e3929d1a8fe2802f083
         """
-        cdef GEN x
-        cdef long lx, *xp
-        cdef long w
-        cdef char *s, *sp
-        cdef char *hexdigits
-        hexdigits = "0123456789abcdef"
-        cdef int i, j
-        cdef int size
-        x = self.g
-        if typ(x) != t_INT:
-            raise TypeError, "gen must be of PARI type t_INT"
-        if not signe(x):
-            return "0"
-        lx = lgefint(x)-2  # number of words
-        size = lx*2*sizeof(long)
-        s = <char *>PyMem_Malloc(size+2) # 1 char for sign, 1 char for '\0'
-        sp = s + size+1
-        sp[0] = 0
-        xp = int_LSW(x)
-        for i from 0 <= i < lx:
-            w = xp[0]
-            for j from 0 <= j < 2*sizeof(long):
-                sp = sp-1
-                sp[0] = hexdigits[w & 15]
-                w = w>>4
-            xp = int_nextW(xp)
-        # remove leading zeros!
-        while sp[0] == c'0':
-            sp = sp+1
-        if signe(x) < 0:
-            sp = sp-1
-            sp[0] = c'-'
-        k = <object>sp
-        PyMem_Free(s)
-        return k
-        
+        return hex(self).replace('0x', '')
+    
     def __int__(gen self):
         """
         Return Python int. Very fast, and if the number is too large to fit
@@ -1498,10 +1503,10 @@ cdef class gen:
             10
             >>> int(pari(-10))
             -10
-            >>> int(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            >>> int(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
+            >>> print( int(pari(123456789012345678901234567890)) )
+            123456789012345678901234567890
+            >>> print( int(pari(-123456789012345678901234567890)) )
+            -123456789012345678901234567890
             >>> int(pari('2^31-1'))
             2147483647
             >>> int(pari('-2^31'))
@@ -2506,7 +2511,7 @@ cdef class gen:
             >>> x = pari([1,2,3,4,5])
             >>> x.Ser()
             1 + 2*x + 3*x^2 + 4*x^3 + 5*x^4 + O(x^5)
-            >>> f = x.Ser('v'); print f
+            >>> f = x.Ser('v'); print(f)
             1 + 2*v + 3*v^2 + 4*v^3 + 5*v^4 + O(v^5)
             >>> pari(1)/f
             1 - 2*v + v^2 + O(v^5)
@@ -7242,7 +7247,7 @@ cdef class gen:
                 else:
                     raise err
             except:
-                print sys.exc_info()
+                print( sys.exc_info() )
                 
     # NOTE: because of the way sig_on() and Cython exceptions work, this
     # function MUST NOT be folded into nfinit() above. It has to be a
@@ -8824,10 +8829,10 @@ cdef void py_putchar(char c):
     cdef char str[2]
     str[0] = c
     str[1] = 0
-    sys.stdout.write(str)
+    sys.stdout.write(to_str(str))
 
 cdef void py_puts(const_char_star s):
-    sys.stdout.write(s)
+    sys.stdout.write(to_str(s))
 
 cdef void py_flush():
     sys.stdout.flush()
@@ -8939,17 +8944,17 @@ cdef class PariInstance:
         
     def stack_info(self):
         global avma, top, bot, mytop
-        print 'PARI stack size: %d'%(top - bot)
-        print 'used: %d'%(top - avma)
-        print 'available: %d'%(avma - bot)
-        print '%d %% full'%int(float(top - avma)/float(top-bot))
-        print 'used by cypari.gen: %d'%(top - mytop)
+        print( 'PARI stack size: %d'%(top - bot) )
+        print( 'used: %d'%(top - avma) )
+        print( 'available: %d'%(avma - bot) )
+        print( '%d %% full'%int(float(top - avma)/float(top-bot)) )
+        print( 'used by cypari.gen: %d'%(top - mytop) )
 
     def exception_info(self):
         global pari_error_number, setjmp_active, sig_on_sig_off
-        print 'Current error number: %d'%pari_error_number
-        print 'Setjmp enabled ? %d'%setjmp_active
-        print 'sig_on (+), sig_off(-) balance: %d'%sig_on_sig_off
+        print( 'Current error number: %d'%pari_error_number )
+        print( 'Setjmp enabled ? %d'%setjmp_active )
+        print( 'sig_on (+), sig_off(-) balance: %d'%sig_on_sig_off )
         
     def default(self, variable, value=None):
         if not value is None:
@@ -8994,7 +8999,7 @@ cdef class PariInstance:
         cdef unsigned long k
         
         k = GP_DATA.fmt.sigd
-        s = str(n)
+        s = to_bytes(str(n))
         sig_on()
         sd_realprecision(s, 2)
         sig_off()
@@ -9072,15 +9077,15 @@ cdef class PariInstance:
         sig_off()
         return g
 
-    cdef object new_gen_to_string(self, GEN x):
+    cdef object new_gen_to_bytes(self, GEN x):
         """
-        Convert a gen to a Python string, free the \*entire\* stack and call
+        Convert a gen to a Python byte array, free the \*entire\* stack and call
         sig_off(). This is meant to be used in place of new_gen().
         """
         #mc# But it is only used by gen.__repr__ as far as I can tell. (???)
         cdef char* c
         c = GENtostr(x)
-        s = str(c)
+        s = bytes(c)
         pari_free(c)
         global avma, mytop
         avma = mytop
@@ -9258,46 +9263,48 @@ cdef class PariInstance:
 
         if isinstance(s, gen):
             return s
-        elif hasattr(s, "_pari_"):
+        if hasattr(s, "_pari_"):
             return s._pari_()
         # Check for basic Python types
-        elif isinstance(s, int):
-            sig_on()
-            return self.new_leaf_gen(stoi(s))
-        elif isinstance(s, bool):
+        if isinstance(s, int):
+            try:
+                i = s
+                sig_on()
+                return self.new_leaf_gen(stoi(i))
+            except OverflowError:
+                pass
+        if isinstance(s, bool):
             if s:
                 return self.PARI_ONE
             else:
                 return self.PARI_ZERO
-        elif isinstance(s, float):
+        if isinstance(s, float):
             sig_on()
             return self.new_leaf_gen(dbltor(s))
-        elif isinstance(s, complex):
+        if isinstance(s, complex):
             sig_on()
             set_mark()
             z = cgetg(3, t_COMPLEX)
             set_gel(z, 1, dbltor(s.real))
             set_gel(z, 2, dbltor(s.imag))
             return self.new_gen_with_sp(z)
-        elif isinstance(s, (types.ListType, types.XRangeType,
-                            types.TupleType, types.GeneratorType)):
+        if isinstance(s, (list, xrange, tuple, types.GeneratorType)):
             length = len(s)
             v = self._empty_vector(length)
             for i from 0 <= i < length:
                 v[i] = self(s[i])
             return v
-        # In the generic case, convert the object to a string and
-        # hope that PARI can parse the string.
-        else:
-            global gnil
-            t = str(s)
-            set_mark()
-            sig_on()
-            z = gp_read_str(t)
-            if z == gnil:
-                sig_off()
-                return None
-            return self.new_gen(z)
+        # In the generic case, convert the object to a byte array and
+        # hope that PARI can parse it.
+        global gnil
+        t = to_bytes(str(s))
+        set_mark()
+        sig_on()
+        z = gp_read_str(t)
+        if z == gnil:
+            sig_off()
+            return None
+        return self.new_gen(z)
 
     def new_with_bits_prec(self, s, long precision):
         r"""
@@ -9322,7 +9329,7 @@ cdef class PariInstance:
         global jmp_env
         cdef int save
         if v != -1:
-            s = str(v)
+            s = to_bytes(str(v))
             # sig_on not allowed here - does not return an object.
             return fetch_user_var(s)
         return -1
@@ -9336,7 +9343,7 @@ cdef class PariInstance:
         Double the *PARI* stack.
         """
         if s == 0 and not silent:
-            print "Doubling the PARI stack."
+            print( "Doubling the PARI stack." )
         s = int(s)
         cdef size_t a = s
         if int(a) != s:
@@ -9383,7 +9390,7 @@ cdef class PariInstance:
     ## Support for GP Scripts
     ##############################################
 
-    def read(self, bytes filename):
+    def read(self, filename):
         r"""
         Read a script from the named filename into the interpreter.  The
         functions defined in the script are then available for use from
@@ -9396,10 +9403,10 @@ cdef class PariInstance:
         
             >>> import tempfile
             >>> gpfile = tempfile.NamedTemporaryFile(mode="w")
-            >>> gpfile.file.write("mysquare(n) = {\n")
-            >>> gpfile.file.write("    n^2;\n")
-            >>> gpfile.file.write("}\n")
-            >>> gpfile.file.write("polcyclo(5)\n")
+            >>> n = gpfile.file.write("mysquare(n) = {\n")
+            >>> n = gpfile.file.write("    n^2;\n")
+            >>> n = gpfile.file.write("}\n")
+            >>> n = gpfile.file.write("polcyclo(5)\n")
             >>> gpfile.file.flush()
         
         Reading it in, we get the result of the last line::
@@ -9412,8 +9419,9 @@ cdef class PariInstance:
             >>> pari('mysquare(12)')
             144
         """
+        cdef fname = to_bytes(filename)
         sig_on()
-        return self.new_gen(gp_read_file(filename))
+        return self.new_gen(gp_read_file(fname))
 
 
     ##############################################
@@ -9424,11 +9432,11 @@ cdef class PariInstance:
         in this Pari instance.
 
         EXAMPLES:
-            >>> pari._primelimit()
-            500000L
+            >>> print( pari._primelimit() )
+            500000
             >>> pari.init_primes(600000)
-            >>> pari._primelimit()
-            600000L
+            >>> print( pari._primelimit() )
+            600000
         """
         global num_primes
         return num_primes
@@ -9856,7 +9864,7 @@ cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address, pari_sp prior_sp):
     else:
         s = <size_t> (prior_sp - avma)
 
-    #print "Allocating %s bytes for PARI/Python object"%(<long> s)
+    #print( "Allocating %s bytes for PARI/Python object"%(<long> s) )
     # Trick PARI into using the mini-stack.
     bot = <pari_sp> PyMem_Malloc(s)
     top = avma = bot + s
@@ -10017,7 +10025,7 @@ class PariError(Exception):
     def errmessage(self, d):
         global noer
         if 0 < d <= noer:
-            return errmessage[d]
+            return to_str(errmessage[d])
         else:
             return "unknown"
 
@@ -10126,8 +10134,9 @@ cdef _factor_int_when_pari_factor_failed(x, failed_factorization):
     if len(P) == 1 and E[0] == 1:
         # Major problem -- factor can't split the integer at all,
         # but it's composite.  We're stuffed.
-        print "BIG WARNING: The number %s wasn't split at all by PARI, but it's definitely composite."%(P[0])
-        print "This is probably an infinite loop..."
+        print( "BIG WARNING: The number %s wasn't split at all by PARI,"
+               "but it's definitely composite."%(P[0]) )
+        print( "This is probably an infinite loop..." )
     w = []
     for i in range(len(P)):
         p = P[i]
