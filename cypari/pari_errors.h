@@ -17,6 +17,17 @@ int  (*cb_pari_whatnow)(PariOUT *out, const char *, int);
 void (*cb_pari_sigint)(void);
 void (*cb_pari_err_recover)(long);
 
+/* Declaraton of PARI's error handler */
+void pari_err(int numerr, ...);
+
+/* A flag we can check to see if an interrupt occured */
+
+int interrupt_flag = 0;
+
+/* A message for pari_err */
+
+char *interrupt_msg = "user interrupt";
+
 void set_error_handler( int (*handler)(long) ) {
   cb_pari_handle_exception = handler;
 }
@@ -25,8 +36,12 @@ void set_error_recoverer( void (*recoverer)(long) ) {
   cb_pari_err_recover = recoverer;
 }
 
+void set_sigint_handler(void (*handler)(void)) {
+  cb_pari_sigint = handler;
+}
+
 #define SIG_ON_MACRO() {			\
-    /*    sig_on_sig_off += 1; */		\
+    set_pari_signals();				\
     setjmp_active = 1;				\
     if ( setjmp(jmp_env) ) {			\
       return NULL;				\
