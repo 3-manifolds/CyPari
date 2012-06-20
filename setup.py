@@ -26,7 +26,7 @@ pari_gen = Extension('cypari.gen',
                      sources = ['cypari/gen.pyx'],
                      include_dirs = [pari_include_dir],
                      library_dirs = [pari_library_dir],
-                     libraries = ['pari'])
+                     libraries = ['pari', 'm'])
 
 setup(
   name = 'cypari',
