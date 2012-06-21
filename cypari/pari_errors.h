@@ -38,6 +38,17 @@ void set_sigint_handler(void (*handler)(void)) {
   cb_pari_sigint = handler;
 }
 
+#ifdef __MINGW32__
+
+#define SIG_ON_MACRO() {			\
+    setjmp_active = 1;				\
+    if ( setjmp(jmp_env) ) {			\
+      return NULL;				\
+    }						\
+  }						\
+
+#else
+
 #define SIG_ON_MACRO() {			\
     set_pari_signals();				\
     setjmp_active = 1;				\
@@ -45,5 +56,7 @@ void set_sigint_handler(void (*handler)(void)) {
       return NULL;				\
     }						\
   }						\
+
+#endif
 
 #endif

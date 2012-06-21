@@ -11,6 +11,13 @@ extern GEN factorint(GEN, long);
 #include "interrupt.h"
 */
 
+#ifdef __MINGW32__
+#define sig_t __p_sig_fn_t
+#define SIGALRM 0
+#define SIGBUS 0
+#define SIGPIPE 0
+#endif
+
 /*****************************************
    Interrupts and PARI exception handling
  *****************************************/
@@ -46,7 +53,6 @@ inline int
 gcmp_sage(GEN x, GEN y)
 {
   long tx = typ(x), ty = typ(y), f;
-  GEN tmp;
   pari_sp av;
 
   if (is_intreal_t(tx) && is_intreal_t(ty)) {
