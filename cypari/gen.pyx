@@ -171,7 +171,6 @@ import sys
 import math
 import types
 import operator
-import signal as py_signal
 
 if sys.version_info[0] == 3: # Python 3
     xrange = range
@@ -8887,13 +8886,17 @@ cdef class PariInstance:
         # The size here doesn't really matter, because we will allocate
         # our own stack anyway. We ask PARI not to set up signal handlers.
 #        pari_init_opts(10000, maxprime, INIT_JMPm | INIT_DFTm)
-        # MC - we *do* let pari use its own signal handler
-        global set_pari_signals, unset_pari_signals, pari_signal_handler
-        pari_signal_handler = SIG_DFL
-        set_pari_signals()  # this saves our current handlers.
-        pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
-        pari_signal_handler = signal(SIGINT, SIG_DFL) # steal the pointer
-        unset_pari_signals() # restores our handlers
+        IF UNAME_SYSNAME != 'Windows':
+        # MC - we *do* let pari install its signal handler
+            global set_pari_signals, unset_pari_signals, pari_signal_handler
+            pari_signal_handler = SIG_DFL
+            set_pari_signals()  # this saves our current handlers.
+            pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
+        IF UNAME_SYSNAME == 'Windows':
+            pari_init_opts(10000, maxprime, INIT_DFTm)
+        IF UNAME_SYSNAME != 'Windows':
+            pari_signal_handler = signal(SIGINT, SIG_DFL) # steal the pointer
+            unset_pari_signals() # restores our handlers
         num_primes = maxprime
         # Set the PARI callbacks
         set_error_handler(&pari_error_handler)
@@ -10143,7 +10146,8 @@ cdef inline void sig_off():
     pari_error_number = noer
     setjmp_active = 0
     interrupt_flag = 0
-    unset_pari_signals()
+    IF UNAME_SYSNAME != 'Windows':
+        unset_pari_signals()
 
 # We don't use sig_str, but Sage did.  If needed, write this.
 cdef inline int sig_str(char *message):
