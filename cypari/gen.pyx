@@ -171,7 +171,6 @@ import sys
 import math
 import types
 import operator
-import signal as py_signal
 
 if sys.version_info[0] == 3: # Python 3
     xrange = range
