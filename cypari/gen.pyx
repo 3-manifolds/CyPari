@@ -171,6 +171,7 @@ import sys
 import math
 import types
 import operator
+import signal as py_signal
 
 if sys.version_info[0] == 3: # Python 3
     xrange = range
@@ -179,7 +180,7 @@ if sys.version_info[0] == 3: # Python 3
 else: # Python 2
     str_to_chars = lambda s : s
     chars_to_str = lambda s : s
-    
+
 # Our unique PARI instance.
 cdef PariInstance pari_instance, P
 pari_instance = PariInstance(16000000, 500000)
@@ -203,7 +204,6 @@ cdef pari_sp stack_mark
 cdef inline void set_mark():
     global stack_mark, avma
     stack_mark = avma
-
 
 ##############################################
 
@@ -8831,7 +8831,8 @@ cdef void py_putchar(char c):
     s[1] = 0
     sys.stdout.write(chars_to_str(s))
 
-cdef void py_puts(const_char_star s):
+# allow exceptions by having it return a python object.
+cdef py_puts(const_char_star s):
     sys.stdout.write(chars_to_str(s))
 
 cdef void py_flush():
@@ -8886,19 +8887,22 @@ cdef class PariInstance:
         # The size here doesn't really matter, because we will allocate
         # our own stack anyway. We ask PARI not to set up signal handlers.
 #        pari_init_opts(10000, maxprime, INIT_JMPm | INIT_DFTm)
+        # MC - we *do* let pari use its own signal handler
         global set_pari_signals, unset_pari_signals, pari_signal_handler
         pari_signal_handler = SIG_DFL
-        set_pari_signals()  # this saves our handlers.
+        set_pari_signals()  # this saves our current handlers.
         pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
         pari_signal_handler = signal(SIGINT, SIG_DFL) # steal the pointer
         unset_pari_signals() # restores our handlers
         num_primes = maxprime
+        # Set the PARI callbacks
         set_error_handler(&pari_error_handler)
         set_error_recoverer(&pari_error_recoverer)
         set_sigint_handler(&pari_sigint_handler)
         
         # NOTE: sig_on() can only come AFTER pari_init_opts()!
         # compiler complains
+        # MC - I don't think we need it anyway.
         #sig_on()
 
         # Free the PARI stack and allocate our own (using Cython)
@@ -8913,7 +8917,7 @@ cdef class PariInstance:
         global pariOut
         pariOut = &pari_output
         pariOut.putch = py_putchar
-        pariOut.puts = py_puts
+        pariOut.puts =  <void(*)(const_char_star)>py_puts
         pariOut.flush = py_flush
         #sig_off()
         self.speak_up()
@@ -8932,6 +8936,27 @@ cdef class PariInstance:
     def __hash__(self):
         return 907629390   # hash('pari')
 
+    def abort(self):
+        """
+        Abort a long-running pari computation by calling pari_err.
+        This only has effect if the computation is inside of a
+        sig_on - sig_off pair.  It causes a longjmp back to the
+        sig_on, which returns NULL to raise a Python exception.
+        """
+        # Actually, we just call our sigint handler
+        global pari_sigint_handler
+        pari_sigint_handler()
+
+    def _set_alarm_handler(self, handler):
+        """
+        Set a callback to be called when PARI receives a SIGALRM.
+        The handler should be a python function or lambda which
+        requires no arguments.  The handler can call pari.abort()
+        for example.
+        """
+        global alarm_handler
+        alarm_handler = handler
+    
     def shut_up(self):
         global pariErr
         pariErr = &pari_error
@@ -8943,7 +8968,7 @@ cdef class PariInstance:
         global pariErr
         pariErr = &pari_error
         pariErr.putch = py_putchar
-        pariErr.puts = py_puts
+        pariErr.puts = <void(*)(const_char_star)>py_puts
         pariErr.flush = py_flush
         
     def stack_info(self):
@@ -10076,30 +10101,41 @@ cdef public jmp_buf jmp_env
 cdef extern from "signal.h":
     ctypedef void (*sig_t) (int) 
     sig_t SIG_DFL
-    int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE
+    int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
     sig_t signal(int sig, sig_t func)
 
-cdef sig_t handler[5]
+cdef sig_t handler[6]
 cdef sig_t pari_signal_handler
 cdef int num_signals = 3 if sys.platform == 'win32' else 5
 # http://trac.cython.org/cython_trac/ticket/113
-pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE)
-cdef int pari_sig[5]
+pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM)
+cdef int pari_sig[6]
 cdef int n
-for n in range(5):
+for n in range(6):
     pari_sig[n] = pari_signals[n]
+
+def alarm_handler():
+    pass
+
+cdef void sigalrm_handler(int signal):
+    global alarm_handler
+    alarm_handler()
 
 cdef public void set_pari_signals(): # called by sig_on
     cdef int n
-    global num_signals, pari_sig
+    global num_signals, pari_sig, alarm_handler
     for n in range(num_signals):
         handler[n] = signal(pari_sig[n], pari_signal_handler)
-
+    #use python to handle SIGALRM
+    handler[6] = signal(SIGALRM, SIG_DFL)
+    signal(SIGALRM, <void(*)(int)>sigalrm_handler)
+    
 cdef public void unset_pari_signals(): # called by sig_off
     cdef int n
     global num_signals, pari_sig
     for n in range(num_signals):
         signal(pari_sig[n], handler[n])
+    signal(SIGALRM, handler[6])
 
 # Our sig_off just resets the flags and signals
 cdef inline void sig_off():
@@ -10122,6 +10158,7 @@ cdef int pari_error_handler(long errno) except 0:
     #print('\nerror_handler: %d'%errno)
     global interrupt_flag
     if interrupt_flag:
+        interrupt_flag = 0
         raise PariError(-1)
     else:
         raise PariError(errno)
@@ -10140,10 +10177,10 @@ cdef void pari_error_recoverer(long errno):
 # interrupt flag and then behaves like PARI's default handler.
 
 cdef void pari_sigint_handler():
-    global interrupt_flag, interrupt_msg
+    global interrupt_flag
     interrupt_flag = 1
     pari_err(talker, interrupt_msg)
-
+    
 #####################################
     
 cdef extern from "misc.h":

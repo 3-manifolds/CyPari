@@ -21,12 +21,10 @@ void (*cb_pari_err_recover)(long);
 void pari_err(int numerr, ...);
 
 /* A flag we can check to see if an interrupt occured */
-
 int interrupt_flag = 0;
 
 /* A message for pari_err */
-
-char *interrupt_msg = "user interrupt";
+char *interrupt_msg = "user interrupt\n";
 
 void set_error_handler( int (*handler)(long) ) {
   cb_pari_handle_exception = handler;
