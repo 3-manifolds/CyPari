@@ -8947,9 +8947,10 @@ cdef class PariInstance:
         sig_on, which returns NULL to raise a Python exception.
         """
         # Actually, we just call our sigint handler
-        global pari_sigint_handler
-        pari_sigint_handler()
-
+        global pari_sigint_handler, setjmp_active
+        if setjmp_active:
+            pari_sigint_handler()
+        
     def _set_alarm_handler(self, handler):
         """
         Set a callback to be called when PARI receives a SIGALRM.
@@ -9960,9 +9961,9 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
     else:
         return v
 
-#######################
-# PARI Error handling
-#######################
+###################################
+# PARI Error handling and signals #
+###################################
 
 
 # About PARI exceptions -- MC
@@ -9986,24 +9987,28 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 # be guaranteed that pari_error will never return.  So we must provide
 # that guarantee.
 #
-# PARI provides a callback mechanism for handling the error processing.
-# The pari_error function calls two user-controllable callback functions:
-# cb_pari_handle_exception() is called first.  If the return value is 0
-# then err_recover() is called.  It does some cleanup, and then calls
-# the second callback, cb_pari_err_recover is called.  For this package
-# cb_pari_handle_exception simply raises a python PariError and returns 0
-# while cb_pari_err_recover calls longjmp.  To make this work, the longjmp
-# must jump to some code which alerts the python interpreter that an
-# an exception is pending.  It is also important that the state of the
-# python interpreter not change between the setjmp and the longjmp.  These
-# must appear in a block of code that is atomic from the interpreter's
-# point of view.
+#
+# PARI provides a callback mechanism for handling the error
+# processing.  The pari_error function calls two user-controllable
+# callback functions: cb_pari_handle_exception() is called first.  If
+# the return value is 0 then err_recover() is called.  It does some
+# cleanup, and then calls the second callback, cb_pari_err_recover.
+# In this implementation cb_pari_handle_exception simply raises a
+# python PariError and returns 0 while cb_pari_err_recover calls
+# longjmp.  To make this work, the longjmp must jump into some code
+# which alerts the python interpreter that an an exception is pending,
+# i.e it should return NULL.  It is also important that the state of
+# the python interpreter not change between the setjmp and the
+# longjmp.  These must appear in a block of code that is atomic from
+# the interpreter's point of view.
 #
 # On the Cython side, the Sage authors provide a mechanism for handling
 # exceptions via their sig_on() and sig_off() functions.  These calls are
 # inserted into the sage code so that they bracket blocks of pure pari
 # calls.  In our setup, sig_on simply calls setjmp, while sig_off resets
-# some global flags that describe the exception-processing state.
+# the global flags that describe the exception-processing state.  These
+# functions also set and unset signal handlers for signals that arrive
+# during a PARI computation.
 #
 # There is another limitation imposed by the setjmp-longjmp paradigm.
 # It is crucial that the call to longjmp must occur within the same
@@ -10017,15 +10022,16 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 # python handles pending exceptions.  So our simple sig_on macro just
 # looks like this: (See pari_errors.h)
 #  #define SIG_ON_MACRO() {			\
+#    set_pari_signals();	       		\
 #    setjmp_active = 1;				\
 #      if ( setjmp(jmp_env) ) {			\
 #        return NULL;				\
-#     }						\
+#      }						\
 #    }						\
 # The setjmp_active flag is used by our cb_pari_err_recover to ensure
 # that longjmp is not called from pari_error() without having first
-# called setjmp.  I don't think it is needed now, but it helped with
-# debugging.
+# called setjmp.  It is also checked by pari.abort to determine whether
+# pari code is running.
 
 # About PARI signal handling -- MC
 # --------------------------------
@@ -10036,12 +10042,12 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 # and calls pari_error with error number bugparier.  The call
 # pari_sig_init(pari_sighandler) installs PARI's signal handler on
 # all 6 signals.  However, pari_sighandler is a static function.
-# So we just let pari initialize its own signals and then save
-# the handler.
+# So we just let pari initialize its own signals and then grab
+# a pointer to the handler.
 #
-# The default sigint handler used by pari calls pari_err.  Ours
+# The default sigint handler used by PARI calls pari_err.  Ours
 # does the same thing, after setting a flag.  The flag is checked
-# by pari_error_handler.  If set it raises the PariError with
+# by pari_error_handler.  If set, it raises the PariError with
 # errno=-1, which produces an appropriate message.
 
 cdef extern from "pari/pari.h":
@@ -10057,7 +10063,6 @@ cdef extern from "pari/pari.h":
     void (*cb_pari_sigint)()    # called by PARI on SIGINT, SIGBREAK
 
 # Our exception class for PARI exceptions.
-
 class PariError(Exception):
 
     def __repr__(self):
@@ -10110,13 +10115,14 @@ cdef extern from "signal.h":
 cdef sig_t handler[6]
 cdef sig_t pari_signal_handler
 cdef int num_signals = 3 if sys.platform == 'win32' else 5
-# http://trac.cython.org/cython_trac/ticket/113
-pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM)
-cdef int pari_sig[6]
+# See http://trac.cython.org/cython_trac/ticket/113
+pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE)
+cdef int pari_sig[5]
 cdef int n
-for n in range(6):
+for n in range(5):
     pari_sig[n] = pari_signals[n]
 
+# The defualt alarm handler does nothing.
 def alarm_handler():
     pass
 
@@ -10129,7 +10135,6 @@ cdef public void set_pari_signals(): # called by sig_on
     global num_signals, pari_sig, alarm_handler
     for n in range(num_signals):
         handler[n] = signal(pari_sig[n], pari_signal_handler)
-    #use python to handle SIGALRM
     handler[6] = signal(SIGALRM, SIG_DFL)
     signal(SIGALRM, <void(*)(int)>sigalrm_handler)
     
@@ -10140,7 +10145,7 @@ cdef public void unset_pari_signals(): # called by sig_off
         signal(pari_sig[n], handler[n])
     signal(SIGALRM, handler[6])
 
-# Our sig_off just resets the flags and signals
+# sig_off resets all the flags and signals
 cdef inline void sig_off():
     global pari_error_number, noer, setjmp_active, interrupt_flag
     pari_error_number = noer
@@ -10191,8 +10196,8 @@ cdef extern from "misc.h":
     int     factorint_withproof_sage(GEN* ans, GEN x, GEN cutoff)
     int     gcmp_sage(GEN x, GEN y)
 
-# Not used
-##########
+# Not used here
+###############
 # We expose a trap function to C.
 # If this function returns without raising an exception,
 # the code is retried.
