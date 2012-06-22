@@ -8891,13 +8891,13 @@ cdef class PariInstance:
         # MC - we *do* let pari install its signal handler
             global set_pari_signals, unset_pari_signals, pari_signal_handler
             pari_signal_handler = SIG_IGN
-            set_pari_signals()  # this saves our current handlers.
+            set_pari_signals()  # this saves the current handlers.
             pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
         IF UNAME_SYSNAME == 'Windows':
             pari_init_opts(10000, maxprime, INIT_DFTm)
         IF UNAME_SYSNAME != 'Windows':
             pari_signal_handler = signal(SIGINT, SIG_IGN) # steal the pointer
-            unset_pari_signals() # restores our handlers
+            unset_pari_signals() # restores the handlers
         num_primes = maxprime
         # Set the PARI callbacks
         set_error_handler(&pari_error_handler)
@@ -10051,6 +10051,19 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 # by pari_error_handler.  If set, it raises the PariError with
 # errno=-1, which produces an appropriate message.
 
+# About Python signal handling -- MC
+# ----------------------------------
+# The python signal module cannot be used to interrupt C code.
+# Before each atomic step of the interpreter it sets a signal
+# handler which simply records any signals which have handlers
+# registered through the signal module.  These handlers are run
+# at the end of the step, via Py_MakePendingCalls.  If the code
+# does not return to the interpreter the handlers are not called.
+#
+# So we have to use signal.h to make long-running pari code
+# interruptible.
+#
+
 cdef extern from "pari/pari.h":
     char *errmessage[]
     int talker2, bugparier, alarmer, openfiler, talker, flagerr, impl, \
@@ -10113,7 +10126,8 @@ cdef extern from "signal.h":
     int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
     sig_t signal(int sig, sig_t func)
 
-cdef sig_t handler[6]
+cdef sig_t old_handlers[5]
+cdef sig_t old_sigalrm_handler
 cdef sig_t pari_signal_handler
 cdef int num_signals = 3 if sys.platform == 'win32' else 5
 # See http://trac.cython.org/cython_trac/ticket/113
@@ -10133,21 +10147,21 @@ cdef void sigalrm_handler(int signal):
 
 cdef public void set_pari_signals(): # called by sig_on
     cdef int n
-    global num_signals, pari_sig, alarm_handler
+    global num_signals, pari_sig
+    global old_handlers, old_sigalrm_handler
+    global sigalrm_handler, pari_signal_handler
     for n in range(num_signals):
-        handler[n] = signal(pari_sig[n], pari_signal_handler)
-    handler[6] = signal(SIGALRM, SIG_IGN)
-    signal(SIGALRM, <void(*)(int)>sigalrm_handler)
+        old_handlers[n] = signal(pari_sig[n], pari_signal_handler)
+    old_sigalrm_handler = signal(SIGALRM, SIG_IGN)
+    signal(SIGALRM, sigalrm_handler)
     
 cdef public void unset_pari_signals(): # called by sig_off
     cdef int n
     global num_signals, pari_sig
+    global old_handlers, old_sigalrm_handler
     for n in range(num_signals):
-        signal(pari_sig[n], handler[n])
-    signal(SIGALRM, handler[6])
-    # For some reason that I don't understand, restoring these
-    # saved handlers trashes python's default SIGINT handler.
-    pysignal.signal(pysignal.SIGINT, pysignal.default_int_handler)
+        signal(pari_sig[n], old_handlers[n])
+    signal(SIGALRM, old_sigalrm_handler)
 
 # sig_off resets all the flags and signals
 cdef inline void sig_off():
@@ -10193,7 +10207,12 @@ cdef void pari_sigint_handler():
     global interrupt_flag
     interrupt_flag = 1
     pari_err(talker, interrupt_msg)
-    
+
+# For reasons that I do not understand, the initialization of
+# this module trashes Python's default SIGINT handler.
+
+pysignal.signal(pysignal.SIGINT, pysignal.default_int_handler)
+
 #####################################
     
 cdef extern from "misc.h":
