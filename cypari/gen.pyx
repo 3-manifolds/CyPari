@@ -8890,13 +8890,13 @@ cdef class PariInstance:
         IF UNAME_SYSNAME != 'Windows':
         # MC - we *do* let pari install its signal handler
             global set_pari_signals, unset_pari_signals, pari_signal_handler
-            pari_signal_handler = SIG_DFL
+            pari_signal_handler = SIG_IGN
             set_pari_signals()  # this saves our current handlers.
             pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
         IF UNAME_SYSNAME == 'Windows':
             pari_init_opts(10000, maxprime, INIT_DFTm)
         IF UNAME_SYSNAME != 'Windows':
-            pari_signal_handler = signal(SIGINT, SIG_DFL) # steal the pointer
+            pari_signal_handler = signal(SIGINT, SIG_IGN) # steal the pointer
             unset_pari_signals() # restores our handlers
         num_primes = maxprime
         # Set the PARI callbacks
@@ -10109,7 +10109,7 @@ cdef public jmp_buf jmp_env
 
 cdef extern from "signal.h":
     ctypedef void (*sig_t) (int) 
-    sig_t SIG_DFL
+    sig_t SIG_IGN
     int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
     sig_t signal(int sig, sig_t func)
 
@@ -10123,7 +10123,7 @@ cdef int n
 for n in range(5):
     pari_sig[n] = pari_signals[n]
 
-# The defualt alarm handler does nothing.
+# The default alarm handler does nothing.
 def alarm_handler():
     pass
 
@@ -10136,7 +10136,7 @@ cdef public void set_pari_signals(): # called by sig_on
     global num_signals, pari_sig, alarm_handler
     for n in range(num_signals):
         handler[n] = signal(pari_sig[n], pari_signal_handler)
-    handler[6] = signal(SIGALRM, SIG_DFL)
+    handler[6] = signal(SIGALRM, SIG_IGN)
     signal(SIGALRM, <void(*)(int)>sigalrm_handler)
     
 cdef public void unset_pari_signals(): # called by sig_off
