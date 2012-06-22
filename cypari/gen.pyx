@@ -171,6 +171,7 @@ import sys
 import math
 import types
 import operator
+import signal as pysignal
 
 if sys.version_info[0] == 3: # Python 3
     xrange = range
@@ -10144,6 +10145,9 @@ cdef public void unset_pari_signals(): # called by sig_off
     for n in range(num_signals):
         signal(pari_sig[n], handler[n])
     signal(SIGALRM, handler[6])
+    # For some reason that I don't understand, restoring these
+    # saved handlers trashes python's default SIGINT handler.
+    pysignal.signal(pysignal.SIGINT, pysignal.default_int_handler)
 
 # sig_off resets all the flags and signals
 cdef inline void sig_off():
