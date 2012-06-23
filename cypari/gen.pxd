@@ -11,7 +11,7 @@ cdef class gen:
     cdef void init(self, GEN g, pari_sp b)
     cdef GEN _gen(self)
     cdef gen new_gen(self, GEN x)
-    cdef gen new_gen_with_sp(self, GEN x)
+#    cdef gen new_gen_with_sp(self, GEN x)
     cdef gen new_leaf_gen(self, GEN x)
     cdef gen new_gen_noclear(self, GEN x)
     cdef gen pari(self, object x)

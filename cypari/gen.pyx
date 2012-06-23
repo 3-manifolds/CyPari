@@ -199,7 +199,10 @@ pari_instance.PARI_TWO  = pari_instance.new_gen_noclear(gen_2)
 cdef gen _tmp = pari_instance.new_gen_noclear(gp_read_str('1000000000000000'))
 cdef GEN ten_to_15 = _tmp.g
 
-# Used by new_gen_with_sp, which improves speed of new_gen a bit.
+# Used by new_gen_with_sp, which improves speed of new_gen a bit,
+# but fails in degenerate cases where one of the components
+# is 0, 1 or 2 since these are not stored on the stack when doing
+# the computation but are actually copied by gcopy.
 cdef pari_sp stack_mark
 cdef inline void set_mark():
     global stack_mark, avma
@@ -514,7 +517,7 @@ cdef class gen:
         left = self if isinstance(self, gen) else P(self)
         right = other if isinstance(other, gen) else P(other)
         sig_on()
-        return P.new_gen_with_sp(gadd(left.g, right.g))
+        return P.new_gen(gadd(left.g, right.g))
 
     def __sub__(self, other):
         cdef gen left, right
@@ -522,7 +525,7 @@ cdef class gen:
         right = other if isinstance(other, gen) else P(other)
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gsub(left.g, right.g))
+        return P.new_gen(gsub(left.g, right.g))
 
     def __mul__(self, other):
         cdef gen left, right
@@ -530,7 +533,7 @@ cdef class gen:
         right = other if isinstance(other, gen) else P(other)
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gmul(left.g, right.g))
+        return P.new_gen(gmul(left.g, right.g))
 
     def __truediv__(self, other):  # Python 3
         cdef gen left, right
@@ -538,16 +541,17 @@ cdef class gen:
         right = other if isinstance(other, gen) else P(other)
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gdiv(left.g, right.g))
+        return P.new_gen(gdiv(left.g, right.g))
 
     def __div__(self, other):  # Pyth0n 2
         cdef gen left, right
         left = self if isinstance(self, gen) else P(self)
         right = other if isinstance(other, gen) else P(other)
-        set_mark()
         sig_on()
-        return P.new_gen_with_sp(gdiv(left.g, right.g))
-    
+        set_mark()
+        return P.new_gen(gdiv(left.g, right.g))
+        #return P.new_gen(gdiv(left.g, right.g))
+
     def _add_one(gen self):
         """
         Return self + 1.
@@ -565,7 +569,7 @@ cdef class gen:
         """
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gaddsg(1, self.g))
+        return P.new_gen(gaddsg(1, self.g))
 
     def __mod__(self, other):
         cdef gen left, right
@@ -573,7 +577,7 @@ cdef class gen:
         right = other if isinstance(other, gen) else P(other)
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gmod(left.g, right.g))
+        return P.new_gen(gmod(left.g, right.g))
 
     def __pow__(self, n, m):
         t0GEN(self)
@@ -589,7 +593,7 @@ cdef class gen:
     def __neg__(gen self):
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gneg(self.g))
+        return P.new_gen(gneg(self.g))
 
     def __xor__(gen self, n):
         raise RuntimeError, "Use ** for exponentiation, not '^', which means xor\n"+\
@@ -598,17 +602,17 @@ cdef class gen:
     def __rshift__(gen self, long n):
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gshift(self.g, -n))
+        return P.new_gen(gshift(self.g, -n))
 
     def __lshift__(gen self, long n):
         set_mark()
         sig_on()
-        return P.new_gen_with_sp(gshift(self.g, n))
+        return P.new_gen(gshift(self.g, n))
 
     def __invert__(gen self):
         set_mark()
         sig_on()        
-        return P.new_gen_with_sp(ginv(self.g))
+        return P.new_gen(ginv(self.g))
 
     def getattr(self, attr):
         t0GEN(str(self) + '.' + str(attr))
@@ -8276,10 +8280,7 @@ cdef class gen:
                 return _factor_int_when_pari_factor_failed(self, z)
         else:
             sig_on()
-#            SIG_ON()
-#            set_mark()
             return P.new_gen(factor0(self.g, limit)) 
-            #mc# Why does new_gen_with_sp segfault here?
             
     ###########################################
     # misc (classify when I know where they go)
@@ -8801,9 +8802,6 @@ cdef class gen:
     cdef gen new_gen(self, GEN x):
         return P.new_gen(x)
 
-    cdef gen new_gen_with_sp(self, GEN x):
-        return P.new_gen_with_sp(x)
-
     cdef gen new_leaf_gen(self, GEN x):
         return P.new_leaf_gen(x)
     
@@ -9087,6 +9085,12 @@ cdef class PariInstance:
 
         To use this, call set_mark() before building x as the last GEN on the
         stack (usually in the function call itself).
+
+        Unfortunately this crashes with a stack overflow in cases like
+        pari(1)/pari(2).  The fraction 1/2 can be created on the stack
+        with 3 words, since 1 and 2 are special values that are stored
+        off the stack.  But gcopy uses 9 words since it makes copies of
+        1 and 2.  Too bad.
         """
         cdef gen g
         g = _new_gen(x, stack_mark)
@@ -9321,7 +9325,7 @@ cdef class PariInstance:
             z = cgetg(3, t_COMPLEX)
             set_gel(z, 1, dbltor(s.real))
             set_gel(z, 2, dbltor(s.imag))
-            return self.new_gen_with_sp(z)
+            return self.new_gen(z)
         if isinstance(s, (list, xrange, tuple, types.GeneratorType)):
             length = len(s)
             v = self._empty_vector(length)
