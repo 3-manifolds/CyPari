@@ -8840,6 +8840,7 @@ cdef void py_swallow():
     pass
 
 cdef class PariInstance:
+
     def __init__(self, long size=16000000, unsigned long maxprime=500000):
         """
         Initialize the PARI system.
@@ -8881,6 +8882,11 @@ cdef class PariInstance:
         if bot:
             return  # pari already initialized.
         global num_primes, avma, top, bot, prec, global_err_data
+        # If this is not None, it will be called whenever we receive
+        # a SIGALRM signal.  Setting this to a callable object allows a
+        # GUI to make updates and check for user interrupts during
+        # a long PARI computation.
+        self.UI_callback = None
         
         # The size here doesn't really matter, because we will allocate
         # our own stack anyway. We ask PARI not to set up signal handlers.
@@ -10133,13 +10139,14 @@ cdef int n
 for n in range(5):
     pari_sig[n] = pari_signals[n]
 
-# The default alarm handler does nothing.
-def alarm_handler():
-    pass
+# Callback to allow a GUI to make updates and check for user
+# interrupts during a long computation.  If we receive a SIGALRM and
+# this is not null, we call it.
 
 cdef void sigalrm_handler(int signum):
-    global alarm_handler
-    alarm_handler()
+    global pari_instance
+    if pari_instance.UI_callback is not None:
+        pari_instance.UI_callback()
 
 # Our replacement for PARI's signal handler.  Uses
 # our callback for SIGINT, ignores the rest.

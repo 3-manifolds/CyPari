@@ -24,6 +24,7 @@ cdef class gen:
 
 #cdef class PariInstance(sage.structure.parent_base.ParentWithBase):
 cdef class PariInstance:
+    cdef public UI_callback
     cdef gen PARI_ZERO, PARI_ONE, PARI_TWO
     cdef gen new_gen(self, GEN x)
     cdef gen new_gen_with_sp(self, GEN x)
