@@ -397,7 +397,7 @@ cdef extern from 'pari/pari.h':
     GEN     gomega(GEN n)
     GEN     gsumdiv(GEN n)
     GEN     gsumdivk(GEN n,long k)
-    char*   initprimes(ulong maxnum)
+    unsigned char*   initprimes(ulong maxnum)
     long    issquarefree(GEN x)
     ulong   maxprime()
     void    maxprime_check(ulong c)
@@ -1595,7 +1595,7 @@ cdef extern from *:   # paristio.h
         void (*puts)(char*)
         void (*flush)()
     extern PariOUT *pariOut, *pariErr
-
+    extern unsigned char* diffptr
 
 cdef extern from 'pari/paripriv.h':
     struct pariout_t:

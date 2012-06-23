@@ -8884,23 +8884,14 @@ cdef class PariInstance:
         
         # The size here doesn't really matter, because we will allocate
         # our own stack anyway. We ask PARI not to set up signal handlers.
-#        pari_init_opts(10000, maxprime, INIT_JMPm | INIT_DFTm)
-        IF UNAME_SYSNAME != 'Windows':
-        # MC - we *do* let pari install its signal handler
-            global set_pari_signals, unset_pari_signals, pari_signal_handler
-            pari_signal_handler = SIG_IGN
-            set_pari_signals()  # this saves the current handlers.
-            pari_init_opts(10000, maxprime, INIT_DFTm | INIT_SIGm)
-        IF UNAME_SYSNAME == 'Windows':
-            pari_init_opts(10000, maxprime, INIT_DFTm)
-        IF UNAME_SYSNAME != 'Windows':
-            pari_signal_handler = signal(SIGINT, SIG_IGN) # steal the pointer
-            unset_pari_signals() # restores the handlers
+        pari_init_opts(10000, maxprime, INIT_DFTm)
         num_primes = maxprime
-        # Set the PARI callbacks
+        # MC - Set the PARI callbacks for error handling
         set_error_handler(&pari_error_handler)
         set_error_recoverer(&pari_error_recoverer)
-        set_sigint_handler(&pari_sigint_handler)
+        # MC - if we were using PARI's signal handler, this would
+        # install our sigint callback.
+        #set_sigint_handler(&pari_sigint_handler)
         
         # NOTE: sig_on() can only come AFTER pari_init_opts()!
         # compiler complains
@@ -8946,9 +8937,8 @@ cdef class PariInstance:
         sig_on, which returns NULL to raise a Python exception.
         """
         # Actually, we just call our sigint handler
-        global pari_sigint_handler, setjmp_active
-        if setjmp_active:
-            pari_sigint_handler()
+        global pari_sigint_handler
+        pari_sigint_handler()
         
     def _set_alarm_handler(self, handler):
         """
@@ -8986,7 +8976,6 @@ cdef class PariInstance:
         global pari_error_number, setjmp_active, sig_on_sig_off
         print( 'Current error number: %d'%pari_error_number )
         print( 'Setjmp enabled ? %d'%setjmp_active )
-        print( 'sig_on (+), sig_off(-) balance: %d'%sig_on_sig_off )
         
     def default(self, variable, value=None):
         if not value is None:
@@ -9411,7 +9400,7 @@ cdef class PariInstance:
             >>> pari.init_primes(200000)
         """
         cdef unsigned long M
-        cdef char *tmpptr
+        cdef unsigned char *tmpptr
         M = _M
         global diffptr, num_primes
         if M <= num_primes:
@@ -10033,22 +10022,26 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
 #        return NULL;				\
 #      }						\
 #    }						\
-# The setjmp_active flag is used by our cb_pari_err_recover to ensure
-# that longjmp is not called from pari_error() without having first
-# called setjmp.  It is also checked by pari.abort to determine whether
-# pari code is running.
+# The setjmp_active flag is set only by a call to sig_on.  It is
+# cleared by sig_off. It is checked by our cb_pari_err_recover to
+# ensure that longjmp is not called from pari_error() without having
+# first called setjmp, and that the jump is only taken once.  (It is
+# cleared before the jump, by calling sig_off.)  The flag is also
+# checked by the pari_sigint_handler, which calls pari_err, to prevent
+# loops.
 
 # About PARI signal handling -- MC
 # --------------------------------
 #
+
 # PARI provides a callback, cb_pari_sigint, for dealing with user
 # interrupts.  PARI's pari_sighandler calls this on SIGINT or
-# SIGBREAK, and for SIGSEGV, SIGBUS, SIGFPE, SIGPIPE it prints a message
-# and calls pari_error with error number bugparier.  The call
-# pari_sig_init(pari_sighandler) installs PARI's signal handler on
-# all 6 signals.  However, pari_sighandler is a static function.
-# So we just let pari initialize its own signals and then grab
-# a pointer to the handler.
+# SIGBREAK, and for SIGSEGV, SIGBUS, SIGFPE, SIGPIPE it prints a
+# message and calls pari_error with error number bugparier.  The call
+# pari_sig_init(pari_sighandler) (option INIT_SIGm) installs this
+# signal handler on all 6 signals.  Instead, we are using our own
+# signal handler, which ignores all signals except SIGINT.  This
+# could be changed if, for example, we need to catch SIGSEGV.
 #
 # The default sigint handler used by PARI calls pari_err.  Ours
 # does the same thing, after setting a flag.  The flag is checked
@@ -10127,12 +10120,11 @@ cdef public jmp_buf jmp_env
 cdef extern from "signal.h":
     ctypedef void (*sig_t) (int) 
     sig_t SIG_IGN
-    int SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
+    int SIGINT, SIGBREAK, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
     sig_t signal(int sig, sig_t func)
 
 cdef sig_t old_handlers[5]
 cdef sig_t old_sigalrm_handler
-cdef sig_t pari_signal_handler
 cdef int num_signals = 3 if sys.platform == 'win32' else 5
 # See http://trac.cython.org/cython_trac/ticket/113
 pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE)
@@ -10145,10 +10137,16 @@ for n in range(5):
 def alarm_handler():
     pass
 
-cdef void sigalrm_handler(int signal):
+cdef void sigalrm_handler(int signum):
     global alarm_handler
     alarm_handler()
 
+# Our replacement for PARI's signal handler.  Uses
+# our callback for SIGINT, ignores the rest.
+cdef void pari_signal_handler(int signum):
+    if signum == SIGINT:
+        pari_sigint_handler()
+    
 cdef public void set_pari_signals(): # called by sig_on
     cdef int n
     global num_signals, pari_sig
@@ -10194,8 +10192,8 @@ cdef int pari_error_handler(long errno) except 0:
     else:
         raise PariError(errno)
 
-# The callback to be assigned to cp_pari_err_recover.  Resets
-# flags and calls longjmp.
+# The callback to be assigned to cp_pari_err_recover.  Calls
+# sig_off to reset all flags and signals and then calls longjmp.
 
 cdef void pari_error_recoverer(long errno):
     global setjmp_active
@@ -10208,9 +10206,11 @@ cdef void pari_error_recoverer(long errno):
 # interrupt flag and then behaves like PARI's default handler.
 
 cdef void pari_sigint_handler():
-    global interrupt_flag
-    interrupt_flag = 1
-    pari_err(talker, interrupt_msg)
+    global interrupt_flag, setjmp_active
+    #print('\npari_sigint_handler: setjmp_active = %d'%setjmp_active)
+    if setjmp_active:
+        interrupt_flag = 1
+        pari_err(talker, interrupt_msg)
 
 # For reasons that I do not understand, the initialization of
 # this module trashes Python's default SIGINT handler.

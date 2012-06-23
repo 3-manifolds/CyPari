@@ -20,6 +20,9 @@ void (*cb_pari_err_recover)(long);
 /* Declaraton of PARI's error handler */
 void pari_err(int numerr, ...);
 
+/* Declaration of our signal setter */
+void set_pari_signals(void);
+
 /* A flag we can check to see if an interrupt occured */
 int interrupt_flag = 0;
 
