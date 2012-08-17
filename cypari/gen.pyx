@@ -8177,6 +8177,16 @@ cdef class gen:
         sig_on()
         return self.new_gen(matsnf0(self.g, flag))
 
+    def matrank(self):
+        r"""
+        Return the rank of this Pari matrix (we hope!).
+        """
+        cdef long rk
+        sig_on()
+        rk = rank(self.g)
+        sig_off()
+        return rk
+    
     def matfrobenius(self, flag=0):
         r"""
         M.matfrobenius(flag=0): Return the Frobenius form of the square
@@ -10129,15 +10139,8 @@ cdef extern from "signal.h":
     int SIGINT, SIGBREAK, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE, SIGALRM
     sig_t signal(int sig, sig_t func)
 
-cdef sig_t old_handlers[5]
+cdef sig_t old_sigint_handler
 cdef sig_t old_sigalrm_handler
-cdef int num_signals = 3 if sys.platform == 'win32' else 5
-# See http://trac.cython.org/cython_trac/ticket/113
-pari_signals = (SIGINT, SIGSEGV, SIGFPE, SIGBUS, SIGPIPE)
-cdef int pari_sig[5]
-cdef int n
-for n in range(5):
-    pari_sig[n] = pari_signals[n]
 
 # Callback to allow a GUI to make updates and check for user
 # interrupts during a long computation.  If we receive a SIGALRM and
@@ -10150,26 +10153,24 @@ cdef void sigalrm_handler(int signum):
 
 # Our replacement for PARI's signal handler.  Uses
 # our callback for SIGINT, ignores the rest.
+# If needed we could handle SIGSEGV etc.
 cdef void pari_signal_handler(int signum):
     if signum == SIGINT:
-        pari_sigint_handler()
+        pari_sigint_handler() # Call the callback, like PARI would
     
 cdef public void set_pari_signals(): # called by sig_on
     cdef int n
     global num_signals, pari_sig
-    global old_handlers, old_sigalrm_handler
+    global old_sigint_handler, old_sigalrm_handler
     global sigalrm_handler, pari_signal_handler
-    for n in range(num_signals):
-        old_handlers[n] = signal(pari_sig[n], pari_signal_handler)
-    old_sigalrm_handler = signal(SIGALRM, SIG_IGN)
-    signal(SIGALRM, sigalrm_handler)
+    old_sigint_handler = signal(SIGINT, pari_signal_handler)
+    old_sigalrm_handler = signal(SIGALRM, sigalrm_handler)
     
 cdef public void unset_pari_signals(): # called by sig_off
     cdef int n
     global num_signals, pari_sig
     global old_handlers, old_sigalrm_handler
-    for n in range(num_signals):
-        signal(pari_sig[n], old_handlers[n])
+    signal(SIGINT, old_sigint_handler)
     signal(SIGALRM, old_sigalrm_handler)
 
 # sig_off resets all the flags and signals
