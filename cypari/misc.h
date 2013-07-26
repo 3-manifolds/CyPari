@@ -49,7 +49,7 @@ inline int strcmp_to_cmp(int f) {
     }
 }
 
-inline int
+static inline int
 gcmp_sage(GEN x, GEN y)
 {
   long tx = typ(x), ty = typ(y), f;
