@@ -23,10 +23,12 @@ class clean(Command):
         os.system('rm -f cypari/gen.c cypari/gen.h cypari/*.pyc')
 
 pari_gen = Extension('cypari.gen',
-                     sources = ['cypari/gen.pyx'],
-                     include_dirs = [pari_include_dir],
-                     library_dirs = [pari_library_dir],
-                     libraries = ['pari', 'm'])
+                     sources=['cypari/gen.pyx'],
+                     include_dirs=[pari_include_dir],
+                     library_dirs=[pari_library_dir],
+                     libraries=['pari', 'm'],
+#                     language = 'c++'
+                     )
 
 setup(
   name = 'cypari',
