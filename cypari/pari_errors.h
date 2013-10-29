@@ -21,13 +21,16 @@ void (*cb_pari_err_recover)(long);
 void pari_err(int numerr, ...);
 
 /* Declaration of our signal setter */
+#ifdef __cplusplus
+extern "C" {
+#endif
 void set_pari_signals(void);
 
 /* A flag we can check to see if an interrupt occured */
 int interrupt_flag = 0;
 
 /* A message for pari_err */
-char *interrupt_msg = "user interrupt\n";
+const char *interrupt_msg = "user interrupt\n";
 
 void set_error_handler( int (*handler)(long) ) {
   cb_pari_handle_exception = handler;
@@ -40,6 +43,10 @@ void set_error_recoverer( void (*recoverer)(long) ) {
 void set_sigint_handler(void (*handler)(void)) {
   cb_pari_sigint = handler;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #ifdef __MINGW32__
 
