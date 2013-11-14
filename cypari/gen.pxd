@@ -36,6 +36,7 @@ cdef class PariInstance:
     cdef void clear_stack(self)
     cdef void set_mytop_to_avma(self)
     cdef gen double_to_gen_c(self, double)
+    cpdef _real_coerced_to_bits_prec(self, double x, long bits)
     cdef GEN double_to_GEN(self, double)
     cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address, pari_sp prior_sp)
     cdef gen new_ref(self, GEN g, gen parent)
