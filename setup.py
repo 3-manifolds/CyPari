@@ -32,7 +32,7 @@ pari_gen = Extension('cypari.gen',
 
 setup(
   name = 'cypari',
-  version = '1.0',
+  version = '1.1',
   zip_safe = False,
   packages = ['cypari'],
   cmdclass = {'build_ext': build_ext, 'clean':clean},
