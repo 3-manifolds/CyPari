@@ -9,6 +9,8 @@
 # distutils, but I need to understand eggs a little better to see how
 # to do that.
 
+set -e
+
 if [ ! -e pari-2.5.1.tar.gz ]; then
     echo "Downloading Pari 2.5.1..."
     python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.1.tar.gz", "pari-2.5.1.tar.gz")'
