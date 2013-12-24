@@ -9,7 +9,8 @@ pari_library_dir = os.path.join(pari_ver, 'lib')
 pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
 if not os.path.exists(pari_library) and 'clean' not in sys.argv:
-    os.system('sh build_pari.sh')
+    if os.system('bash build_pari.sh') != 0:
+        sys.exit("***Failed to build PARI library***")
     
 class clean(Command):
     user_options = []
