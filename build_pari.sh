@@ -11,15 +11,15 @@
 
 set -e
 
-if [ ! -e pari-2.5.1.tar.gz ]; then
-    echo "Downloading Pari 2.5.1..."
-    python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.1.tar.gz", "pari-2.5.1.tar.gz")'
+if [ ! -e pari-2.5.5.tar.gz ]; then
+    echo "Downloading Pari 2.5.5..."
+    python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.5.tar.gz", "pari-2.5.5.tar.gz")'
 fi
 
 echo "Untarring Pari..."
-tar xzf pari-2.5.1.tar.gz
+tar xzf pari-2.5.5.tar.gz
 
-cd pari-2.5.1
+cd pari-2.5.5
 
 echo "Building Pari libary..." 
 if [ "$(uname)" = "Darwin" ] ; then  # OS X
