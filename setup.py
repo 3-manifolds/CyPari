@@ -3,13 +3,16 @@ from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 import os, sys
-pari_ver = 'pari-2.5.1'
+pari_ver = 'pari-2.5.5'
 pari_include_dir = os.path.join(pari_ver, 'include')
 pari_library_dir = os.path.join(pari_ver, 'lib')
 pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
 if not os.path.exists(pari_library) and 'clean' not in sys.argv:
-    if os.system('bash build_pari.sh') != 0:
+    if sys.platform == 'win32':
+        print 'Please run the bash script build_pari.sh first'
+        sys.exit()
+    if os.system('env build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
     
 class clean(Command):
