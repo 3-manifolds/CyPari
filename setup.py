@@ -12,7 +12,7 @@ if not os.path.exists(pari_library) and 'clean' not in sys.argv:
     if sys.platform == 'win32':
         print 'Please run the bash script build_pari.sh first'
         sys.exit()
-    if os.system('env build_pari.sh') != 0:
+    if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
     
 class clean(Command):
