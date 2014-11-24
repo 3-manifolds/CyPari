@@ -1,24 +1,15 @@
 #! /bin/bash
 #
-# This builds a fat pari library for OS X > 10.3 or a normal binary
-# for Linux or Windows.  In the case of OS X, the includes that are 
-# installed are those for i386, which are definitely different from
-# those for ppc (especially the assembly language in pariinl.h), but
-# we don't use the parts where they differ.  Eventually we need a
-# switch for choosing the host.  Probably we can get some help from
-# distutils, but I need to understand eggs a little better to see how
-# to do that.
+# This builds a fat (i386/x86_64) PARI library for OS X > 10.5 or a 
+# normal binary for Linux or Windows. 
+#
+# PARI source 
+#
+# http://pari.math.u-bordeaux.fr/pub/pari/unix/OLD/2.5/pari-2.5.5.tar.gz
 
 set -e
-
-if [ ! -e pari-2.5.5.tar.gz ]; then
-    echo "Downloading Pari 2.5.5..."
-    python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.5.tar.gz", "pari-2.5.5.tar.gz")'
-fi
-
 echo "Untarring Pari..."
 tar xzf pari-2.5.5.tar.gz
-
 cd pari-2.5.5
 
 echo "Building Pari libary..." 
