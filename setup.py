@@ -44,7 +44,7 @@ setup(
   author = 'Marc Culler and Nathan Dunfield',
   author_email = 'culler@math.uic.edu, nmd@illinois.edu',
   description = "Sage's PARI extension, modified to stand alone.",
-  license = 'GPL',
+  license = 'GPL v2+',
   keywords = 'Pari, Sage, SnapPy',
   url = 'http://www.math.uic.edu/t3m',
 )
