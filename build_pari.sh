@@ -13,7 +13,7 @@ set -e
 
 if [ ! -e pari-2.5.5.tar.gz ]; then
     echo "Downloading Pari 2.5.5..."
-    python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/pari-2.5.5.tar.gz", "pari-2.5.5.tar.gz")'
+    python -c 'import urllib; urllib.urlretrieve("http://pari.math.u-bordeaux.fr/pub/pari/unix/OLD/2.5/pari-2.5.5.tar.gz", "pari-2.5.5.tar.gz")'
 fi
 
 echo "Untarring Pari..."
