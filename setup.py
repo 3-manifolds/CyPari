@@ -1,10 +1,10 @@
 long_description =  """\
-CyPari is a Python wrapper for the `PARI library
+The package *cypari* is a Python wrapper for the `PARI library
 <http://pari.math.u-bordeaux.fr/>`_, a computer algebra system for
 number theory computations.  It is derived from the `corresponding
 component
 <http://www.sagemath.org/doc/reference/libs/sage/libs/pari/gen.html>`_
-of `Sage <http://www.sagemath.org>`_ but is independent of the rest of
+of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python.
 """
 
@@ -35,26 +35,16 @@ class clean(setuptools.Command):
         os.system('rm -rf cypari*.egg-info')
         os.system('rm -f cypari_src/gen.c cypari_src/gen.h cypari_src/*.pyc')
 
-class sdist(setuptools.command.sdist.sdist):
-    def run(self):
-        from Cython.Build import cythonize
-        cythonize(['cypari_src/gen.pyx'])
-        setuptools.command.sdist.sdist.run(self)
-        
-
-cmdclass = {'clean':clean, 'sdist':sdist}
-
 try:
-    from Cython.Distutils import build_ext
-    have_cython, source_ext = True, '.pyx'
-    cmdclass['build_ext'] = build_ext
+    from Cython.Build import cythonize
+    if 'clean' not in sys.argv:
+        cythonize(['cypari_src/gen.pyx'])
 except ImportError:
-    have_cython, source_ext = False, '.c'
-    
+    pass 
 
-pari_gen = setuptools.Extension('cypari_src.gen',
-                     sources=['cypari_src/gen' + source_ext],
-                     include_dirs=['cypari_src', pari_include_dir],
+pari_gen = setuptools.Extension('cypari.gen',
+                     sources=['cypari_src/gen.c'],
+                     include_dirs=[pari_include_dir],
                      library_dirs=[pari_library_dir],
                      libraries=['pari', 'm'],
                      )
@@ -65,7 +55,7 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'}, 
-    cmdclass = cmdclass,
+    cmdclass = {'clean':clean},
     ext_modules = [pari_gen],
     
     zip_safe = False,
