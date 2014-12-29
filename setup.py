@@ -41,7 +41,7 @@ except ImportError:
     have_cython, source_ext = False, '.c'
     
 
-pari_gen = setuptools.Extension('cypari.gen',
+pari_gen = setuptools.Extension('cypari_src.gen',
                      sources=['cypari_src/gen' + source_ext],
                      include_dirs=['cypari_src', pari_include_dir],
                      library_dirs=[pari_library_dir],
