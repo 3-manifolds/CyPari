@@ -1,0 +1,6 @@
+include pari-2.5.5.tar.gz
+include build_pari.sh
+include cypari_src/*.pxi
+include cypari_src/*.pxd
+include cypari_src/*.h
+include cypari_src/gen.c
