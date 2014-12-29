@@ -1,3 +1,14 @@
+long_description =  """\
+CyPari is a Python wrapper for the `PARI library
+<http://pari.math.u-bordeaux.fr/>`_, a computer algebra system for
+number theory computations.  It is derived from the `corresponding
+component
+<http://www.sagemath.org/doc/reference/libs/sage/libs/pari/gen.html>`_
+of `Sage <http://www.sagemath.org>`_ but is independent of the rest of
+Sage and can be used with any recent version of Python.
+"""
+
+
 from setuptools import setup
 import setuptools, setuptools.command.sdist, os, sys
 
@@ -49,18 +60,29 @@ pari_gen = setuptools.Extension('cypari_src.gen',
                      )
 
 setup(
-  name = 'cypari',
-  version = '1.2',
-  zip_safe = False,
-  packages = ['cypari'],
-  package_dir = {'cypari':'cypari_src'}, 
-  cmdclass = cmdclass,
-  ext_modules = [pari_gen],
-  author = 'Marc Culler and Nathan Dunfield',
-  author_email = 'culler@math.uic.edu, nmd@illinois.edu',
-  description = "Sage's PARI extension, modified to stand alone.",
-  license = 'GPL v2+',
-  keywords = 'Pari, Sage, SnapPy',
-  url = 'http://www.math.uic.edu/t3m',
+    name = 'cypari',
+    version = '1.2',
+    description = "Sage's PARI extension, modified to stand alone.",
+    packages = ['cypari'],
+    package_dir = {'cypari':'cypari_src'}, 
+    cmdclass = cmdclass,
+    ext_modules = [pari_gen],
+    
+    zip_safe = False,
+    long_description = long_description,
+    url = 'http://t3m.computop.org',
+    author = 'Marc Culler and Nathan M. Dunfield',
+    author_email = 'culler@uic.edu, nathan@dunfield.info',
+    license='GPLv2+',
+    classifiers = [
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
+        'Operating System :: OS Independent',
+        'Programming Language :: C',
+        'Programming Language :: Python',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        ],
+    keywords = 'Pari, Sage, SnapPy',
 )
 
