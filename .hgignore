@@ -2,5 +2,6 @@ pari-2.5.5
 build
 cypari.egg-info
 dist
-cypari/gen.c
-cypari/gen.h
+cypari_src/gen.c
+cypari_src/gen.h
+.DS_Store
