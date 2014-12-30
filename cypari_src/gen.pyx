@@ -9235,11 +9235,13 @@ cdef class PariInstance:
         will have word length (not including codewords) which is large
         enough to provide the requested number of bits, but no larger.
         >>> old_precision = pari.set_real_precision(64)
-        >>> x = pari.real_coerced_to_bits_prec(1.23456789012345678, 100)
+        >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
         >>> x
         1.23456789012345669043213547411141917110
         >>> x.length()
         2
+        >>> new_prec = pari.set_real_precision(old_precision)
+        
         Here the pari gen uses two 64 bit words to provide at least
         100 bits of precision.  This can be used, for example, to convert
         quad-double numbers to pari numbers.
