@@ -63,7 +63,7 @@ setup(
     
     zip_safe = False,
     long_description = long_description,
-    url = 'http://t3m.computop.org',
+    url = 'https://bitbucket.org/t3m/cypari',
     author = 'Marc Culler and Nathan M. Dunfield',
     author_email = 'culler@uic.edu, nathan@dunfield.info',
     license='GPLv2+',
