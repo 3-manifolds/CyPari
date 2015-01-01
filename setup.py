@@ -19,7 +19,7 @@ pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
 if not os.path.exists(pari_library) and 'clean' not in sys.argv:
     if sys.platform == 'win32':
-        print 'Please run the bash script build_pari.sh first'
+        print('Please run the bash script build_pari.sh first')
         sys.exit()
     if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
@@ -49,9 +49,12 @@ pari_gen = setuptools.Extension('cypari.gen',
                      libraries=['pari', 'm'],
                      )
 
+# Load version number
+exec(open('cypari_src/version.py').read())
+
 setup(
     name = 'cypari',
-    version = '1.2',
+    version = version,
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'}, 
