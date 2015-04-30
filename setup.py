@@ -38,7 +38,10 @@ class clean(setuptools.Command):
 try:
     from Cython.Build import cythonize
     if 'clean' not in sys.argv:
-        cythonize(['cypari_src/gen.pyx'])
+        target = 'cypari_src/gen.pyx'
+        if os.path.exists(target):
+            cythonize([target])
+
 except ImportError:
     pass 
 
