@@ -16,7 +16,7 @@ cdef class gen:
     cdef gen new_gen_noclear(self, GEN x)
     cdef gen pari(self, object x)
     cdef GEN _deepcopy_to_python_heap(self, GEN x, pari_sp* address, pari_sp prior_sp)
-    cdef long get_var(self, v)
+    cdef long get_var(self, v) except -2
     cdef GEN get_nf(self) except NULL
     cdef int compare(self, gen right, int op) except -2
 
@@ -41,7 +41,7 @@ cdef class PariInstance:
     cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address, pari_sp prior_sp)
     cdef gen new_ref(self, GEN g, gen parent)
     cdef gen _empty_vector(self, long n)
-    cdef long get_var(self, v)
+    cdef long get_var(self, v) except -2
     cdef GEN toGEN(self, x, int i) except NULL
 
 cdef GEN _Vec_append(GEN v, GEN a, long n)
