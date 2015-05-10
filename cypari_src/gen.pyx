@@ -385,14 +385,6 @@ cdef t2GEN(x):
     global t2
     t2 = P.toGEN(x, 2)
     
-cdef t3GEN(x):
-    global t3
-    t3 = P.toGEN(x, 3)
-    
-cdef t4GEN(x):
-    global t4
-    t4 = P.toGEN(x, 4)
-
 cdef class gen:
     """
     Python extension class that models the PARI GEN type.
@@ -7852,12 +7844,11 @@ cdef class gen:
             19
         """
         cdef long n
-        sig_on()
         # if this matrix has no columns
         # then it has no rows. 
         if self.ncols() == 0:
-            sig_off()
             return 0
+        sig_on()
         n = glength(<GEN>(self.g[1]))
         sig_off()
         return n
