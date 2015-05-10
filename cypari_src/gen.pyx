@@ -1520,7 +1520,8 @@ cdef class gen:
             10
         """
         cdef GEN x
-        cdef long lx, *xp
+        cdef long lx
+        cdef long *xp
         if  typ(self.g)==t_POL and self.poldegree()<=0:
             # Change a constant polynomial to its constant term
             x = constant_term(self.g)
