@@ -1594,7 +1594,8 @@ cdef extern from *:   # paristio.h
         void (*putch)(char)
         void (*puts)(char*)
         void (*flush)()
-    extern PariOUT *pariOut, *pariErr
+    extern PariOUT *pariOut
+    extern PariOUT *pariErr
     extern unsigned char* diffptr
 
 cdef extern from 'pari/paripriv.h':
