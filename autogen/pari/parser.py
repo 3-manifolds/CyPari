@@ -30,7 +30,7 @@ def sage_src_pari():
         sage: sage_src_pari()
         '.../src/sage/libs/pari'
     """
-    return 'cypari_src'
+    return 'cypari'
 
 
 def pari_share():

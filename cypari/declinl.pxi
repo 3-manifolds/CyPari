@@ -12,7 +12,7 @@ AUTHORS:
 
 """
 
-cdef extern from "sage/libs/pari/parisage.h":
+cdef extern from "parisage.h":
 
     # pariinl.h
     GEN    abgrp_get_cyc(GEN x)
