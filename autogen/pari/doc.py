@@ -58,7 +58,7 @@ def sub_loop(regex, repl, text):
 
     Ensure there a space between any 2 letters ``x``::
 
-        sage: from sage_setup.autogen.pari.doc import sub_loop
+        sage: from autogen.pari.doc import sub_loop
         sage: import re
         sage: sub_loop(re.compile("xx"), "x x", "xxx_xx")
         u'x x x_x x'
@@ -81,7 +81,7 @@ def raw_to_rest(doc):
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.doc import raw_to_rest
+        sage: from autogen.pari.doc import raw_to_rest
         sage: print raw_to_rest("@[startbold]hello world@[endbold]")
         :strong:`hello world`
 
@@ -200,6 +200,7 @@ def raw_to_rest(doc):
     doc = doc.replace("@[endit]", "`")
     doc = doc.replace("@[startbold]", ":strong:`")
     doc = doc.replace("@[endbold]", "`")
+    doc = doc.replace("@[aacute]", "á")
 
     # Remove prototype
     doc = prototype.sub("", doc)
@@ -234,7 +235,7 @@ def get_raw_doc(function):
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.doc import get_raw_doc
+        sage: from autogen.pari.doc import get_raw_doc
         sage: get_raw_doc("cos")
         '@[startbold]cos@[dollar](x)@[dollar]:@[endbold]\n\n\n\nCosine of @[dollar]x@[dollar].\n\n\nThe library syntax is @[startcode]GEN @[startbold]gcos@[endbold](GEN x, long prec)@[endcode].\n\n\n'
         sage: get_raw_doc("abcde")
@@ -242,7 +243,7 @@ def get_raw_doc(function):
         ...
         RuntimeError: no help found for 'abcde'
     """
-    doc = subprocess.check_output(["gphelp", "-raw", function])
+    doc = subprocess.check_output(["build/pari/bin/gphelp", "-raw", function])
     if doc.endswith(b"""' not found !\n"""):
         raise RuntimeError("no help found for '{}'".format(function))
     return doc
@@ -259,7 +260,7 @@ def get_rest_doc(function):
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.doc import get_rest_doc
+        sage: from autogen.pari.doc import get_rest_doc
         sage: print get_rest_doc("teichmuller")
         Teichmüller character of the :math:`p`-adic number :math:`x`, i.e. the unique
         :math:`(p-1)`-th root of unity congruent to :math:`x / p^{v_p(x)}` modulo :math:`p`...
