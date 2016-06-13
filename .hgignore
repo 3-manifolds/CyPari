@@ -1,0 +1,4 @@
+syntax: glob
+build
+*.pyc
+cypari_src/auto*
