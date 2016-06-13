@@ -243,21 +243,22 @@ cdef class gen(gen_auto):
         s = repr(self)
         return (objtogen, (s,))
 
-    cpdef ModuleElement _add_(self, ModuleElement right):
-        sig_on()
-        return P.new_gen(gadd(self.g, (<gen>right).g))
 
-    cpdef ModuleElement _sub_(self, ModuleElement right):
-        sig_on()
-        return P.new_gen(gsub(self.g, (<gen> right).g))
+    # cpdef ModuleElement _add_(self, ModuleElement right):
+    #     sig_on()
+    #     return P.new_gen(gadd(self.g, (<gen>right).g))
 
-    cpdef RingElement _mul_(self, RingElement right):
-        sig_on()
-        return P.new_gen(gmul(self.g, (<gen>right).g))
+    # cpdef ModuleElement _sub_(self, ModuleElement right):
+    #     sig_on()
+    #     return P.new_gen(gsub(self.g, (<gen> right).g))
 
-    cpdef RingElement _div_(self, RingElement right):
-        sig_on()
-        return P.new_gen(gdiv(self.g, (<gen>right).g))
+    # cpdef RingElement _mul_(self, RingElement right):
+    #     sig_on()
+    #     return P.new_gen(gmul(self.g, (<gen>right).g))
+
+    # cpdef RingElement _div_(self, RingElement right):
+    #     sig_on()
+    #     return P.new_gen(gdiv(self.g, (<gen>right).g))
 
     def _add_one(gen self):
         """
@@ -1101,7 +1102,8 @@ cdef class gen(gen_auto):
     def __len__(gen self):
         return glength(self.g)
 
-    cpdef _richcmp_(left, Element right, int op):
+#    cpdef _richcmp_(left, Element right, int op):
+    def __richcmp__(left, right, int op):
         """
         Compare ``left`` and ``right`` using ``op``.
 
@@ -1169,12 +1171,13 @@ cdef class gen(gen_auto):
             r = (gequal(x, y) != 0)
         elif op == 3:  # !=
             r = (gequal(x, y) == 0)
-        else:
-            r = rich_to_bool(op, gcmp(x, y))
+#        else:
+#            r = rich_to_bool(op, gcmp(x, y))
         sig_off()
         return r
 
-    cpdef int _cmp_(left, Element right) except -2:
+#    cpdef int _cmp_(left, Element right) except -2:
+    def __cmp__(left, right):
         """
         Compare ``left`` and ``right``.
 
@@ -1255,7 +1258,7 @@ cdef class gen(gen_auto):
             See http://trac.sagemath.org/20219 for details.
             [2, 3, 5, 7, 11]
         """
-        deprecation(20219, "the method list_str() is deprecated")
+#        deprecation(20219, "the method list_str() is deprecated")
 
         s = str(self)
         if s[:4] == "Mat(":
@@ -1325,40 +1328,94 @@ cdef class gen(gen_auto):
         sig_free(s)
         return k
 
+    # def __int__(gen self):
+    #     """
+    #     Convert ``self`` to a Python integer.
+
+    #     If the number is too large to fit into a Pyhon ``int``, a
+    #     Python ``long`` is returned instead.
+
+    #     EXAMPLES::
+
+    #         sage: int(pari(0))
+    #         0
+    #         sage: int(pari(10))
+    #         10
+    #         sage: int(pari(-10))
+    #         -10
+    #         sage: int(pari(123456789012345678901234567890))
+    #         123456789012345678901234567890L
+    #         sage: int(pari(-123456789012345678901234567890))
+    #         -123456789012345678901234567890L
+    #         sage: int(pari(2^31-1))
+    #         2147483647
+    #         sage: int(pari(-2^31))
+    #         -2147483648
+    #         sage: int(pari("Pol(10)"))
+    #         10
+    #         sage: int(pari("Mod(2, 7)"))
+    #         2
+    #         sage: int(pari(RealField(63)(2^63-1)))
+    #         9223372036854775807L  # 32-bit
+    #         9223372036854775807   # 64-bit
+    #         sage: int(pari(RealField(63)(2^63+2)))
+    #         9223372036854775810L
+    #     """
+    #     return int(Integer(self))
+
     def __int__(gen self):
         """
-        Convert ``self`` to a Python integer.
-
-        If the number is too large to fit into a Pyhon ``int``, a
-        Python ``long`` is returned instead.
-
+        Return Python int. Very fast, and if the number is too large to fit
+        into a C int, a Python long is returned instead.
+        
         EXAMPLES::
-
-            sage: int(pari(0))
+        
+            >>> int(pari(0))
             0
-            sage: int(pari(10))
+            >>> int(pari(10))
             10
-            sage: int(pari(-10))
+            >>> int(pari(-10))
             -10
-            sage: int(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            sage: int(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
-            sage: int(pari(2^31-1))
+            >>> print( int(pari(123456789012345678901234567890)) )
+            123456789012345678901234567890
+            >>> print( int(pari(-123456789012345678901234567890)) )
+            -123456789012345678901234567890
+            >>> int(pari('2^31-1'))
             2147483647
-            sage: int(pari(-2^31))
+            >>> int(pari('-2^31'))
             -2147483648
-            sage: int(pari("Pol(10)"))
+            >>> int(pari("Pol(10)"))
             10
-            sage: int(pari("Mod(2, 7)"))
-            2
-            sage: int(pari(RealField(63)(2^63-1)))
-            9223372036854775807L  # 32-bit
-            9223372036854775807   # 64-bit
-            sage: int(pari(RealField(63)(2^63+2)))
-            9223372036854775810L
         """
-        return int(Integer(self))
+        cdef GEN x
+        cdef long lx
+        cdef long *xp
+        if  typ(self.g)==t_POL and self.poldegree()<=0:
+            # Change a constant polynomial to its constant term
+            x = constant_term(self.g)
+        else:
+            x = self.g
+        if typ(x) != t_INT:
+            raise TypeError, "gen must be of PARI type t_INT or t_POL of degree 0"
+        if not signe(x):
+            return 0
+        lx = lgefint(x)-3   # take 1 to account for the MSW
+        xp = int_MSW(x)
+        # special case 1 word so we return int if it fits
+        if not lx:
+            if   signe(x) |  xp[0] > 0:     # both positive
+                return xp[0]
+            elif signe(x) & -xp[0] < 0:     # both negative
+                return -xp[0]
+        i = <ulong>xp[0]
+        while lx:
+            xp = int_precW(xp)
+            i = i << BITS_IN_LONG | <ulong>xp[0]
+            lx = lx-1
+        if signe(x) > 0:
+            return i
+        else:
+            return -i
 
     def python_list_small(gen self):
         """
@@ -1556,7 +1613,8 @@ cdef class gen(gen_auto):
             sage: pari('-oo').sage()
             -Infinity
         """
-        return gentoobj(self, locals)
+#        return gentoobj(self, locals)
+        print('Not implemented')
 
     sage = _sage_ = _eval_ = python
 
@@ -1585,7 +1643,7 @@ cdef class gen(gen_auto):
             sage: long(pari("Mod(2, 7)"))
             2L
         """
-        return long(Integer(self))
+        return long(int(self))
 
     def __float__(gen self):
         """
@@ -2248,7 +2306,7 @@ cdef class gen(gen_auto):
         sig_on()
         return P.new_gen(Strtex(x.g))
 
-    printtex = deprecated_function_alias(20219, Strtex)
+#    printtex = deprecated_function_alias(20219, Strtex)
 
     def Vec(gen x, long n = 0):
         """
@@ -2748,8 +2806,8 @@ cdef class gen(gen_auto):
             See http://trac.sagemath.org/20219 for details.
             3.74224603319728 E-132 + 2.49071062641525 E-134*I
         """
-        if flag is not None:
-            deprecation(20219, 'The flag argument to besselk() is deprecated and not used anymore')
+#        if flag is not None:
+#            deprecation(20219, 'The flag argument to besselk() is deprecated and not used anymore')
         cdef gen t0 = objtogen(x)
         sig_on()
         return P.new_gen(kbessel(nu.g, t0.g, prec_bits_to_words(precision)))
@@ -2872,7 +2930,7 @@ cdef class gen(gen_auto):
         ans = P.new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision)))
         return ans, P.new_gen(zetan)
 
-    phi = deprecated_function_alias(20219, gen_auto.eulerphi)
+#    phi = deprecated_function_alias(20219, gen_auto.eulerphi)
 
     def ffprimroot(self):
         r"""
@@ -3076,9 +3134,9 @@ cdef class gen(gen_auto):
             sage: pari([0,x,0,2*x,1]).ellinit()
             [0, x, 0, 2*x, 1, 4*x, 4*x, 4, -4*x^2 + 4*x, 16*x^2 - 96*x, -64*x^3 + 576*x^2 - 864, 64*x^4 - 576*x^3 + 576*x^2 - 432, (256*x^6 - 4608*x^5 + 27648*x^4 - 55296*x^3)/(4*x^4 - 36*x^3 + 36*x^2 - 27), Vecsmall([0]), [Vecsmall([64, 0])], [0, 0, 0, 0]]
         """
-        if flag != -1:
-            from sage.misc.superseded import deprecation
-            deprecation(16997, 'The flag argument to ellinit() is deprecated and not used anymore')
+#        if flag != -1:
+#            from sage.misc.superseded import deprecation
+#            deprecation(16997, 'The flag argument to ellinit() is deprecated and not used anymore')
         sig_on()
         return P.new_gen(ellinit(self.g, NULL, prec_bits_to_words(precision)))
 
@@ -3221,9 +3279,9 @@ cdef class gen(gen_auto):
             sage: e.ellheight([1, 0], [-1, 1])
             0.418188984498861
         """
-        if flag != -1:
-            from sage.misc.superseded import deprecation
-            deprecation(16997, 'The flag argument to ellheight() is deprecated and not used anymore')
+#        if flag != -1:
+#            from sage.misc.superseded import deprecation
+#            deprecation(16997, 'The flag argument to ellheight() is deprecated and not used anymore')
         cdef gen t0 = objtogen(a)
         cdef gen t1
         if b is None:
@@ -3329,8 +3387,8 @@ cdef class gen(gen_auto):
             sage: e.elltors()
             [12, [6, 2], [[1, 2], [3, -2]]]
         """
-        if flag is not None:
-            deprecation(20219, 'The flag argument to elltors() is deprecated and not used anymore')
+#        if flag is not None:
+#            deprecation(20219, 'The flag argument to elltors() is deprecated and not used anymore')
         sig_on()
         return P.new_gen(elltors(self.g))
 
@@ -3495,7 +3553,7 @@ cdef class gen(gen_auto):
         sig_on()
         return P.new_gen(galoissubfields(self.g, flag, P.get_var(v)))
 
-    idealintersection = deprecated_function_alias(20219, gen_auto.idealintersect)
+#    idealintersection = deprecated_function_alias(20219, gen_auto.idealintersect)
 
     def nfeltval(self, x, p):
         """
@@ -3515,7 +3573,7 @@ cdef class gen(gen_auto):
         sig_off()
         return v
 
-    elementval = deprecated_function_alias(20219, nfeltval)
+#    elementval = deprecated_function_alias(20219, nfeltval)
 
     def nfbasis(self, long flag=0, fa=None):
         """
@@ -3568,8 +3626,8 @@ cdef class gen(gen_auto):
         """
         if flag < 0 or flag > 1:
             flag = flag & 1
-            from sage.misc.superseded import deprecation
-            deprecation(15767, 'In nfbasis(), flag must be 0 or 1, other bits are deprecated and ignored')
+#            from sage.misc.superseded import deprecation
+#            deprecation(15767, 'In nfbasis(), flag must be 0 or 1, other bits are deprecated and ignored')
 
         cdef gen t0
         cdef GEN g0
@@ -3607,8 +3665,8 @@ cdef class gen(gen_auto):
         """
         if flag < 0 or flag > 1:
             flag = flag & 1
-            from sage.misc.superseded import deprecation
-            deprecation(15767, 'In nfbasis_d(), flag must be 0 or 1, other bits are deprecated and ignored')
+#            from sage.misc.superseded import deprecation
+#            deprecation(15767, 'In nfbasis_d(), flag must be 0 or 1, other bits are deprecated and ignored')
 
         cdef gen t0
         cdef GEN g0
@@ -3683,9 +3741,9 @@ cdef class gen(gen_auto):
             sage: f._pari_().nfdisc()
             -108
         """
-        if flag != -1 or p is not None:
-            from sage.misc.superseded import deprecation
-            deprecation(16997, 'The flag and p arguments to nfdisc() are deprecated and not used anymore')
+#        if flag != -1 or p is not None:
+#            from sage.misc.superseded import deprecation
+#            deprecation(16997, 'The flag and p arguments to nfdisc() are deprecated and not used anymore')
         sig_on()
         return P.new_gen(nfdisc(self.g))
 
@@ -3716,7 +3774,7 @@ cdef class gen(gen_auto):
         sig_on()
         return P.new_gen(nf_rnfeq(self.g, t0.g))
 
-    reverse = deprecated_function_alias(20219, gen_auto.polrecip)
+#    reverse = deprecated_function_alias(20219, gen_auto.polrecip)
 
     def eval(self, *args, **kwds):
         """
@@ -3978,9 +4036,9 @@ cdef class gen(gen_auto):
             sage: pari(pol).factorpadic(5,3)
             [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
         """
-        if flag != -1:
-            from sage.misc.superseded import deprecation
-            deprecation(16997, 'The flag argument to factorpadic() is deprecated and not used anymore')
+ #       if flag != -1:
+ #           from sage.misc.superseded import deprecation
+ #           deprecation(16997, 'The flag argument to factorpadic() is deprecated and not used anymore')
         cdef gen t0 = objtogen(p)
         sig_on()
         return P.new_gen(factorpadic(self.g, t0.g, r))
@@ -4009,20 +4067,20 @@ cdef class gen(gen_auto):
         Complex roots of the given polynomial using Schonhage's method,
         as modified by Gourdon.
         """
-        if flag != -1:
-            from sage.misc.superseded import deprecation
-            deprecation(16997, 'The flag argument to polroots() is deprecated and not used anymore')
+#        if flag != -1:
+#            from sage.misc.superseded import deprecation
+#            deprecation(16997, 'The flag argument to polroots() is deprecated and not used anymore')
         sig_on()
         return P.new_gen(cleanroots(self.g, prec_bits_to_words(precision)))
 
     def polrootspadicfast(self, p, r=20):
-        from sage.misc.superseded import deprecation
-        deprecation(16997, 'polrootspadicfast is deprecated, use polrootspadic or the direct PARI call ZpX_roots instead')
+#        from sage.misc.superseded import deprecation
+#        deprecation(16997, 'polrootspadicfast is deprecated, use polrootspadic or the direct PARI call ZpX_roots instead')
         cdef gen t0 = objtogen(p)
         sig_on()
         return P.new_gen(rootpadic(self.g, t0.g, r))
 
-    polsturm_full = deprecated_function_alias(18203, gen_auto.polsturm)
+#    polsturm_full = deprecated_function_alias(18203, gen_auto.polsturm)
 
     def rnfisnorm(self, T, long flag=0):
         cdef gen t0 = objtogen(T)
@@ -4135,8 +4193,8 @@ cdef class gen(gen_auto):
             See http://trac.sagemath.org/18203 for details.
             [1; -2]
         """
-        if flag:
-            deprecation(18203, "The flag argument to matkerint() is deprecated by PARI")
+#        if flag:
+#            deprecation(18203, "The flag argument to matkerint() is deprecated by PARI")
         sig_on()
         return P.new_gen(matkerint0(self.g, flag))
 
@@ -4196,7 +4254,7 @@ cdef class gen(gen_auto):
         """
         cdef GEN g
         if limit == 0:
-            deprecation(20205, "factor(..., lim=0) is deprecated, use an explicit limit instead")
+#            deprecation(20205, "factor(..., lim=0) is deprecated, use an explicit limit instead")
             limit = maxprime()
         global factor_proven
         cdef int saved_factor_proven = factor_proven
@@ -4213,7 +4271,7 @@ cdef class gen(gen_auto):
             factor_proven = saved_factor_proven
 
     multiplicative_order = gen_auto.znorder
-    order = deprecated_function_alias(20219, multiplicative_order)
+#    order = deprecated_function_alias(20219, multiplicative_order)
 
     def __abs__(self):
         return self.abs()
@@ -4511,7 +4569,7 @@ cdef class gen(gen_auto):
             See http://trac.sagemath.org/18203 for details.
             (5, -1, 1)
         """
-        deprecation(18203, "xgcd() is deprecated, use gcdext() instead (note that the output is in a different order!)")
+#        deprecation(18203, "xgcd() is deprecated, use gcdext() instead (note that the output is in a different order!)")
         u, v, g = x.gcdext(y)
         return g, u, v
 
@@ -4523,7 +4581,7 @@ cdef class gen(gen_auto):
     ####################################################################
 
     def bezout(x, y):
-        deprecation(18203, "bezout() is deprecated in PARI, use gcdext() instead (note that the output is in a different order!)")
+#        deprecation(18203, "bezout() is deprecated in PARI, use gcdext() instead (note that the output is in a different order!)")
         u, v, g = x.gcdext(y)
         return g, u, v
 
@@ -4563,7 +4621,7 @@ cdef class gen(gen_auto):
             sage: pari('9234.1').sizedigit()
             5
         """
-        deprecation(18203, "sizedigit() is deprecated in PARI")
+#        deprecation(18203, "sizedigit() is deprecated in PARI")
         return sizedigit(x.g)
 
     def bernvec(x):
@@ -4586,22 +4644,22 @@ cdef class gen(gen_auto):
             sage: [pari(2*n).bernfrac() for n in range(9)]
             [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
         """
-        deprecation(15767, 'bernvec() is deprecated, use repeated calls to bernfrac() instead')
+#        deprecation(15767, 'bernvec() is deprecated, use repeated calls to bernfrac() instead')
         sig_on()
         return P.new_gen(bernvec(x))
 
-    bezoutres = deprecated_function_alias(18203, gen_auto.polresultantext)
+#    bezoutres = deprecated_function_alias(18203, gen_auto.polresultantext)
 
-    ellbil = deprecated_function_alias(18203, ellheight)
+#    ellbil = deprecated_function_alias(18203, ellheight)
 
-    ellpow = deprecated_function_alias(18203, gen_auto.ellmul)
+#    ellpow = deprecated_function_alias(18203, gen_auto.ellmul)
 
     def rnfpolred(*args, **kwds):
-        deprecation(18203, "rnfpolred() is deprecated in PARI, port your code to use rnfpolredbest() instead")
+#        deprecation(18203, "rnfpolred() is deprecated in PARI, port your code to use rnfpolredbest() instead")
         return gen_auto.rnfpolred(*args, **kwds)
 
     def rnfpolredabs(*args, **kwds):
-        deprecation(18203, "rnfpolredabs() is deprecated in PARI, port your code to use rnfpolredbest() instead")
+#        deprecation(18203, "rnfpolredabs() is deprecated in PARI, port your code to use rnfpolredbest() instead")
         return gen_auto.rnfpolredabs(*args, **kwds)
 
 
@@ -4705,7 +4763,7 @@ cpdef gen objtogen(s):
     """
     cdef GEN g
     cdef Py_ssize_t length, i
-    cdef mpz_t mpz_int
+#    cdef mpz_t mpz_int
     cdef gen v
 
     if isinstance(s, gen):
@@ -4729,13 +4787,13 @@ cpdef gen objtogen(s):
         return P.new_gen(stoi(PyInt_AS_LONG(s)))
     if isinstance(s, bool):
         return P.PARI_ONE if s else P.PARI_ZERO
-    if isinstance(s, long):
-        sig_on()
-        mpz_init(mpz_int)
-        mpz_set_pylong(mpz_int, s)
-        g = P._new_GEN_from_mpz_t(mpz_int)
-        mpz_clear(mpz_int)
-        return P.new_gen(g)
+    # if isinstance(s, long):
+    #     sig_on()
+    #     mpz_init(mpz_int)
+    #     mpz_set_pylong(mpz_int, s)
+    #     g = P._new_GEN_from_mpz_t(mpz_int)
+    #     mpz_clear(mpz_int)
+    #     return P.new_gen(g)
     if isinstance(s, float):
         sig_on()
         return P.new_gen(dbltor(PyFloat_AS_DOUBLE(s)))
@@ -4754,8 +4812,8 @@ cpdef gen objtogen(s):
             v[i] = objtogen(s[i])
         return v
 
-    if callable(s):
-        return objtoclosure(s)
+#    if callable(s):
+#        return objtoclosure(s)
 
     if s is None:
         raise ValueError("Cannot convert None to pari")
@@ -4763,77 +4821,76 @@ cpdef gen objtogen(s):
     # Simply use the string representation
     return objtogen(str(s))
 
-
-cpdef gentoobj(gen z, locals={}):
-    """
-    Convert a PARI gen to a Sage/Python object.
-
-    See the ``python`` method of :class:`gen` for documentation and
-    examples.
-    """
-    cdef GEN g = z.g
-    cdef long t = typ(g)
-    cdef long tx, ty
-    cdef gen real, imag
-    cdef Py_ssize_t i, j, nr, nc
-
-    if t == t_INT:
-         return Integer(z)
-    elif t == t_FRAC:
-         return Rational(z)
-    elif t == t_REAL:
-        from sage.rings.all import RealField
-        prec = prec_words_to_bits(z.precision())
-        return RealField(prec)(z)
-    elif t == t_COMPLEX:
-        real = z.real()
-        imag = z.imag()
-        tx = typ(real.g)
-        ty = typ(imag.g)
-        if tx in [t_INTMOD, t_PADIC] or ty in [t_INTMOD, t_PADIC]:
-            raise NotImplementedError("No conversion to python available for t_COMPLEX with t_INTMOD or t_PADIC components")
-        if tx == t_REAL or ty == t_REAL:
-            xprec = real.precision()  # will be 0 if exact
-            yprec = imag.precision()  # will be 0 if exact
-            if xprec == 0:
-                prec = prec_words_to_bits(yprec)
-            elif yprec == 0:
-                prec = prec_words_to_bits(xprec)
-            else:
-                prec = max(prec_words_to_bits(xprec), prec_words_to_bits(yprec))
-
-            from sage.rings.all import RealField, ComplexField
-            R = RealField(prec)
-            C = ComplexField(prec)
-            return C(R(real), R(imag))
-        else:
-            from sage.rings.all import QuadraticField
-            K = QuadraticField(-1, 'i')
-            return K([gentoobj(real), gentoobj(imag)])
-    elif t == t_VEC or t == t_COL:
-        return [gentoobj(x, locals) for x in z.python_list()]
-    elif t == t_VECSMALL:
-        return z.python_list_small()
-    elif t == t_MAT:
-        nc = lg(g)-1
-        nr = 0 if nc == 0 else lg(gel(g,1))-1
-        L = [gentoobj(z[i,j], locals) for i in range(nr) for j in range(nc)]
-        from sage.matrix.constructor import matrix
-        return matrix(nr, nc, L)
-    elif t == t_PADIC:
-        from sage.rings.padics.factory import Qp
-        p = z.padicprime()
-        K = Qp(Integer(p), precp(g))
-        return K(z.lift())
-    elif t == t_INFINITY:
-        if z.sign() == 1:
-            return sage.rings.infinity.infinity
-        else:
-            return -sage.rings.infinity.infinity
-    
-    # Fallback (e.g. polynomials): use string representation
-    from sage.misc.sage_eval import sage_eval
-    return sage_eval(str(z), locals=locals)
+#cpdef gentoobj(gen z, locals={}):
+#    """
+#    Convert a PARI gen to a Sage/Python object.
+#
+#    See the ``python`` method of :class:`gen` for documentation and
+#    examples.
+#    """
+#    cdef GEN g = z.g
+#    cdef long t = typ(g)
+#    cdef long tx, ty
+#    cdef gen real, imag
+#    cdef Py_ssize_t i, j, nr, nc
+#
+#    if t == t_INT:
+#         return Integer(z)
+#    elif t == t_FRAC:
+#         return Rational(z)
+#    elif t == t_REAL:
+#        from sage.rings.all import RealField
+#        prec = prec_words_to_bits(z.precision())
+#        return RealField(prec)(z)
+#    elif t == t_COMPLEX:
+#        real = z.real()
+#        imag = z.imag()
+#        tx = typ(real.g)
+#        ty = typ(imag.g)
+#        if tx in [t_INTMOD, t_PADIC] or ty in [t_INTMOD, t_PADIC]:
+#            raise NotImplementedError("No conversion to python available for t_COMPLEX with t_INTMOD or t_PADIC components")
+#        if tx == t_REAL or ty == t_REAL:
+#            xprec = real.precision()  # will be 0 if exact
+#            yprec = imag.precision()  # will be 0 if exact
+#            if xprec == 0:
+#                prec = prec_words_to_bits(yprec)
+#            elif yprec == 0:
+#                prec = prec_words_to_bits(xprec)
+#            else:
+#                prec = max(prec_words_to_bits(xprec), prec_words_to_bits(yprec))
+#
+#            from sage.rings.all import RealField, ComplexField
+#            R = RealField(prec)
+#            C = ComplexField(prec)
+#            return C(R(real), R(imag))
+#        else:
+#            from sage.rings.all import QuadraticField
+#            K = QuadraticField(-1, 'i')
+#            return K([gentoobj(real), gentoobj(imag)])
+#    elif t == t_VEC or t == t_COL:
+#        return [gentoobj(x, locals) for x in z.python_list()]
+#    elif t == t_VECSMALL:
+#        return z.python_list_small()
+#    elif t == t_MAT:
+#        nc = lg(g)-1
+#        nr = 0 if nc == 0 else lg(gel(g,1))-1
+#        L = [gentoobj(z[i,j], locals) for i in range(nr) for j in range(nc)]
+#        from sage.matrix.constructor import matrix
+#        return matrix(nr, nc, L)
+#    elif t == t_PADIC:
+#        from sage.rings.padics.factory import Qp
+#        p = z.padicprime()
+#        K = Qp(Integer(p), precp(g))
+#        return K(z.lift())
+#    elif t == t_INFINITY:
+#        if z.sign() == 1:
+#            return sage.rings.infinity.infinity
+#        else:
+#            return -sage.rings.infinity.infinity
+#    
+#    # Fallback (e.g. polynomials): use string representation
+#    from sage.misc.sage_eval import sage_eval
+#    return sage_eval(str(z), locals=locals)
 
 
 cdef GEN _Vec_append(GEN v, GEN a, long n):
