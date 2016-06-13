@@ -59,7 +59,7 @@ Now it takes much less than a second::
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-
+DEF SAGE = False
 
 import math
 import types
@@ -69,10 +69,11 @@ from cpython.string cimport PyString_AsString
 from cpython.int cimport PyInt_AS_LONG
 from cpython.float cimport PyFloat_AS_DOUBLE
 from cpython.complex cimport PyComplex_RealAsDouble, PyComplex_ImagAsDouble
-from sage.structure.element cimport ModuleElement, RingElement, Element
-from sage.misc.randstate cimport randstate, current_randstate
-from sage.structure.sage_object cimport rich_to_bool
-from sage.misc.superseded import deprecation, deprecated_function_alias
+if SAGE:
+  from sage.structure.element cimport ModuleElement, RingElement, Element
+  from sage.misc.randstate cimport randstate, current_randstate
+  from sage.structure.sage_object cimport rich_to_bool
+  from sage.misc.superseded import deprecation, deprecated_function_alias
 
 from .paridecl cimport *
 from .paripriv cimport *
@@ -81,16 +82,18 @@ include "cysignals/signals.pxi"
 
 cimport cython
 
-from sage.libs.gmp.mpz cimport *
-from sage.libs.gmp.pylong cimport mpz_set_pylong
-from sage.libs.pari.closure cimport objtoclosure
+if SAGE:
+  from sage.libs.gmp.mpz cimport *
+  from sage.libs.gmp.pylong cimport mpz_set_pylong
+  from sage.libs.pari.closure cimport objtoclosure
 
 from pari_instance cimport (PariInstance, pari_instance,
         prec_bits_to_words, prec_words_to_bits, default_bitprec)
 cdef PariInstance P = pari_instance
 
-from sage.rings.integer cimport Integer
-from sage.rings.rational cimport Rational
+if SAGE:
+  from sage.rings.integer cimport Integer
+  from sage.rings.rational cimport Rational
 
 
 include 'auto_gen.pxi'

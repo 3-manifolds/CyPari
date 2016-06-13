@@ -30,7 +30,8 @@ def sage_src_pari():
         sage: sage_src_pari()
         '.../src/sage/libs/pari'
     """
-    return 'src'
+    return 'cypari_src'
+
 
 def pari_share():
     r"""
@@ -42,7 +43,8 @@ def pari_share():
         sage: pari_share()
         '.../local/share/pari'
     """
-    return 'build/pari/share/pari'
+    SAGE_LOCAL = 'build/pari'
+    return os.path.join(SAGE_LOCAL, "share", "pari")
 
 paren_re = re.compile(r"[(](.*)[)]")
 argname_re = re.compile(r"[ {]*([A-Za-z_][A-Za-z0-9_]*)")

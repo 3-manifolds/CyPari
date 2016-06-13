@@ -1,11 +1,16 @@
+DEF SAGE = False
 from .types cimport *
-from sage.libs.gmp.types cimport *
-from sage.libs.flint.types cimport fmpz_t, fmpz_mat_t
-from sage.structure.parent_base cimport ParentWithBase
+if SAGE:
+    from sage.libs.gmp.types cimport *
+    from sage.libs.flint.types cimport fmpz_t, fmpz_mat_t
+    from sage.structure.parent_base cimport ParentWithBase
 cimport cython
 
-from sage.libs.pari.gen cimport gen
-
+if SAGE:
+    from sage.libs.pari.gen cimport gen
+else:
+    from cypari.gen cimport gen
+    
 cpdef long prec_bits_to_words(unsigned long prec_in_bits)
 cpdef long prec_words_to_bits(long prec_in_words)
 cpdef long default_bitprec()
