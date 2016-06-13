@@ -14,8 +14,8 @@ Read and parse the file pari.desc
 
 import os, re
 
-from sage_setup.autogen.pari.args import pari_arg_types
-from sage_setup.autogen.pari.ret import pari_ret_types
+from autogen.pari.args import pari_arg_types
+from autogen.pari.ret import pari_ret_types
 
 
 def sage_src_pari():
@@ -26,12 +26,11 @@ def sage_src_pari():
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.parser import sage_src_pari
+        sage: from autogen.pari.parser import sage_src_pari
         sage: sage_src_pari()
         '.../src/sage/libs/pari'
     """
-    SAGE_SRC = os.environ['SAGE_SRC']
-    return os.path.join(SAGE_SRC, 'sage', 'libs', 'pari')
+    return 'src'
 
 def pari_share():
     r"""
@@ -39,12 +38,11 @@ def pari_share():
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.parser import pari_share
+        sage: from autogen.pari.parser import pari_share
         sage: pari_share()
         '.../local/share/pari'
     """
-    SAGE_LOCAL = os.environ["SAGE_LOCAL"]
-    return os.path.join(SAGE_LOCAL, "share", "pari")
+    return 'build/pari/share/pari'
 
 paren_re = re.compile(r"[(](.*)[)]")
 argname_re = re.compile(r"[ {]*([A-Za-z_][A-Za-z0-9_]*)")
@@ -59,7 +57,7 @@ def read_pari_desc():
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.parser import read_pari_desc
+        sage: from autogen.pari.parser import read_pari_desc
         sage: D = read_pari_desc()
         sage: D["cos"]
         {'class': 'basic',
@@ -109,7 +107,7 @@ def read_decl():
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.parser import read_decl
+        sage: from autogen.pari.parser import read_decl
         sage: read_decl()
         {'ABC_to_bnr', ..., 'zx_to_zv'}
     """
@@ -146,7 +144,7 @@ def parse_prototype(proto, help, initial_args=[]):
 
     EXAMPLES::
 
-        sage: from sage_setup.autogen.pari.parser import parse_prototype
+        sage: from autogen.pari.parser import parse_prototype
         sage: proto = 'GD0,L,DGDGDG'
         sage: help = 'qfbred(x,{flag=0},{d},{isd},{sd})'
         sage: parse_prototype(proto, help)
