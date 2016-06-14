@@ -505,7 +505,7 @@ cdef class gen:
 #        import cypari.gen_py
 #        return cypari.gen_py.pari, (s,)
 
-    def __add__(self, other):
+ def __add__(self, other):
         cdef gen left, right
         left = self if isinstance(self, gen) else P(self)
         right = other if isinstance(other, gen) else P(other)

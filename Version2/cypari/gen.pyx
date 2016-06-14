@@ -101,6 +101,43 @@ Unfortunately, we must now kill Python."""
   import sys
   sys.exit()
 
+IF SAGE == False:
+    cdef class RingElement:
+        def __add__(self, other):
+            cdef gen left, right
+            left = self if isinstance(self, gen) else P(self)
+            right = other if isinstance(other, gen) else P(other)
+            sig_on()
+            return P.new_gen(gadd(left.g, right.g))
+    
+        def __sub__(self, other):
+            cdef gen left, right
+            left = self if isinstance(self, gen) else P(self)
+            right = other if isinstance(other, gen) else P(other)
+            sig_on()
+            return P.new_gen(gsub(left.g, right.g))
+    
+        def __mul__(self, other):
+            cdef gen left, right
+            left = self if isinstance(self, gen) else P(self)
+            right = other if isinstance(other, gen) else P(other)
+            sig_on()
+            return P.new_gen(gmul(left.g, right.g))
+    
+        def __truediv__(self, other):  # Python 3
+            cdef gen left, right
+            left = self if isinstance(self, gen) else P(self)
+            right = other if isinstance(other, gen) else P(other)
+            sig_on()
+            return P.new_gen(gdiv(left.g, right.g))
+    
+        def __div__(self, other):  # Python 2
+            cdef gen left, right
+            left = self if isinstance(self, gen) else P(self)
+            right = other if isinstance(other, gen) else P(other)
+            sig_on()
+            return P.new_gen(gdiv(left.g, right.g))
+
 include 'auto_gen.pxi'
 
 @cython.final
