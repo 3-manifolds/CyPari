@@ -216,9 +216,11 @@ if SAGE:
    from sage.libs.pari.gen cimport gen, objtogen
    from sage.libs.pari.handle_error cimport _pari_init_error_handling
    from sage.misc.superseded import deprecation, deprecated_function_alias
+
 else:
    from gen cimport gen, objtogen
    from handle_error cimport _pari_init_error_handling
+
 
 # real precision in decimal digits: see documentation for
 # get_real_precision() and set_real_precision().  This variable is used
@@ -395,7 +397,6 @@ P = pari_instance   # shorthand notation
 
 # Also a copy of PARI accessible from external pure python code.
 pari = pari_instance
-
 
 # Callbacks from PARI to print stuff using sys.stdout.write() instead
 # of C library functions like puts().

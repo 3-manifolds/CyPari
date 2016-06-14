@@ -3,36 +3,27 @@ The package *cypari* is a Python wrapper for the `PARI library
 <http://pari.math.u-bordeaux.fr/>`_, a computer algebra system for
 number theory computations.  It is derived from the `corresponding
 component
-<http://doc.sagemath.org/html/en/reference/libs/sage/libs/pari/index.html>`_
+<http://www.sagemath.org/doc/reference/libs/sage/libs/pari/gen.html>`_
 of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python.
 """
 
+
 from setuptools import setup
 import setuptools, setuptools.command.sdist, os, sys
 
-# Static linking causes segfaults for some reason.
-# So you have to install this version of Pari to build.
-# Nonetheless, we build a local version in build/pari.
-#pari_include_dir = os.path.join('build', 'pari', 'include')
-#pari_library_dir = os.path.join('build', 'pari')
-#pari_library = os.path.join(pari_library_dir, 'libpari.a')
+pari_ver = 'pari-2.5.5'
+pari_include_dir = os.path.join(pari_ver, 'include')
+pari_library_dir = os.path.join(pari_ver, 'lib')
+pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
-pari_include_dir = '/usr/local/include/pari'
-pari_library_dir = '/usr/local/lib'
-cysignals_include_dir = '/usr/local/lib/python2.7/dist-packages/cysignals'
-
-if not os.path.exists('build/pari') and 'clean' not in sys.argv:
+if not os.path.exists(pari_library) and 'clean' not in sys.argv:
     if sys.platform == 'win32':
         print('Please run the bash script build_pari.sh first')
+        sys.exit()
     if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
-
-if (not os.path.exists('cypari/auto_gen.pxi')
-    or not os.path.exists('cypari/auto_instance.pxi')):
-    import autogen
-    autogen.autogen_all()
-
+    
 class clean(setuptools.Command):
     user_options = []
     def initialize_options(self):
@@ -42,52 +33,36 @@ class clean(setuptools.Command):
     def run(self):
         os.system('rm -rf build dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -f cypari/gen.c cypari/pari_instance.c cypari/*.pyc')
+        os.system('rm -f cypari_src/gen.c cypari_src/gen.h cypari_src/*.pyc')
 
 try:
     from Cython.Build import cythonize
     if 'clean' not in sys.argv:
-        cython_sources = ['cypari/gen.pyx',
-                          'cypari/pari_instance.pyx',
-                          'cypari/handle_error.pyx']
-        cythonize(cython_sources)
+        target = 'cypari_src/gen.pyx'
+        if os.path.exists(target):
+            cythonize([target])
 
 except ImportError:
     pass 
 
 pari_gen = setuptools.Extension('cypari.gen',
-                     sources=['cypari/gen.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
+                     sources=['cypari_src/gen.c'],
+                     include_dirs=[pari_include_dir],
                      library_dirs=[pari_library_dir],
                      libraries=['pari', 'm'],
-                     )
-
-pari_instance = setuptools.Extension('cypari.pari_instance',
-                     sources=['cypari/pari_instance.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     libraries=['pari', 'm'],
-                     )
-
-pari_error = setuptools.Extension('cypari.handle_error',
-                     sources=['cypari/handle_error.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     libraries=['pari'],
                      )
 
 # Load version number
-exec(open('cypari/version.py').read())
+exec(open('cypari_src/version.py').read())
 
 setup(
     name = 'cypari',
     version = version,
-    install_requires = [],
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
-    package_dir = {'cypari':'cypari'}, 
+    package_dir = {'cypari':'cypari_src'}, 
     cmdclass = {'clean':clean},
-    ext_modules = [pari_gen, pari_instance, pari_error],
+    ext_modules = [pari_gen],
     
     zip_safe = False,
     long_description = long_description,
