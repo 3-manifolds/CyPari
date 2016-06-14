@@ -21,7 +21,7 @@ current build process is a bit complex:
 $ tar xvf pari-2.8.tgz
 $ cd pari_src
 $ ./Configure
-$ make install
+$ sudo make install
 $ cd ..
 $ rm -rf pari_src
 $ pip install --upgrade cysignals
