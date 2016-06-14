@@ -477,12 +477,12 @@ cdef class PariInstance(PariInstance_auto):
         # As a simple heuristic, we set the virtual stack to 1/4 of the
         # virtual memory.
 
-        from sage.misc.memory_info import MemoryInfo
-        mem = MemoryInfo()
+#        from sage.misc.memory_info import MemoryInfo
+#        mem = MemoryInfo()
 
         pari_init_opts(size, maxprime, INIT_DFTm)
-        paristack_setsize(size, mem.virtual_memory_limit() // 4)
-
+#        paristack_setsize(size, mem.virtual_memory_limit() // 4)
+        paristack_setsize(size, 2000000000)
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.
         pari_stackcheck_init(NULL)
@@ -710,7 +710,7 @@ cdef class PariInstance(PariInstance_auto):
         cdef gen y = gen.__new__(gen)
         y.g = self.deepcopy_to_python_heap(x, &address)
         y.b = address
-        y._parent = self
+#        y._parent = self
         # y.refers_to (a dict which is None now) is initialised as needed
         return y
 
@@ -937,8 +937,8 @@ cdef class PariInstance(PariInstance_auto):
         cdef gen p = gen.__new__(gen)
         p.g = g
         p.b = 0
-        p._parent = self
-        p.refers_to = {-1: parent}
+#        p._parent = self
+#        p.refers_to = {-1: parent}
         return p
 
     def __call__(self, s):
@@ -1558,11 +1558,11 @@ cdef class PariInstance(PariInstance_auto):
             if len(entries) != m*n:
                 raise IndexError("len of entries (=%s) must be %s*%s=%s"%(len(entries),m,n,m*n))
             k = 0
-            A.refers_to = {}
+#            A.refers_to = {}
             for i from 0 <= i < m:
                 for j from 0 <= j < n:
                     x = pari(entries[k])
-                    A.refers_to[(i,j)] = x
+#                    A.refers_to[(i,j)] = x
                     (<GEN>(A.g)[j+1])[i+1] = <long>(x.g)
                     k = k + 1
         return A

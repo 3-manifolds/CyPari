@@ -1,4 +1,6 @@
 syntax: glob
 build
 *.pyc
-cypari_src/auto*
+cypari/auto*
+cypari/*.c
+cypari/pari_instance.h
