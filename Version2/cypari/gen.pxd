@@ -1,7 +1,10 @@
 from .types cimport *
 cimport cython
 
-cdef class gen_auto:
+cdef class RingElement:
+    pass
+
+cdef class gen_auto(RingElement):
     cdef GEN g
     cdef pari_sp b
     cdef dict refers_to
