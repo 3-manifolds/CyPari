@@ -12,15 +12,17 @@ from setuptools import setup
 import setuptools, setuptools.command.sdist, os, sys
 
 # Static linking causes segfaults for some reason.
-# So you have to install this version of Pari to build.
-# Nonetheless, we build a local version in build/pari.
-#pari_include_dir = os.path.join('build', 'pari', 'include')
+# So, to run Cypari you have to either *install* this version
+# of Pari or set LD_LIBRARY_PATH.
+# Either way, we build a local version of Pari in build/pari.
+pari_include_dir = os.path.join('build', 'pari', 'include')
 #pari_library_dir = os.path.join('build', 'pari')
+pari_library_dir = '/usr/local/lib/'
 #pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
-pari_include_dir = '/usr/local/include/pari'
-pari_library_dir = '/usr/local/lib'
-cysignals_include_dir = '/usr/local/lib/python2.7/dist-packages/cysignals'
+import cysignals
+python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
+cysignals_include_dir = os.path.join(python_package_dir, 'cysignals/')
 
 if not os.path.exists('build/pari') and 'clean' not in sys.argv:
     if sys.platform == 'win32':
@@ -50,7 +52,7 @@ try:
         cython_sources = ['cypari/gen.pyx',
                           'cypari/pari_instance.pyx',
                           'cypari/handle_error.pyx']
-        cythonize(cython_sources)
+        cythonize(cython_sources, include_path=[python_package_dir])
 
 except ImportError:
     pass 
