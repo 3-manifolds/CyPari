@@ -22,6 +22,7 @@ $ tar xvf pari-2.8.tgz
 $ cd pari_src
 $ ./Configure
 $ sudo make install
+$ sudo ldconfig
 $ cd ..
 $ rm -rf pari_src
 $ pip install --upgrade cysignals
