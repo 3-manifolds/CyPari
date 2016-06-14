@@ -64,12 +64,12 @@ DEF SAGE = False
 import math
 import types
 import operator
-import sage.structure.element
 from cpython.string cimport PyString_AsString
 from cpython.int cimport PyInt_AS_LONG
 from cpython.float cimport PyFloat_AS_DOUBLE
 from cpython.complex cimport PyComplex_RealAsDouble, PyComplex_ImagAsDouble
 if SAGE:
+  import sage.structure.element
   from sage.structure.element cimport ModuleElement, RingElement, Element
   from sage.misc.randstate cimport randstate, current_randstate
   from sage.structure.sage_object cimport rich_to_bool
