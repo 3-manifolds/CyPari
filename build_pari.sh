@@ -3,21 +3,19 @@
 # This builds a fat (i386/x86_64) PARI library for OS X > 10.5 or a 
 # normal binary for Linux or Windows. 
 #
+# PARI source 
+#
+# http://pari.math.u-bordeaux.fr/pub/pari/unix/OLD/2.5/pari-2.5.5.tar.gz
 
 set -e
-if [ ! -d "build" ] ; then
-    mkdir build
-fi
-PREFIX=`pwd`/build/pari
 echo "Untarring Pari..."
-cd build
-tar xzf ../pari-2.8.tgz
-cd pari_src
+tar xzf pari-2.5.5.tar.gz
+cd pari-2.5.5
 
 echo "Building Pari libary..." 
 if [ "$(uname)" = "Darwin" ] ; then  # OS X
     export CFLAGS='-arch i386 -mmacosx-version-min=10.4 '
-    ./Configure --prefix=${PREFIX} --without-gmp --host=i386-darwin
+    ./Configure --prefix=`pwd` --without-gmp --host=i386-darwin
     cd Odarwin-i386
     make install-lib-sta
     make install-include
@@ -38,18 +36,14 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     ranlib lib/*.a
     ln -s include32 include
 
-elif [ "$(uname)" = *MINGW32* ] ; then # MinGW on Windows
-    ./Configure --prefix=${PREFIX} --libdir=lib --without-gmp --host=i386-mingw
+elif [[ "$(uname)" = *MINGW32* ]] ; then # MinGW on Windows
+    ./Configure --prefix=`pwd` --libdir=lib --without-gmp --host=i386-mingw
     cd Omingw-i386
     make install-lib-sta
     make install-include
 else  # Linux
-    ./Configure --prefix=${PREFIX} --without-gmp
+    ./Configure --prefix=`pwd` --without-gmp
     cd Olinux-*
-    make install
     make install-lib-sta
-    cd ../..
-    cp pari_src/src/language/anal.h pari/include/pari
-    cd pari
-    ln -s lib/libpari.a libpari.a
-fi
+    make install-include
+fi 

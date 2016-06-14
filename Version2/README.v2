@@ -14,7 +14,14 @@ ln -s /usr/local/lib/python2.7/dist-packages/cysignals .
 
 STATUS (2016-06-14):
 Running:
-  python setup.py build 
-builds a module which can be loaded into python and can
-do some basic stuff.  However, objtogen segfaults.  I'm
-now tracking down the cause of the segfault.
+  python setup.py build
+builds the cypari module.
+
+To use it, do:
+from cypari.all import pari
+
+Currently, this build links against the shared library which must
+therefore be installed somewhere where ld_config can find it.
+
+When I link statically, I get segfaults.  I don't know the cause
+of this yet.

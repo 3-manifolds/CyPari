@@ -68,7 +68,7 @@ from cpython.string cimport PyString_AsString
 from cpython.int cimport PyInt_AS_LONG
 from cpython.float cimport PyFloat_AS_DOUBLE
 from cpython.complex cimport PyComplex_RealAsDouble, PyComplex_ImagAsDouble
-if SAGE:
+IF SAGE == True:
   import sage.structure.element
   from sage.structure.element cimport ModuleElement, RingElement, Element
   from sage.misc.randstate cimport randstate, current_randstate
@@ -82,19 +82,24 @@ include "cysignals/signals.pxi"
 
 cimport cython
 
-if SAGE:
+if SAGE == True:
   from sage.libs.gmp.mpz cimport *
   from sage.libs.gmp.pylong cimport mpz_set_pylong
+  from sage.rings.integer cimport Integer
+  from sage.rings.rational cimport Rational
+
   from sage.libs.pari.closure cimport objtoclosure
 
 from pari_instance cimport (PariInstance, pari_instance,
         prec_bits_to_words, prec_words_to_bits, default_bitprec)
 cdef PariInstance P = pari_instance
-
-if SAGE:
-  from sage.rings.integer cimport Integer
-  from sage.rings.rational cimport Rational
-
+if P is None:
+  print """
+Next time, please import pari like this:
+>>> from cypari.all import pari\n
+Unfortunately, we must now kill Python."""
+  import sys
+  sys.exit()
 
 include 'auto_gen.pxi'
 
@@ -244,21 +249,21 @@ cdef class gen(gen_auto):
         return (objtogen, (s,))
 
 
-    # cpdef ModuleElement _add_(self, ModuleElement right):
-    #     sig_on()
-    #     return P.new_gen(gadd(self.g, (<gen>right).g))
-
-    # cpdef ModuleElement _sub_(self, ModuleElement right):
-    #     sig_on()
-    #     return P.new_gen(gsub(self.g, (<gen> right).g))
-
-    # cpdef RingElement _mul_(self, RingElement right):
-    #     sig_on()
-    #     return P.new_gen(gmul(self.g, (<gen>right).g))
-
-    # cpdef RingElement _div_(self, RingElement right):
-    #     sig_on()
-    #     return P.new_gen(gdiv(self.g, (<gen>right).g))
+#    cpdef ModuleElement _add_(self, ModuleElement right):
+#        sig_on()
+#        return P.new_gen(gadd(self.g, (<gen>right).g))
+#
+#    cpdef ModuleElement _sub_(self, ModuleElement right):
+#        sig_on()
+#        return P.new_gen(gsub(self.g, (<gen> right).g))
+#
+#    cpdef RingElement _mul_(self, RingElement right):
+#        sig_on()
+#        return P.new_gen(gmul(self.g, (<gen>right).g))
+#
+#    cpdef RingElement _div_(self, RingElement right):
+#        sig_on()
+#        return P.new_gen(gdiv(self.g, (<gen>right).g))
 
     def _add_one(gen self):
         """
@@ -929,23 +934,23 @@ cdef class gen(gen_auto):
         elif pari_type == t_LIST:
             return self.component(n+1)
 
-        #elif pari_type in (t_FRAC, t_RFRAC):
-            # generic code gives us:
-            #   [0] = numerator
-            #   [1] = denominator
-
-        #elif pari_type == t_COMPLEX:
-            # generic code gives us
-            #   [0] = real part
-            #   [1] = imag part
-
-        #elif type(self.g) in (t_QFR, t_QFI):
-            # generic code works ok
-
-        else:
-            ## generic code, which currently handles cases
-            ## as mentioned above
-            return P.new_ref(gel(self.g,n+1), self)
+#        elif pari_type in (t_FRAC, t_RFRAC):
+#            generic code gives us:
+#              [0] = numerator
+#              [1] = denominator
+#
+#        elif pari_type == t_COMPLEX:
+#            generic code gives us
+#              [0] = real part
+#              [1] = imag part
+#
+#        elif type(self.g) in (t_QFR, t_QFI):
+#            generic code works ok
+#
+#        else:
+#            ## generic code, which currently handles cases
+#            ## as mentioned above
+        return P.new_ref(gel(self.g,n+1), self)
 
     def __setitem__(gen self, n, y):
         r"""
@@ -1101,6 +1106,7 @@ cdef class gen(gen_auto):
 
     def __len__(gen self):
         return glength(self.g)
+
 
 #    cpdef _richcmp_(left, Element right, int op):
     def __richcmp__(left, right, int op):
@@ -4936,3 +4942,4 @@ cdef GEN _Vec_append(GEN v, GEN a, long n):
         return w
     else:
         return v
+

@@ -1,6 +1,14 @@
 syntax: glob
+pari-2.5.5
 build
+cypari.egg-info
+dist
+cypari_src/gen.c
+cypari_src/gen.h
+.DS_Store
 *.pyc
-cypari/auto*
-cypari/*.c
-cypari/pari_instance.h
+Version2/build
+Version2/cypari/auto*
+Version2/cypari/*.c
+Version2/cypari/pari_instance.h
+
