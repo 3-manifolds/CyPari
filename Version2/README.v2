@@ -1,0 +1,20 @@
+CyPari version 2.0
+
+This directory contains a new version of CyPari based on current
+(7.2) Sage sources.  In particular, it uses the automated build
+scripts written by Jeroen DeMeyer and the same version of Pari
+which was used in the github version of Sage as of June 2016.
+(The scripts should allow easy adaption to new releases of Pari.)
+
+Currently I have only tried building this on Ubuntu 16.04.  The code
+depends on cysignals and the build requires access to the installed
+cysignals module.  At the moment I am handling this as follows:
+
+ln -s /usr/local/lib/python2.7/dist-packages/cysignals .
+
+STATUS (2016-06-14):
+Running:
+  python setup.py build 
+builds a module which can be loaded into python and can
+do some basic stuff.  However, objtogen segfaults.  I'm
+now tracking down the cause of the segfault.
