@@ -13,15 +13,26 @@ cysignals module.  At the moment I am handling this as follows:
 ln -s /usr/local/lib/python2.7/dist-packages/cysignals .
 
 STATUS (2016-06-14):
-Running:
-  python setup.py build
-builds the cypari module.
+This now makes a working CyPari on Ubuntu and (x86_64) Mac.
 
-To use it, do:
-from cypari.all import pari
+Because CyPari depends on cysignals which depends on Pari, the
+current build process is a bit complex:
+
+$ tar xvf pari-2.8.tgz
+$ cd pari_src
+$ ./Configure
+$ make install
+$ cd ..
+$ rm -rf pari_src
+$ pip install --upgrade cysignals
+$ python setup.py build_ext --inplace
+
+To test it, do:
+>>> from cypari.all import pari
 
 Currently, this build links against the shared library which must
 therefore be installed somewhere where ld_config can find it.
-
-When I link statically, I get segfaults.  I don't know the cause
-of this yet.
+I would rather do static linking, so CyPari would be self contained.
+But when I link statically, I get segfaults.  I don't know the cause
+of this yet.  Possibly, if I could statically link cysignals with
+libpari then I might be able to statically link CyPari as well.
