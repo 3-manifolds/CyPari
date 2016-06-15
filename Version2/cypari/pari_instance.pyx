@@ -210,20 +210,25 @@ from libc.stdio cimport *
 cimport cython
 
 include "cysignals/memory.pxi"
-if SAGE:
-   from sage.ext.memory import init_memory_functions
-   from sage.structure.parent cimport Parent
-   from sage.libs.gmp.all cimport *
-   from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
-   from sage.libs.flint.fmpz_mat cimport *
+IF SAGE:
+    from sage.ext.memory import init_memory_functions
+    from sage.structure.parent cimport Parent
+    from sage.libs.gmp.all cimport *
+    from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
+    from sage.libs.flint.fmpz_mat cimport *
 
-   from sage.libs.pari.gen cimport gen, objtogen
-   from sage.libs.pari.handle_error cimport _pari_init_error_handling
-   from sage.misc.superseded import deprecation, deprecated_function_alias
+    from sage.libs.pari.gen cimport gen, objtogen
+    from sage.libs.pari.handle_error cimport _pari_init_error_handling
+    from sage.misc.superseded import deprecation, deprecated_function_alias
 
-else:
-   from gen cimport gen, objtogen
-   from handle_error cimport _pari_init_error_handling
+ELSE:
+    from gen cimport gen, objtogen
+    from handle_error cimport _pari_init_error_handling
+    cdef deprecation(int id, char* message):
+        # Decide how to handle this in CyPari
+        pass
+    cdef deprecated_function_alias(id, alias):
+        return alias
 
 
 # real precision in decimal digits: see documentation for
@@ -1426,14 +1431,12 @@ cdef class PariInstance(PariInstance_base):
         return self.new_gen(primes_interval(t0.g, t1.g))
 
     def primes_up_to_n(self, n):
-        IF SAGE:
-            deprecation(20216, "pari.primes_up_to_n(n) is deprecated, use pari.primes(end=n) instead")
+        deprecation(20216, "pari.primes_up_to_n(n) is deprecated, use pari.primes(end=n) instead")
         return self.primes(end=n)
 
-    IF SAGE:
-        prime_list = deprecated_function_alias(20216, primes)
+    prime_list = deprecated_function_alias(20216, primes)
 
-        nth_prime = deprecated_function_alias(20216, PariInstance_auto.prime)
+    nth_prime = deprecated_function_alias(20216, PariInstance_auto.prime)
 
     euler = PariInstance_auto.Euler
     pi = PariInstance_auto.Pi
@@ -1457,8 +1460,7 @@ cdef class PariInstance(PariInstance_base):
 
     # Deprecated by upstream PARI: do not remove this deprecated alias
     # as long as it exists in PARI.
-    IF SAGE:
-        poltchebi = deprecated_function_alias(18203, polchebyshev)
+    poltchebi = deprecated_function_alias(18203, polchebyshev)
 
     def factorial(self, long n):
         """
@@ -1504,8 +1506,7 @@ cdef class PariInstance(PariInstance_base):
         else:
             return plist
 
-    IF SAGE:
-       polcyclo_eval = deprecated_function_alias(20217, PariInstance_auto.polcyclo)
+    polcyclo_eval = deprecated_function_alias(20217, PariInstance_auto.polcyclo)
 
     def setrand(self, seed):
         """
@@ -1622,7 +1623,7 @@ cdef class PariInstance(PariInstance_base):
         if P0 is not None:
             IF SAGE:
                 from sage.misc.superseded import deprecation
-                deprecation(16997, 'The 2-argument version of genus2red() is deprecated, use genus2red(P) or genus2red([P,Q]) instead')
+            deprecation(16997, 'The 2-argument version of genus2red() is deprecated, use genus2red(P) or genus2red([P,Q]) instead')
             P = [P0, P]
         cdef gen t0 = objtogen(P)
         sig_on()
