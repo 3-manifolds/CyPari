@@ -28,6 +28,9 @@ AUTHORS:
 - Jeroen Demeyer (2015-03-17): automatically generate methods from
   ``pari.desc`` (:trac:`17631` and :trac:`17860`)
 
+- Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
+  CyPari module.
+
 EXAMPLES::
 
     sage: pari('5! + 10/x')
