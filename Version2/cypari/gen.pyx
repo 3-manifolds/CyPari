@@ -34,6 +34,9 @@ AUTHORS:
 
 - Kiran Kedlaya (2016-03-23): implement infinity type
 
+- Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
+  CyPari module.
+
 TESTS:
 
 Before :trac:`15654`, this used to take a very long time.
@@ -1408,7 +1411,7 @@ cdef class gen(gen_auto):
 
     def __int__(gen self):
         """
-        Return Python int. Very fast, and if the number is too large to fit
+        Return a Python int. If the number is too large to fit
         into a C int, a Python long is returned instead.
         
         EXAMPLES::
@@ -1433,6 +1436,8 @@ cdef class gen(gen_auto):
         cdef GEN x
         cdef long lx
         cdef long *xp
+        cdef int sign
+        cdef H, L
         if  typ(self.g)==t_POL and self.poldegree()<=0:
             # Change a constant polynomial to its constant term
             x = constant_term(self.g)
@@ -1440,25 +1445,28 @@ cdef class gen(gen_auto):
             x = self.g
         if typ(x) != t_INT:
             raise TypeError, "gen must be of PARI type t_INT or t_POL of degree 0"
-        if not signe(x):
+        sign = signe(x)
+        if not sign:
             return 0
-        lx = lgefint(x)-3   # take 1 to account for the MSW
+        lx = lgefint(x) - 3   # take 1 to account for the MSW
         xp = int_MSW(x)
         # special case 1 word so we return int if it fits
         if not lx:
-            if   signe(x) |  xp[0] > 0:     # both positive
+            if   sign | xp[0] > 0:     # both positive
                 return xp[0]
-            elif signe(x) & -xp[0] < 0:     # both negative
+            elif sign & -xp[0] < 0:     # both negative
                 return -xp[0]
-        i = <ulong>xp[0]
+        L = <ulong>xp[0]
         while lx:
             xp = int_precW(xp)
-            i = i << BITS_IN_LONG | <ulong>xp[0]
-            lx = lx-1
-        if signe(x) > 0:
-            return i
+            H = <ulong>xp[0]
+            H = H << BITS_IN_LONG
+            H = H | L
+            lx = lx - 1
+        if sign > 0:
+            return H
         else:
-            return -i
+            return -H
 
     def python_list_small(gen self):
         """

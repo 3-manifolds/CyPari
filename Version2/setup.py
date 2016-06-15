@@ -44,7 +44,8 @@ class clean(setuptools.Command):
     def run(self):
         os.system('rm -rf build dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -f cypari/gen.c cypari/pari_instance.c cypari/*.pyc')
+        os.system('rm -f cypari/gen.c cypari/pari_instance.c cypari/handle_error.c cypari/*.pyc')
+        os.system('rm -f cypari/*.so')
 
 try:
     from Cython.Build import cythonize
