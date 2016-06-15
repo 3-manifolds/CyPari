@@ -9,8 +9,16 @@ cpdef long default_bitprec()
 cdef class PariInstance_auto:
     pass
 
+include "sage.pxi"
+IF SAGE == True:
+    cdef class PariInstance_base(PariInstance_auto):
+        pass
+ELSE:
+    cdef class PariInstance_base(PariInstance_auto):
+        pass
+
 @cython.final
-cdef class PariInstance(PariInstance_auto):
+cdef class PariInstance(PariInstance_base):
     cdef long _real_precision
     cdef readonly gen PARI_ZERO, PARI_ONE, PARI_TWO
     cpdef gen zero(self)
