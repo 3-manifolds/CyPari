@@ -26,6 +26,7 @@ $ sudo ldconfig
 $ cd ..
 $ rm -rf pari_src
 $ pip install --upgrade cysignals
+# The commands above are only needed once.
 $ python setup.py build_ext --inplace
 
 To test it, do:
