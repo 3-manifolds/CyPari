@@ -52,7 +52,8 @@ try:
     if 'clean' not in sys.argv:
         cython_sources = ['cypari/gen.pyx',
                           'cypari/pari_instance.pyx',
-                          'cypari/handle_error.pyx']
+                          'cypari/handle_error.pyx',
+                          'cypari/closure.pyx']
         cythonize(cython_sources, include_path=[python_package_dir])
 
 except ImportError:
@@ -78,6 +79,12 @@ pari_error = setuptools.Extension('cypari.handle_error',
                      library_dirs=[pari_library_dir],
                      libraries=['pari'],
                      )
+pari_closure = setuptools.Extension('cypari.closure',
+                     sources=['cypari/closure.c'],
+                     include_dirs=[pari_include_dir, cysignals_include_dir],
+                     library_dirs=[pari_library_dir],
+                     libraries=['pari'],
+                     )
 
 # Load version number
 exec(open('cypari/version.py').read())
@@ -90,7 +97,7 @@ setup(
     packages = ['cypari'],
     package_dir = {'cypari':'cypari'}, 
     cmdclass = {'clean':clean},
-    ext_modules = [pari_gen, pari_instance, pari_error],
+    ext_modules = [pari_gen, pari_instance, pari_error, pari_closure],
     
     zip_safe = False,
     long_description = long_description,
