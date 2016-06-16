@@ -39,7 +39,6 @@ from .paridecl cimport *
 from pari_instance cimport pari_instance
 from gen cimport objtogen
 
-
 cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_func) except NULL:
     """
     Call ``py_func(*args)`` where ``py_func`` is a Python function
