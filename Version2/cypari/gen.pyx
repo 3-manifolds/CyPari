@@ -62,7 +62,8 @@ Now it takes much less than a second::
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-DEF SAGE = False
+# Define the conditional compilation variable SAGE
+include "sage.pxi"
 
 import math
 import types
@@ -86,26 +87,25 @@ include "cysignals/signals.pxi"
 cimport cython
 
 IF SAGE == True:
-  from sage.libs.gmp.mpz cimport *
-  from sage.libs.gmp.pylong cimport mpz_set_pylong
-  from sage.rings.integer cimport Integer
-  from sage.rings.rational cimport Rational
-  from sage.libs.pari.closure cimport objtoclosure
+    from sage.libs.gmp.mpz cimport *
+    from sage.libs.gmp.pylong cimport mpz_set_pylong
+    from sage.rings.integer cimport Integer
+    from sage.rings.rational cimport Rational
+    from sage.libs.pari.closure cimport objtoclosure
 ELSE:
-  from closure cimport objtoclosure
+    from closure cimport objtoclosure
+    from handle_error import PariError
 
-
-from handle_error import PariError
-from pari_instance cimport (PariInstance, pari_instance,
-        prec_bits_to_words, prec_words_to_bits, default_bitprec)
+from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
+                            prec_words_to_bits, default_bitprec)
 cdef PariInstance P = pari_instance
 if P is None:
-  print """
+    print """
 Next time, please import pari like this:
 >>> from cypari.all import pari\n
 Unfortunately, we must now kill Python."""
-  import sys
-  sys.exit()
+    import sys
+    sys.exit()
 
 IF SAGE == False:
     cdef deprecation(int id, char* message):
