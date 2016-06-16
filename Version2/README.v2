@@ -30,7 +30,7 @@ $ pip install --upgrade cysignals
 $ python setup.py build_ext --inplace
 
 To test it, do:
->>> from cypari.all import pari
+>>> from cypari import pari
 
 Currently, this build links against the shared library which must
 therefore be installed somewhere where ld_config can find it.

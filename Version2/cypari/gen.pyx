@@ -99,13 +99,6 @@ ELSE:
 from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
                             prec_words_to_bits, default_bitprec)
 cdef PariInstance P = pari_instance
-if P is None:
-    print """
-Next time, please import pari like this:
->>> from cypari.all import pari\n
-Unfortunately, we must now kill Python."""
-    import sys
-    sys.exit()
 
 IF SAGE == False:
     cdef deprecation(int id, char* message):
