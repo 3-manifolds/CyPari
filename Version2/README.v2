@@ -15,26 +15,16 @@ ln -s /usr/local/lib/python2.7/dist-packages/cysignals .
 STATUS (2016-06-14):
 This now makes a working CyPari on Ubuntu and (x86_64) Mac.
 
-Because CyPari depends on cysignals which depends on Pari, the
-current build process is a bit complex:
+To install the extension in place for testing:
 
-$ tar xvf pari-2.8.tgz
-$ cd pari_src
-$ ./Configure
-$ sudo make install
-$ sudo ldconfig
-$ cd ..
-$ rm -rf pari_src
 $ pip install --upgrade cysignals
-# The commands above are only needed once.
 $ python setup.py build_ext --inplace
 
 To test it, do:
 >>> from cypari import pari
 
-Currently, this build links against the shared library which must
-therefore be installed somewhere where ld_config can find it.
-I would rather do static linking, so CyPari would be self contained.
-But when I link statically, I get segfaults.  I don't know the cause
-of this yet.  Possibly, if I could statically link cysignals with
-libpari then I might be able to statically link CyPari as well.
+To run the doctests:
+$ python -m cypari.test
+
+Note that many doctests will fail because they are expecting results
+from Sage, or use Sage constructs that don't exist here.

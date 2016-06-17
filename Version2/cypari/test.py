@@ -1,7 +1,7 @@
 import doctest
 import re
 from . import tests
-from .all import pari
+from . import pari
 
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):

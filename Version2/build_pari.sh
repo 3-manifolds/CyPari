@@ -20,9 +20,12 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     ./Configure --prefix=${PREFIX} --without-gmp --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
-    make install-lib-sta
     cd ../..
     cp pari_src/src/language/anal.h pari/include/pari
+    cd ../cypari
+    if [ ! -e "libpari-2.8.so.0" ] ; then
+	ln -s ../build/pari/lib/libpari-2.8.so.0
+    fi
 
 elif [ "$(uname)" = *MINGW32* ] ; then # MinGW on Windows
     ./Configure --prefix=${PREFIX} --libdir=lib --without-gmp --host=i386-mingw
@@ -36,5 +39,8 @@ else  # Linux
     make install-lib-sta
     cd ../..
     cp pari_src/src/language/anal.h pari/include/pari
-    ln -s lib/libpari.a pari/libpari.a
+    cd ../cypari
+    if [ ! -e "libpari-2.8.so.0" ] ; then
+	ln -s ../build/pari/lib/libpari-2.8.so.0 .
+    fi
 fi
