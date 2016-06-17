@@ -8,16 +8,18 @@ of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python.
 """
 
-from setuptools import setup
-import setuptools, setuptools.command.sdist, os, sys
+from setuptools import setup, Command
+from distutils.extension import Extension
+from distutils.command.build_ext import build_ext
+from Cython.Build import cythonize
+import os, sys
 
-# Static linking causes segfaults for some reason.
-# So, to run Cypari you have to either *install* this version
-# of Pari or set LD_LIBRARY_PATH.
-# Either way, we build a local version of Pari in build/pari.
 pari_include_dir = os.path.join('build', 'pari', 'include')
-#pari_library_dir = os.path.join('build', 'pari')
-pari_library_dir = '/usr/local/lib/'
+pari_library_dir = os.path.join('build', 'pari', 'lib')
+pari_library = os.path.join(pari_library_dir, 'libpari-2.8.so.0')
+pari_runtime_library_dir = './cypari/'
+#pari_runtime_library_dir = os.path.join('.', pari_library_dir)
+#pari_library_dir = '/usr/local/lib/'
 #pari_library = os.path.join(pari_library_dir, 'libpari.a')
 
 import cysignals
@@ -35,7 +37,7 @@ if (not os.path.exists('cypari/auto_gen.pxi')
     import autogen
     autogen.autogen_all()
 
-class clean(setuptools.Command):
+class Clean(Command):
     user_options = []
     def initialize_options(self):
         pass 
@@ -44,45 +46,53 @@ class clean(setuptools.Command):
     def run(self):
         os.system('rm -rf build dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -f cypari/gen.c cypari/pari_instance.c cypari/handle_error.c cypari/*.pyc')
-        os.system('rm -f cypari/*.so')
+        os.system('rm -if cypari/{gen.c,pari_instance.c,handle_error.c,closure.c}')
+        os.system('rm -if cypari/*.pyc')
+        os.system('rm -if cypari/*.so*')
 
-try:
-    from Cython.Build import cythonize
-    if 'clean' not in sys.argv:
-        cython_sources = ['cypari/gen.pyx',
-                          'cypari/pari_instance.pyx',
-                          'cypari/handle_error.pyx',
-                          'cypari/closure.pyx']
-        cythonize(cython_sources, include_path=[python_package_dir])
+class CyPariBuildExt(build_ext):
+    def __init__(self, dist):
+        build_ext.__init__(self, dist)
+        
+    def run(self):
+        build_ext.run(self)
+        os.system('if [ -d build/lib* ] ; then cp %s build/lib.*/cypari ; fi'%pari_library)
+            
+if 'clean' not in sys.argv:
+    cython_sources = ['cypari/gen.pyx',
+                      'cypari/pari_instance.pyx',
+                      'cypari/handle_error.pyx',
+                      'cypari/closure.pyx']
+    cythonize(cython_sources, include_path=[python_package_dir])
 
-except ImportError:
-    pass 
-
-pari_gen = setuptools.Extension('cypari.gen',
+pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
                      library_dirs=[pari_library_dir],
+                     runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
                      )
 
-pari_instance = setuptools.Extension('cypari.pari_instance',
+pari_instance = Extension('cypari.pari_instance',
                      sources=['cypari/pari_instance.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
                      library_dirs=[pari_library_dir],
+                     runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
                      )
 
-pari_error = setuptools.Extension('cypari.handle_error',
+pari_error = Extension('cypari.handle_error',
                      sources=['cypari/handle_error.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
                      library_dirs=[pari_library_dir],
+                     runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
                      )
-pari_closure = setuptools.Extension('cypari.closure',
+pari_closure = Extension('cypari.closure',
                      sources=['cypari/closure.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
                      library_dirs=[pari_library_dir],
+                     runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
                      )
 
@@ -92,13 +102,12 @@ exec(open('cypari/version.py').read())
 setup(
     name = 'cypari',
     version = version,
-    install_requires = [],
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
-    package_dir = {'cypari':'cypari'}, 
-    cmdclass = {'clean':clean},
+    package_dir = {'cypari':'cypari'},
+    package_data = {'cypari': [pari_library]},
+    cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
     ext_modules = [pari_gen, pari_instance, pari_error, pari_closure],
-    
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',

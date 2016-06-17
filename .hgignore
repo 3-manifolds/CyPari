@@ -7,6 +7,8 @@ cypari_src/gen.c
 cypari_src/gen.h
 .DS_Store
 *.pyc
+*.so
+*.so.*
 Version2/build
 Version2/cypari/auto*
 Version2/cypari/*.c
