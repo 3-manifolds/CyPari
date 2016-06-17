@@ -23,8 +23,8 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     cd ../..
     cp pari_src/src/language/anal.h pari/include/pari
     cd ../cypari
-    if [ ! -e "libpari-2.8.so.0" ] ; then
-	ln -s ../build/pari/lib/libpari-2.8.so.0
+    if [ ! -e "libpari-2.8.dylib" ] ; then
+	ln -s ../build/pari/lib/libpari-2.8.dylib
     fi
 
 elif [ "$(uname)" = *MINGW32* ] ; then # MinGW on Windows
