@@ -36,6 +36,5 @@ else  # Linux
     make install-lib-sta
     cd ../..
     cp pari_src/src/language/anal.h pari/include/pari
-#    cd pari
-#    ln -s lib/libpari.a libpari.a
+    ln -s lib/libpari.a pari/libpari.a
 fi
