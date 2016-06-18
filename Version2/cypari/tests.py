@@ -959,44 +959,40 @@ Finite fields::
     Mod(1, 7)*x^11 + Mod(1, 7)*x^10 + Mod(4, 7)*x^9 + Mod(5, 7)*x^8 + Mod(1, 7)*x^7 + Mod(1, 7)*x^2 + Mod(1, 7)*x + Mod(6, 7)
     >>> pari(2003).ffinit(3)
     Mod(1, 2003)*x^3 + Mod(1, 2003)*x^2 + Mod(1993, 2003)*x + Mod(1995, 2003)
-#####################################
-    >>> k.<a> = GF(2^12)
-    >>> g = pari(a).ffprimroot()
-    >>> (g^1234).fflog(g)
+    >>> a = pari('ffinit(2,12)').ffgen()
+    >>> g = a.ffprimroot()
+    >>> (g**1234).fflog(g)
     1234
-    >>> pari(k(1)).fflog(g)
+    >>> (a/a).fflog(g)
     0
-    >>> b = g^5
+    >>> b = g**5
     >>> ord = b.fforder(); ord
     819
-    >>> (b^555).fflog(b, ord)
+    >>> (b**555).fflog(b, ord)
     555
-    >>> (b^555).fflog(b, (ord, ord.factor()) )
+    >>> (b**555).fflog(b, (ord, ord.factor()) )
     555
 
-    >>> k.<a> = GF(5^80)
-    >>> g = pari(a).ffprimroot()
+    >>> a = pari('ffinit(5, 80)').ffgen()
+    >>> g = a.ffprimroot()
     >>> g.fforder()
     82718061255302767487140869206996285356581211090087890624
-    >>> g.fforder( (5^80-1, factor(5^80-1)) )
+    >>> g.fforder((5**80-1, pari(5**80-1).factor()))
     82718061255302767487140869206996285356581211090087890624
-    >>> k(2)._pari_().fforder(o=4)
+    >>> (2*(a/a)).fforder(o=4)
     4
 
 p-adic functions::
 
-    >>> K = Qp(11,5)
-    >>> x = K(11^-10 + 5*11^-7 + 11^-6)
-    >>> y = pari(x)
+    >>> y = pari('11^-10 + 5*11^-7 + 11^-6 + O(11^-5)')
     >>> y.padicprec(11)
     -5
     >>> y.padicprec(17)
     Traceback (most recent call last):
     ...
     PariError: inconsistent moduli in padicprec: 11 != 17
-    >>> R.<t> = PolynomialRing(Zp(3))
-    >>> pol = R([O(3^4), O(3^6), O(3^5)])
-    >>> pari(pol).padicprec(3)
+    >>> pol = pari('O(3^5)*t^2 + O(3^6)*t + O(3^4)')
+    >>> pol.padicprec(3)
     4
 
 Elliptic curves::
@@ -1008,7 +1004,8 @@ Elliptic curves::
     >>> e.ellisoncurve(x)
     True
     >>> f = e.ellchangecurve([1,2,3,-1])
-    >>> f[:5]   # show only first five entries
+
+    >>> f[:5]
     [6, -2, -1, 17, 8]
     >>> x.ellchangepoint([1,2,3,-1])
     [-1, 4]
@@ -1018,7 +1015,7 @@ Elliptic curves::
     >>> e = pari([0, 5, 2, -1, 1]).ellinit()
     >>> e.ellglobalred()
     [20144, [1, -2, 0, -1], 1, [2, 4; 1259, 1], [[4, 2, 0, 1], [1, 5, 0, 1]]]
-    >>> e = pari(EllipticCurve('17a').a_invariants()).ellinit()
+    >>> e = pari((1, -1, 1, -1, -14)).ellinit()
     >>> e.ellglobalred()
     [17, [1, 0, 0, 0], 4, Mat([17, 1]), [[1, 8, 0, 4]]]
 
@@ -1036,8 +1033,8 @@ Elliptic curves::
     >>> e.ellak(0)
     0
 
-    >>> E = EllipticCurve('389a1')
-    >>> pari(E).ellanalyticrank()
+    >>> E = pari((0,1,1,-2,0)).ellinit()
+    >>> E.ellanalyticrank()
     [2, 1.51863300057685]
 
     >>> e = pari([0, -1, 1, -10, -20]).ellinit()
@@ -1079,46 +1076,46 @@ Elliptic curves::
     >>> e = pari([0,0,0,0,1]).ellinit()
     >>> e.elllocalred(7)
     [0, 1, [1, 0, 0, 0], 1]
-    >>> e = pari(EllipticCurve('27a3').a_invariants()).ellinit()
+    >>> e = pari((0, 0, 1, 0, 0)).ellinit()
     >>> e.elllocalred(3)
     [3, 2, [1, -1, 0, 1], 1]
-    >>> e = pari(EllipticCurve('24a4').a_invariants()).ellinit()
+    >>> e = pari((0, -1, 0, 1, 0)).ellinit()
     >>> e.elllocalred(2)
     [3, 3, [1, 1, 0, 1], 2]
-    >>> e = pari(EllipticCurve('20a2').a_invariants()).ellinit()
+    >>> e = pari((0, 1, 0, -1, 0)).ellinit()
     >>> e.elllocalred(2)
     [2, 4, [1, 1, 0, 1], 3]
-    >>> e = pari(EllipticCurve('11a2').a_invariants()).ellinit()
+    >>> e = pari((0, -1, 1, -7820, -263580)).ellinit()
     >>> e.elllocalred(11)
     [1, 5, [1, 0, 0, 0], 1]
-    >>> e = pari(EllipticCurve('14a4').a_invariants()).ellinit()
+    >>> e = pari((1, 0, 1, -1, 0)).ellinit()
     >>> e.elllocalred(2)
     [1, 6, [1, 0, 0, 0], 2]
-    >>> e = pari(EllipticCurve('14a1').a_invariants()).ellinit()
+    >>> e = pari((1, 0, 1, 4, -6)).ellinit()
     >>> e.elllocalred(2)
     [1, 10, [1, 0, 0, 0], 2]
-    >>> e = pari(EllipticCurve('32a3').a_invariants()).ellinit()
+    >>> e = pari((0, 0, 0, -11, -14)).ellinit()
     >>> e.elllocalred(2)
     [5, -1, [1, 1, 1, 0], 1]
-    >>> e = pari(EllipticCurve('24a5').a_invariants()).ellinit()
+    >>> e = pari((0, -1, 0, -384, -2772)).ellinit()
     >>> e.elllocalred(2)
     [3, -2, [1, 2, 1, 4], 1]
-    >>> e = pari(EllipticCurve('24a2').a_invariants()).ellinit()
+    >>> e = pari((0, -1, 0, -24, -36)).ellinit()
     >>> e.elllocalred(2)
     [3, -3, [1, 2, 1, 4], 2]
-    >>> e = pari(EllipticCurve('20a1').a_invariants()).ellinit()
+    >>> e = pari((0, 1, 0, 4, 4)).ellinit()
     >>> e.elllocalred(2)
     [2, -4, [1, 0, 1, 2], 3]
-    >>> e = pari(EllipticCurve('24a1').a_invariants()).ellinit()
+    >>> e = pari((0, -1, 0, -4, 4)).ellinit()
     >>> e.elllocalred(2)
     [3, -5, [1, 0, 1, 2], 4]
-    >>> e = pari(EllipticCurve('90c2').a_invariants()).ellinit()
+    >>> e = pari((1, -1, 1, -167, -709)).ellinit()
     >>> e.elllocalred(3)
     [2, -10, [1, 96, 1, 316], 4]
 
     >>> e = pari([0,1,1,-2,0]).ellinit()
     >>> e.elllseries(2.1)
-    0.402838047956645
+    0.402838047956646
     >>> e.elllseries(1, precision=128)
     6.21952537507477 E-39
     >>> e.elllseries(1, precision=256)
@@ -1126,9 +1123,9 @@ Elliptic curves::
     >>> e.elllseries(-2)
     0
     >>> e.elllseries(2.1, A=1.1)
-    0.402838047956645
+    0.402838047956646
 
-    >>> e = pari(EllipticCurve('65a1').a_invariants()).ellinit()
+    >>> e = pari((1, 0, 0, -1, 0)).ellinit()
     >>> e.ellorder([0,0])
     2
     >>> e.ellorder([1,0])
@@ -1137,11 +1134,13 @@ Elliptic curves::
     >>> e = pari([0,1,1,-2,0]).ellinit()
     >>> e.ellordinate(0)
     [0, -1]
-    >>> e.ellordinate(I)
+    >>> e.ellordinate(pari('I'))
     [0.582203589721741 - 1.38606082464177*I, -1.58220358972174 + 1.38606082464177*I]
-    >>> e.ellordinate(I, precision=128)[0].sage()
-    0.58220358972174117723338947874993600727 - 1.3860608246417697185311834209833653345*I
-    >>> e.ellordinate(1+3*5^1+O(5^3))
+    >>> save=pari.set_real_precision(128)
+    >>> e.ellordinate(pari('I'), precision=128)[0]
+    0.58220358972174117723338947874993600727 - 1.38606082464176971853118342098336533447*I
+    >>> restore = pari.set_real_precision(save)
+    >>> e.ellordinate(pari('1+3*5^1+O(5^3)'))
     [4*5 + 5^2 + O(5^3), 4 + 3*5^2 + O(5^3)]
     >>> e.ellordinate('z+2*z^2+O(z^4)')
     [-2*z - 7*z^2 - 23*z^3 + O(z^4), -1 + 2*z + 7*z^2 + 23*z^3 + O(z^4)]
@@ -1162,29 +1161,30 @@ Elliptic curves::
     [0]
     >>> e.ellmul(p, 2)
     [1/4, -7/8]
-    >>> q = e.ellmul(p, 1+I); q
+    >>> q = e.ellmul(p, pari('1+I')); q
     [-2*I, 1 + I]
-    >>> e.ellmul(q, 1-I)
+    >>> e.ellmul(q, pari('1-I'))
     [1/4, -7/8]
-    >>> for D in [-7, -8, -11, -12, -16, -19, -27, -28]:  # long time (1s)
-    ....:     hcpol = hilbert_class_polynomial(D)
-    ....:     j = hcpol.roots(multiplicities=False)[0]
-    ....:     t = (1728-j)/(27*j)
-    ....:     E = EllipticCurve([4*t,16*t^2])
-    ....:     P = E.point([0, 4*t])
-    ....:     assert(E.j_invariant() == j)
-    ....:     #
-    ....:     # Compute some CM number and its minimal polynomial
-    ....:     #
-    ....:     cm = pari('cm = (3*quadgen(%s)+2)'%D)
-    ....:     cm_minpoly = pari('minpoly(cm)')
-    ....:     #
-    ....:     # Evaluate cm_minpoly(cm)(P), which should be zero
-    ....:     #
-    ....:     e = pari(E)  # Convert E to PARI
-    ....:     P2 = e.ellmul(P, cm_minpoly[2]*cm + cm_minpoly[1])
-    ....:     P0 = e.elladd(e.ellmul(P, cm_minpoly[0]), e.ellmul(P2, cm))
-    ....:     assert(P0 == E(0))
+
+    # >>> for D in [-7, -8, -11, -12, -16, -19, -27, -28]:  # long time (1s)
+    # ....:     hcpol = hilbert_class_polynomial(D)
+    # ....:     j = hcpol.roots(multiplicities=False)[0]
+    # ....:     t = (1728-j)/(27*j)
+    # ....:     E = EllipticCurve([4*t,16*t^2])
+    # ....:     P = E.point([0, 4*t])
+    # ....:     assert(E.j_invariant() == j)
+    # ....:     #
+    # ....:     # Compute some CM number and its minimal polynomial
+    # ....:     #
+    # ....:     cm = pari('cm = (3*quadgen(%s)+2)'%D)
+    # ....:     cm_minpoly = pari('minpoly(cm)')
+    # ....:     #
+    # ....:     # Evaluate cm_minpoly(cm)(P), which should be zero
+    # ....:     #
+    # ....:     e = pari(E)  # Convert E to PARI
+    # ....:     P2 = e.ellmul(P, cm_minpoly[2]*cm + cm_minpoly[1])
+    # ....:     P0 = e.elladd(e.ellmul(P, cm_minpoly[0]), e.ellmul(P2, cm))
+    # ....:     assert(P0 == E(0))
 
     >>> e = pari([0,0,0,-82,0]).ellinit()
     >>> e.ellrootno()
@@ -1195,8 +1195,7 @@ Elliptic curves::
     1
 
     >>> e = pari([0,0,0,1,0]).ellinit()
-    >>> C.<i> = ComplexField()
-    >>> e.ellsigma(2+i)
+    >>> e.ellsigma(pari('2+I'))
     1.43490215804166 + 1.80307856719256*I
 
     >>> e = pari([0, 1, 1, -2, 0]).ellinit()
@@ -1206,26 +1205,26 @@ Elliptic curves::
     >>> e = pari([0,0,0,1,0]).ellinit()
     >>> e.ellzeta(1)
     1.06479841295883
-    >>> C.<i> = ComplexField()
-    >>> e.ellzeta(i-1)
+    >>> e.ellzeta(pari('I-1'))
     -0.350122658523049 - 0.350122658523049*I
 
     >>> e = pari([0,0,0,1,0]).ellinit()
-    >>> C.<i> = ComplexField()
-    >>> e.ellztopoint(1+i)
+    >>> e.ellztopoint(pari('1+I')) # doctest: +ELLIPSIS
     [0.E-... - 1.02152286795670*I, -0.149072813701096 - 0.149072813701096*I]
     >>> e.ellztopoint(0)
     [0]
 
-    >>> pari(I).ellj()
+    >>> pari('I').ellj()
     1728.00000000000
-    >>> pari(3*I).ellj()
+    >>> pari('3*I').ellj()
     153553679.396729
     >>> pari('quadgen(-3)').ellj()
     0.E-54
-    >>> pari('quadgen(-7)').ellj(precision=256).sage()
+    >>> save = pari.set_real_precision(76)
+    >>> pari('quadgen(-7)').ellj(precision=256)
     -3375.000000000000000000000000000000000000000000000000000000000000000000000000
-    >>> pari(-I).ellj()
+    >>> restore = pari.set_real_precision(save)
+    >>> pari('-I').ellj()
     Traceback (most recent call last):
     ...
     PariError: domain error in modular function: Im(argument) <= 0
