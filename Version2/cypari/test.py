@@ -7,7 +7,6 @@ class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
         string, num = re.subn('([\n\A]\s*)sage:', '\g<1>>>>', string)
         string, num = re.subn('....:', '...', string)
-        string, num = re.subn('\^', '**', string)
         return doctest.DocTestParser.parse(self, string, name)
 
 if __name__ == '__main__':
