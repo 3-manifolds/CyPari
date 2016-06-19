@@ -70,17 +70,12 @@ if 'clean' not in sys.argv:
                       'cypari/closure.pyx']
     cythonize(cython_sources, include_path=[python_package_dir])
 
-if sys.platform == 'darwin':
-  link_args = ['-Wl,-rpath,./cypari']
-else:
-  link_args = []
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
-                     extra_link_args=link_args,
                      )
 
 pari_instance = Extension('cypari.pari_instance',
@@ -89,7 +84,6 @@ pari_instance = Extension('cypari.pari_instance',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
-                     extra_link_args=link_args,
                      )
 
 pari_error = Extension('cypari.handle_error',
@@ -98,7 +92,6 @@ pari_error = Extension('cypari.handle_error',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
-                     extra_link_args=link_args,
                      )
 pari_closure = Extension('cypari.closure',
                      sources=['cypari/closure.c'],
@@ -106,7 +99,6 @@ pari_closure = Extension('cypari.closure',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
-                     extra_link_args=link_args,
                      )
 
 # Load version number
