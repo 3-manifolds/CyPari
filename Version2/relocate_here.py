@@ -8,7 +8,7 @@ here = path.abspath('.')
 target = path.join(here, pari_lib)
 
 def fix_libpari_path(lib):
-   print 'fixing', lib
+   print 'fixing %s.'%lib
    current_path = None
    out, err = Popen(['otool', '-L', lib], stdout=PIPE).communicate()
    lines = out.split('\n')
@@ -24,4 +24,6 @@ def fix_libpari_path(lib):
 for shared_lib in shared_libs:
    fix_libpari_path(shared_lib)
 
+print 'Resetting the ID of the Pari library.'
+call(['install_name_tool', '-id', target, pari_lib])
 
