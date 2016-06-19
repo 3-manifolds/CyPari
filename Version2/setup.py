@@ -12,7 +12,7 @@ from setuptools import setup, Command
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
-import os, sys
+import os, sys, relocate
 
 pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
@@ -60,7 +60,9 @@ class CyPariBuildExt(build_ext):
     def run(self):
         build_ext.run(self)
         os.system('if [ -d build/lib* ] ; then cp %s build/lib.*/cypari ; fi'%pari_library)
-            
+        if sys.platform == 'darwin':
+            relocate.make_relocatable()
+
 if 'clean' not in sys.argv:
     cython_sources = ['cypari/gen.pyx',
                       'cypari/pari_instance.pyx',
