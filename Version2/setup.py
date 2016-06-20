@@ -20,7 +20,7 @@ if sys.platform == 'linux2':
     pari_library = os.path.join(pari_library_dir, 'libpari-2.8.so.0')
 elif sys.platform == 'darwin':
     pari_library = os.path.join(pari_library_dir, 'libpari-2.8.dylib')
-pari_runtime_library_dir = './cypari/'
+pari_runtime_library_dir = '$ORIGIN/../cypari/'
 #pari_runtime_library_dir = os.path.join('.', pari_library_dir)
 #pari_library_dir = '/usr/local/lib/'
 #pari_library = os.path.join(pari_library_dir, 'libpari.a')
