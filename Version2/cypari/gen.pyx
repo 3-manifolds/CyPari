@@ -44,9 +44,10 @@ Now it takes much less than a second::
 
     sage: pari.allocatemem(200000)
     PARI stack size set to 200000 bytes, maximum size set to ...
-    sage: x = polygen(ZpFM(3,10))
-    sage: pol = ((x-1)^50 + x)
-    sage: pari(pol).poldisc()
+    #sage: x = polygen(ZpFM(3,10))
+    #sage: pari(pol).poldisc()
+    sage: pol = pari('(x-1)^50 + x + O(3^10)')
+    sage: pol.poldisc()
     2*3 + 3^4 + 2*3^6 + 3^7 + 2*3^8 + 2*3^9 + O(3^10)
 """
 
@@ -307,40 +308,6 @@ IF SAGE == True:
             sig_off()
             return r
 
-        def __int__(gen self):
-            """
-            Convert ``self`` to a Python integer.
-
-            If the number is too large to fit into a Pyhon ``int``, a
-            Python ``long`` is returned instead.
-
-            EXAMPLES::
-
-                sage: int(pari(0))
-                0
-                sage: int(pari(10))
-                10
-                sage: int(pari(-10))
-                -10
-                sage: int(pari(123456789012345678901234567890))
-                123456789012345678901234567890L
-                sage: int(pari(-123456789012345678901234567890))
-                -123456789012345678901234567890L
-                sage: int(pari(2^31-1))
-                2147483647
-                sage: int(pari(-2^31))
-                -2147483648
-                sage: int(pari("Pol(10)"))
-                10
-                sage: int(pari("Mod(2, 7)"))
-                2
-                sage: int(pari(RealField(63)(2^63-1)))
-                9223372036854775807L  # 32-bit
-                9223372036854775807   # 64-bit
-                sage: int(pari(RealField(63)(2^63+2)))
-                9223372036854775810L
-            """
-            return int(Integer(self))
 
 ELSE:
     cdef class gen_base(gen_auto):
@@ -348,7 +315,7 @@ ELSE:
         Base class for CyPari.
         """
 
-        def __int__(gen self):
+    cdef pari_gen_to_python_int (gen pari_gen):
             """
             Return a Python int. If the number is too large to fit
             into a C int, a Python long is returned instead.
@@ -377,11 +344,11 @@ ELSE:
             cdef long *xp
             cdef int sign
             cdef H, L
-            if  typ(self.g)==t_POL and self.poldegree()<=0:
+            if  typ(pari_gen.g)==t_POL and pari_gen.poldegree()<=0:
                 # Change a constant polynomial to its constant term
-                x = constant_term(self.g)
+                x = constant_term(pari_gen.g)
             else:
-                x = self.g
+                x = pari_gen.g
             if typ(x) != t_INT:
                 raise TypeError, "gen must be of PARI type t_INT or t_POL of degree 0"
             sign = signe(x)
@@ -395,17 +362,17 @@ ELSE:
                     return xp[0]
                 elif sign & -xp[0] < 0:     # both negative
                     return -xp[0]
-            L = <ulong>xp[0]
+            H = <ulong>xp[0]
             while lx:
                 xp = int_precW(xp)
-                H = <ulong>xp[0]
-                H = H << BITS_IN_LONG
-                H = H | L
+                L = <ulong>xp[0]
+                H = (H << BITS_IN_LONG) | L
                 lx = lx - 1
             if sign > 0:
                 return H
             else:
                 return -H
+
 
 @cython.final
 cdef class gen(gen_base):
@@ -468,6 +435,44 @@ cdef class gen(gen_base):
         if typ(self.g) == t_STR:
             return GSTR(self.g)
         return repr(self)
+
+    def __int__(gen self):
+        """
+        Convert ``self`` to a Python integer.
+
+        If the number is too large to fit into a Pyhon ``int``, a
+        Python ``long`` is returned instead.
+
+        EXAMPLES::
+
+        sage: int(pari(0))
+        0
+        sage: int(pari(10))
+        10
+        sage: int(pari(-10))
+        -10
+        sage: int(pari(123456789012345678901234567890))
+        123456789012345678901234567890L
+        sage: int(pari(-123456789012345678901234567890))
+        -123456789012345678901234567890L
+        sage: int(pari(2^31-1))
+        2147483647
+        sage: int(pari(-2^31))
+        -2147483648
+        sage: int(pari("Pol(10)"))
+        10
+        sage: int(pari("Mod(2, 7)"))
+        2
+        sage: int(pari(RealField(63)(2^63-1)))
+        9223372036854775807L  # 32-bit
+        9223372036854775807   # 64-bit
+        sage: int(pari(RealField(63)(2^63+2)))
+        9223372036854775810L
+        """
+        IF SAGE == True:
+            return int(Integer(self))
+        ELSE:
+            return pari_gen_to_python_int(self)  
 
     def __hash__(self):
         """
