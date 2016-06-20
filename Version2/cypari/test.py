@@ -2,6 +2,8 @@ import doctest
 import re
 from . import tests
 from . import pari
+from . import gen
+from . import pari_instance
 
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
@@ -12,8 +14,17 @@ class DocTestParser(doctest.DocTestParser):
 if __name__ == '__main__':
     finder = doctest.DocTestFinder(parser=DocTestParser())
     extra_globals = dict([('pari',pari)])
+    failed, attempted = 0, 0
     runner = doctest.DocTestRunner(verbose=False)
-    for test in finder.find(tests, extraglobs=extra_globals):
-        runner.run(test)
-    print runner.summarize()
+    for module in [tests, pari_instance]:   # Adding gen causes segfault on OS X
+        for test in finder.find(module, extraglobs=extra_globals):
+            runner.run(test)
+        result = runner.summarize()
+        print(result)
+        failed += result.failed
+        attempted += result.attempted
+    print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
+
+
+
 
