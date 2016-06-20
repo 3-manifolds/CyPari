@@ -59,7 +59,7 @@ class CyPariBuildExt(build_ext):
         
     def run(self):
         build_ext.run(self)
-        os.system('if [ -d build/lib* ] ; then cp %s build/lib.*/cypari ; fi'%pari_library)
+        os.system('if [ -d build/lib*/cypari ] ; then cp %s build/lib.*/cypari ; fi'%pari_library)
         if sys.platform == 'darwin':
             relocate.make_relocatable()
 
