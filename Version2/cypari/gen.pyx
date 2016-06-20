@@ -44,8 +44,10 @@ Now it takes much less than a second::
 
     sage: pari.allocatemem(200000)
     PARI stack size set to 200000 bytes, maximum size set to ...
+
     #sage: x = polygen(ZpFM(3,10))
     #sage: pari(pol).poldisc()
+
     sage: pol = pari('(x-1)^50 + x + O(3^10)')
     sage: pol.poldisc()
     2*3 + 3^4 + 2*3^6 + 3^7 + 2*3^8 + 2*3^9 + O(3^10)
