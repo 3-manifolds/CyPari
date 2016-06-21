@@ -1292,25 +1292,26 @@ Quadratic class numbers::
 
 General number fields::
 
-    >>> x = polygen(QQ)
-    >>> K.<a> = NumberField(x^2 - 1/8)
-    >>> pari(x^2 - 2).factornf(K.pari_polynomial("a"))
+    >>> K = pari('a^2 - 1/8').nfinit()
+    >>> K.nffactor(pari('x^2 - 2'))
     [x + Mod(-a, a^2 - 2), 1; x + Mod(a, a^2 - 2), 1]
 
-    >>> K.<z> = QuadraticField(-23)
-    >>> p = K.primes_above(3)[0]
-    >>> K.pari_bnf().bnrclassno(p._pari_bid_())
+    >>> D = pari(-23)
+    >>> k = D.quadpoly().nfinit()
+    >>> p = k.idealprimedec(3)[0]
+    >>> K = D.quadpoly().bnfinit()
+    >>> K.bnrclassno(p)
     3
 
-    >>> x = SR.symbol('x')
-    >>> P = pari(x^6 + 108)
+    >>> P = pari('x^6 + 108')
     >>> G = P.galoisinit()
     >>> G[0] == P
     True
+    >>> prod = lambda v: reduce(lambda x,y: x*y, v)
     >>> len(G[5]) == prod(G[7])
     True
 
-    >>> G = pari(x^6 + 108).galoisinit()
+    >>> G = pari('x^6 + 108').galoisinit()
     >>> G.galoispermtopol(G[5])
     [x, 1/12*x^4 - 1/2*x, -1/12*x^4 - 1/2*x, 1/12*x^4 + 1/2*x, -1/12*x^4 + 1/2*x, -x]
     >>> G.galoispermtopol(G[5][1])
@@ -1318,7 +1319,7 @@ General number fields::
     >>> G.galoispermtopol(G[5][1:4])
     [1/12*x^4 - 1/2*x, -1/12*x^4 - 1/2*x, 1/12*x^4 + 1/2*x]
 
-    >>> G = pari(x^4 + 1).galoisinit()
+    >>> G = pari('x^4 + 1').galoisinit()
     >>> G.galoisfixedfield(G[5][1], flag=2)
     [x^2 - 2, Mod(-x^3 + x, x^4 + 1), [x^2 - y*x + 1, x^2 + y*x + 1]]
     >>> G.galoisfixedfield(G[5][5:7])
@@ -1327,12 +1328,12 @@ General number fields::
     >>> G.galoisfixedfield(L[3], flag=2, v='z')
     [x^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
 
-    >>> G = pari(x^6 + 108).galoisinit()
+    >>> G = pari('x^6 + 108').galoisinit()
     >>> L = G.galoissubgroups()
     >>> list(L[0][1])
     [3, 2]
 
-    >>> G = pari(x^6 + 108).galoisinit()
+    >>> G = pari('x^6 + 108').galoisinit()
     >>> G.galoisisabelian()
     0
     >>> H = G.galoissubgroups()[2]
@@ -1341,27 +1342,39 @@ General number fields::
     >>> H.galoisisabelian(flag=1)
     1
 
-    >>> G = pari(x^6 + 108).galoisinit()
+    >>> G = pari('x^6 + 108').galoisinit()
     >>> L = G.galoissubgroups()
     >>> G.galoisisnormal(L[0])
     1
     >>> G.galoisisnormal(L[2])
     0
 
-    >>> F = QuadraticField(5, 'alpha')
-    >>> nf = F._pari_()
-    >>> P = F.ideal(F.gen())
-    >>> Q = F.ideal(2)
-    >>> moduli = pari.matrix(2,2,[P.pari_prime(),4,Q.pari_prime(),4])
-    >>> residues = pari.vector(2,[0,1])
-    >>> b = F(nf.idealchinese(moduli,residues))
-    >>> b.valuation(P) >= 4
+    Xsage: F = QuadraticField(5, 'alpha')
+    Xsage: nf = F._pari_()
+    Xsage: P = F.ideal(F.gen())
+    Xsage: Q = F.ideal(2)
+    Xsage: moduli = pari.matrix(2,2,[P.pari_prime(),4,Q.pari_prime(),4])
+    Xsage: residues = pari.vector(2,[0,1])
+    Xsage: b = F(nf.idealchinese(moduli,residues))
+    Xsage: b.valuation(P) >= 4
     True
-    >>> (b-1).valuation(Q) >= 2
+    Xsage: (b-1).valuation(Q) >= 2
+    True
+    >>> nf = pari('y^2 - 5').nfinit()
+    >>> P = nf.idealprimedec(5)[0]
+    >>> Q = nf.idealprimedec(2)[0]
+    >>> moduli = pari.matrix(2,2,[P,4,Q,4])
+    >>> residues = pari.vector(2,[0,1])
+    >>> v = nf.idealchinese(moduli,residues)
+    >>> b = v[0] + v[1]*nf.nfgenerator()
+    >>> nf.idealval(b, P) >= 4
+    True
+    >>> nf.idealval(b-1, Q) >= 2
     True
 
-    >>> F = NumberField(x^3-2, 'alpha')
-    >>> nf = F._pari_()
+    Xsage: F = NumberField(x^3-2, 'alpha')
+    Xsage: nf = F._pari_()
+    >>> nf = pari('x^3 - 2').nfinit()
     >>> x = pari('[1, -1, 2]~')
     >>> y = pari('[1, -1, 3]~')
     >>> nf.idealcoprime(x, y)
@@ -1371,37 +1384,44 @@ General number fields::
     >>> nf.idealcoprime(x, y)
     [5/43, 9/43, -1/43]~
 
-    >>> R.<x> = PolynomialRing(QQ)
-    >>> K.<a> = NumberField(x^2 + 1)
-    >>> L = K.pari_nf().ideallist(100)
+    Xsage: R.<x> = PolynomialRing(QQ)
+    Xsage: K.<a> = NumberField(x^2 + 1)
+    Xsage: L = K.pari_nf().ideallist(100)
+    >>> K = pari('x^2 + 1').nfinit()
+    >>> L = K.ideallist(100)
     >>> L[0]   # One ideal of norm 1.
     [[1, 0; 0, 1]]
     >>> L[64]  # 4 ideals of norm 65.
     [[65, 8; 0, 1], [65, 47; 0, 1], [65, 18; 0, 1], [65, 57; 0, 1]]
 
-    >>> F = NumberField(x^3-2, 'alpha')
-    >>> nf = F._pari_()
+    Xsage: F = NumberField(x^3-2, 'alpha')
+    Xsage: nf = F._pari_()
+    >>> nf = pari('x^3-2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> bid = nf.idealstar(I)
     >>> nf.ideallog(5, bid)
     [25]~
 
-    >>> K.<i> = QuadraticField(-1)
-    >>> F = pari(K).idealprimedec(5); F
+    Xsage: K.<i> = QuadraticField(-1)
+    Xsage: F = pari(K).idealprimedec(5); F
+    >>> K = pari('x^2 + 1').nfinit()
+    >>> F = K.idealprimedec(5); F
     [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]]]
     >>> F[0].pr_get_p()
     5
 
-    >>> x = polygen(ZZ)
-    >>> F = NumberField(x^3 - 2, 'alpha')
-    >>> nf = F._pari_()
+    Xsage: x = polygen(ZZ)
+    Xsage: F = NumberField(x^3 - 2, 'alpha')
+    Xsage: nf = F._pari_()
+    >>> nf = pari('x^3 - 2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> nf.idealstar(I)
     [[[43, 9, 5; 0, 1, 0; 0, 0, 1], [0]], [42, [42]], Mat([[43, [9, 1, 0]~, 1, 1, [-5, 2, -18; -9, -5, 2; 1, -9, -5]], 1]), [[[[42], [3], [3], [Vecsmall([])], 1]], [[], [], []]], Mat(1)]
 
-    >>> x = polygen(QQ)
-    >>> K.<a> = NumberField(x^3 - 17)
-    >>> Kpari = K.pari_nf()
+    Xsage: x = polygen(QQ)
+    Xsage: K.<a> = NumberField(x^3 - 17)
+    Xsage: Kpari = K.pari_nf()
+    >>> Kpari = pari('y^3 - 17').nfinit()
     >>> Kpari.getattr('zk')
     [1, 1/3*y^2 - 1/3*y + 1/3, y]
     >>> Kpari.nfbasistoalg(42)
@@ -1411,10 +1431,11 @@ General number fields::
     >>> Kpari.getattr('zk') * pari("[3/2, -5, 0]~")
     -5/3*y^2 + 5/3*y - 1/6
 
-    >>> k.<a> = NumberField(x^2 + 5)
+    >>> k = pari('x^2 + 5').nfinit()
+    >>> a = k.nfgenerator()
     >>> x = 10
     >>> y = a + 1
-    >>> pari(k).nfeltdiveuc(x, y)
+    >>> k.nfeltdiveuc(x, y)
     [2, -2]~
 
     >>> x = polygen(ZZ)

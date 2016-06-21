@@ -168,7 +168,7 @@ Check that ``default()`` works properly::
     sage: pari.default("debug")
     0
     sage: pari.default("debug", 3)
-    sage: pari(2^67+1).factor()
+    sage: pari('2^67+1').factor()
     IFAC: cracking composite
             49191317529892137643
     IFAC: factor 6713103182899
@@ -182,7 +182,7 @@ Check that ``default()`` works properly::
     IFAC: found 2 large prime (power) factors.
     [3, 1; 7327657, 1; 6713103182899, 1]
     sage: pari.default("debug", 0)
-    sage: pari(2^67+1).factor()
+    sage: pari('2^67+1').factor()
     [3, 1; 7327657, 1; 6713103182899, 1]
 """
 
