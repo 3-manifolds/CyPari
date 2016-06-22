@@ -1438,57 +1438,68 @@ General number fields::
     >>> k.nfeltdiveuc(x, y)
     [2, -2]~
 
-    >>> x = polygen(ZZ)
-    >>> k.<a> = NumberField(x^2 + 5)
-    >>> I = k.ideal(a)
-    >>> kp = pari(k)
-    >>> kp.nfeltreduce(12, I.pari_hnf())
+    Xsage: x = polygen(ZZ)
+    Xsage: k.<a> = NumberField(x^2 + 5)
+    Xsage: I = k.ideal(a)
+    Xsage: kp = pari(k)
+    Xsage: kp.nfeltreduce(12, I.pari_hnf())
     [2, 0]~
-    >>> 12 - k(kp.nfeltreduce(12, I.pari_hnf())) in I
+    Xsage: 12 - k(kp.nfeltreduce(12, I.pari_hnf())) in I
     True
 
-    >>> x = QQ['x'].0; nf = pari(x^2 + 2).nfinit()
+    >>> x = pari('x')
+    >>> kp = pari('x^2 + 5').nfinit()
+    >>> I = kp.idealhnf(x)
+    >>> kp.nfeltreduce(12, I)
+    [2, 0]~
+    >>> z = pari('[12, 0]~') - kp.nfeltreduce(12, I)
+    >>> I.matinverseimage(z) != pari('[]~')
+    True
+
+    >>> nf = pari('x^2 + 2').nfinit()
     >>> nf.nfgaloisconj()
     [-x, x]~
-    >>> nf = pari(x^3 + 2).nfinit()
+    >>> nf = pari('x^3 + 2').nfinit()
     >>> nf.nfgaloisconj()
     [x]~
-    >>> nf = pari(x^4 + 2).nfinit()
+    >>> nf = pari('x^4 + 2').nfinit()
     >>> nf.nfgaloisconj()
     [-x, x]~
 
-    >>> x = polygen(QQ)
-    >>> K.<t> = NumberField(x^3 - x + 1)
-    >>> pari(K).nfhilbert(t, t + 2)
+    >>> K = pari('t^3 - t + 1').nfinit()
+    >>> t = pari('t')
+    >>> K.nfhilbert(t, t + 2)
     -1
-    >>> P = K.ideal(t^2 + t - 2)   # Prime ideal above 5
-    >>> pari(K).nfhilbert(t, t + 2, P.pari_prime())
+    >>> P = K.idealprimedec(5)[0]   # Prime ideal above 5
+    >>> pari(K).nfhilbert(t, t + 2, P)
     -1
-    >>> P = K.ideal(t^2 + 3*t - 1) # Prime ideal above 23, ramified
-    >>> pari(K).nfhilbert(t, t + 2, P.pari_prime())
+    >>> P = K.idealprimedec(23)[0] # Prime ideal above 23, ramified
+    >>> pari(K).nfhilbert(t, t + 2, P)
     1
 
-    >>> F.<a> = NumberField(x^2-x-1)
-    >>> Fp = pari(F)
-    >>> A = matrix(F,[[1,2,a,3],[3,0,a+2,0],[0,0,a,2],[3+a,a,0,1]])
-    >>> I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
-    >>> Fp.nfhnf([pari(A),[pari(P) for P in I]])
+    Xsage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
+    Xsage: Fp.nfhnf([pari(A),[pari(P) for P in I]])
+
+    >>> Fp = pari('a^2-a-1').nfinit()
+    >>> a = pari('a')
+    >>> A = pari('[1,2,a,3; 3,0,a+2,0; 0,0,a,2; 3+a,a,0,1]')
+    >>> I = [Fp.nfalgtobasis(-2*a+1), Fp.nfalgtobasis(7), Fp.nfalgtobasis(3), Fp.nfalgtobasis(1)]
+    >>> Fp.nfhnf([A, I])
     [[1, [-969/5, -1/15]~, [15, -2]~, [-1938, -3]~; 0, 1, 0, 0; 0, 0, 1, 0; 0, 0, 0, 1], [[3997, 1911; 0, 7], [15, 6; 0, 3], 1, 1]]
-    >>> K.<b> = NumberField(x^3-2)
-    >>> Kp = pari(K)
-    >>> A = matrix(K,[[1,0,0,5*b],[1,2*b^2,b,57],[0,2,1,b^2-3],[2,0,0,b]])
-    >>> I = [K.ideal(2),K.ideal(3+b^2),K.ideal(1),K.ideal(1)]
-    >>> Kp.nfhnf([pari(A),[pari(P) for P in I]])
+    >>> Kp = pari('b^3-2').nfinit()
+    >>> b = pari('b')
+    >>> A = pari('[1,0,0,5*b; 1,2*b^2,b,57; 0,2,1,b^2-3; 2,0,0,b]')
+    >>> I = [Kp.nfalgtobasis(2), Kp.nfalgtobasis(b**2+3), Kp.nfalgtobasis(1), Kp.nfalgtobasis(1)] 
+    >>> Kp.nfhnf([A, I])
     [[1, -225, 72, -31; 0, 1, [0, -1, 0]~, [0, 0, -1/2]~; 0, 0, 1, [0, 0, -1/2]~; 0, 0, 0, 1], [[1116, 756, 612; 0, 18, 0; 0, 0, 18], 2, 1, [2, 0, 0; 0, 1, 0; 0, 0, 1]]]
-    >>> K.<b> = NumberField(x^2+5)
-    >>> Kp = pari(K)
-    >>> A = matrix(K,[[1,0,0,5*b],[1,2*b^2,b,57],[0,2,1,b^2-3],[2,0,0,b]])
-    >>> I = [K.ideal(2),K.ideal(3+b^2),K.ideal(1),K.ideal(1)]
-    >>> Kp.nfhnf([pari(A),[pari(P) for P in I]])
+    >>> Kp = pari('b^2+5').nfinit()
+    >>> A = pari('[1,0,0,5*b; 1,2*b^2,b,57; 0,2,1,b^2-3; 2,0,0,b]')
+    >>> I = [Kp.nfalgtobasis(2), Kp.nfalgtobasis(3+b**2), Kp.nfalgtobasis(1), Kp.nfalgtobasis(1)]
+    >>> Kp.nfhnf([A,I])
     [[1, [15, 6]~, [0, -54]~, [113, 72]~; 0, 1, [-4, -1]~, [0, -1]~; 0, 0, 1, 0; 0, 0, 0, 1], [[360, 180; 0, 180], [6, 4; 0, 2], 1, 1]]
-    >>> A = matrix(K,[[1,0,0,5*b],[1,2*b,b,57],[0,2,1,b-3],[2,0,b,b]])
-    >>> I = [K.ideal(2).factor()[0][0],K.ideal(3+b),K.ideal(1),K.ideal(1)]
-    >>> Kp.nfhnf([pari(A),[pari(P) for P in I]])
+    >>> A = pari('[1,0,0,5*b; 1,2*b,b,57; 0,2,1,b-3; 2,0,b,b]')
+    >>> I = [Kp.idealprimedec(2)[0][1],Kp.nfalgtobasis(3+b),Kp.nfalgtobasis(1),Kp.nfalgtobasis(1)]
+    >>> Kp.nfhnf([A, I])
     [[1, [7605, 4]~, [5610, 5]~, [7913, -6]~; 0, 1, 0, -1; 0, 0, 1, 0; 0, 0, 0, 1], [[19320, 13720; 0, 56], [2, 1; 0, 1], 1, 1]]
 
     >>> pari('x^3 - 17').nfinit()
