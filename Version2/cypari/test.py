@@ -11,9 +11,9 @@ class DocTestParser(doctest.DocTestParser):
 
 extra_globals = dict([('pari', pari_instance.pari)])    
 modules_to_test = [
-    (tests, extra_globals),
     (pari_instance, extra_globals),
-    (gen, extra_globals)
+    (gen, extra_globals),
+    (tests, extra_globals),
 ]
 
 

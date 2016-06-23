@@ -1511,46 +1511,56 @@ General number fields::
     ...
     PariError: incorrect type in checknf [please apply nfinit()] (t_REAL)
 
-    >>> F = NumberField(x^3-2,'alpha')
-    >>> G = NumberField(x^3-2,'beta')
-    >>> F._pari_().nfisisom(G._pari_())
+    >>> F = pari('y^3-2').nfinit()
+    >>> G = pari('y^3-2').nfinit()
+    >>> F.nfisisom(G)
     [y]
-    >>> GG = NumberField(x^3-4,'gamma')
-    >>> F._pari_().nfisisom(GG._pari_())
+    >>> GG = pari('y^3-4').nfinit()
+    >>> F.nfisisom(GG)
     [1/2*y^2]
-    >>> F._pari_().nfisisom(GG.pari_nf())
+    >>> F.nfisisom(GG)
     [1/2*y^2]
-    >>> F.pari_nf().nfisisom(GG._pari_()[0])
+    >>> F.nfisisom(GG[0])
     [y^2]
-    >>> H = NumberField(x^2-2,'alpha')
-    >>> F._pari_().nfisisom(H._pari_())
+    >>> H = pari('y^2-2').nfinit()
+    >>> F.nfisisom(H)
     0
-    >>> K.<a> = NumberField(x^2 + x + 1)
-    >>> L.<b> = NumberField(x^2 + 3)
-    >>> pari(K).nfisisom(L)
+    >>> K = pari('y^2 + y + 1').nfinit()
+    >>> L = pari('y^2 + 3').nfinit()
+    >>> K.nfisisom(L)
     [-1/2*y - 1/2, 1/2*y - 1/2]
 
-    >>> y = QQ['yy'].0; _ = pari(y) # pari has variable ordering rules
-    >>> x = QQ['zz'].0; nf = pari(x^2 + 2).nfinit()
-    >>> nf.nfroots(y^2 + 2)
+    # Pari orders variables by creation time.  The
+    # ordering determines whether xy is an element
+    # of Q[x][y] or Q[y][x].
+    # Newer elements have lower priority.  Lower priority
+    # elements are in coefficients.  The highest priority
+    # variable is the main variable of a polynomial.
+    # The nfroots method requires that the variable used
+    # in defining the number field have lower priority
+    # than the variable of the polynomial.
+    >>> y = pari('y') 
+    >>> x = pari('zz') # this one will have lower priority
+    >>> nf = pari(x**2 + 2).nfinit()
+    >>> nf.nfroots(y**2 + 2)
     [Mod(-zz, zz^2 + 2), Mod(zz, zz^2 + 2)]
-    >>> nf = pari(x^3 + 2).nfinit()
-    >>> nf.nfroots(y^3 + 2)
+    >>> nf = pari(x**3 + 2).nfinit()
+    >>> nf.nfroots(y**3 + 2)
     [Mod(zz, zz^3 + 2)]
-    >>> nf = pari(x^4 + 2).nfinit()
-    >>> nf.nfroots(y^4 + 2)
+    >>> nf = pari(x**4 + 2).nfinit()
+    >>> nf.nfroots(y**4 + 2)
     [Mod(-zz, zz^4 + 2), Mod(zz, zz^4 + 2)]
 
     >>> nf = pari('x^2 + 1').nfinit()
     >>> nf.nfrootsof1()
     [4, x]
 
-    >>> x = ZZ['xx1'].0; pari(x)
+    >>> x = pari('xx1'); x
     xx1
-    >>> y = ZZ['yy1'].0; pari(y)
+    >>> y = pari('yy1'); y
     yy1
-    >>> nf = pari(y^2 - 6*y + 24).nfinit()
-    >>> rnf = nf.rnfinit(x^2 - pari(y))
+    >>> nf = pari(y**2 - 6*y + 24).nfinit()
+    >>> rnf = nf.rnfinit(x**2 - y)
     >>> P = pari('[[[1, 0]~, [0, 0]~; [0, 0]~, [1, 0]~], [[2, 0; 0, 2], [2, 0; 0, 1/2]]]')
     >>> rnf.rnfidealdown(P)
     2
@@ -1558,7 +1568,7 @@ General number fields::
     >>> f = pari('y^3+y+1')
     >>> K = f.nfinit()
     >>> x = pari('x'); y = pari('y')
-    >>> g = x^5 - x^2 + y
+    >>> g = x**5 - x**2 + y
     >>> L = K.rnfinit(g)
 
     >>> pari(-23).quadhilbert()
