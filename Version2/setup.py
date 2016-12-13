@@ -17,9 +17,9 @@ import os, sys, relocate
 pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
 if sys.platform == 'linux2':
-    pari_library = os.path.join(pari_library_dir, 'libpari-2.8.so.0')
+    pari_library = os.path.join(pari_library_dir, 'libpari.a')
 elif sys.platform == 'darwin':
-    pari_library = os.path.join(pari_library_dir, 'libpari-2.8.dylib')
+    pari_library = os.path.join(pari_library_dir, 'libpari.a')
 pari_runtime_library_dir = '$ORIGIN/../cypari/'
 #pari_runtime_library_dir = os.path.join('.', pari_library_dir)
 #pari_library_dir = '/usr/local/lib/'
@@ -76,6 +76,7 @@ pari_gen = Extension('cypari.gen',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
+#                     extra_link_args=[pari_library],
                      )
 
 pari_instance = Extension('cypari.pari_instance',
@@ -84,6 +85,7 @@ pari_instance = Extension('cypari.pari_instance',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari', 'm'],
+#                     extra_link_args=[pari_library],
                      )
 
 pari_error = Extension('cypari.handle_error',
@@ -92,6 +94,7 @@ pari_error = Extension('cypari.handle_error',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
+#                     extra_link_args=[pari_library],
                      )
 pari_closure = Extension('cypari.closure',
                      sources=['cypari/closure.c'],
@@ -99,6 +102,7 @@ pari_closure = Extension('cypari.closure',
                      library_dirs=[pari_library_dir],
                      runtime_library_dirs=[pari_runtime_library_dir],
                      libraries=['pari'],
+#                     extra_link_args=[pari_library],
                      )
 
 # Load version number

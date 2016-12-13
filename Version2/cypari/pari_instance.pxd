@@ -34,5 +34,7 @@ cdef class PariInstance(PariInstance_base):
     cdef gen new_ref(self, GEN g, gen parent)
     cdef gen _empty_vector(self, long n)
     cdef long get_var(self, v)
+    cpdef _real_coerced_to_bits_prec(self, double x, long bits)
+    cdef _UI_callback
 
 cdef PariInstance pari_instance

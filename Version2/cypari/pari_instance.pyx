@@ -718,6 +718,10 @@ cdef class PariInstance(PariInstance_base):
            stack_max = total_ram() // 2
         pari_init_opts(size, maxprime, INIT_DFTm)
         paristack_setsize(size, stack_max)
+        # Initialize a callback method that can be provided by a graphical UI
+        # to update the display on a timer.
+        self.UI_callback = None
+        
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.
         pari_stackcheck_init(NULL)
@@ -771,6 +775,13 @@ cdef class PariInstance(PariInstance_base):
         self.PARI_TWO = self.new_gen_noclear(gen_2)
         sig_off()
 
+    @property
+    def UI_callback(self):
+        return self._UI_callback
+    @UI_callback.setter
+    def UI_callback(self, callback):
+        self._UI_callback = callback
+    
     def debugstack(self):
         r"""
         Print the internal PARI variables ``top`` (top of stack), ``avma``
@@ -1009,6 +1020,34 @@ cdef class PariInstance(PariInstance_base):
             return real_0_bit(-53)
         else:
             return dbltor(x)
+
+    cpdef _real_coerced_to_bits_prec(self, double x, long bits):
+        r""" 
+        Creates a PARI t_REAL with value given by the float x, coerced
+        to at least the given precision.  The resulting gen object
+        will have word length (not including codewords) which is large
+        enough to provide the requested number of bits, but no larger.
+        >>> old_precision = pari.set_real_precision(64)
+        >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
+        >>> x
+        1.23456789012345669043213547411141917110
+        >>> x.length()
+        2
+        >>> pari.set_real_precision(old_precision)
+	64
+
+        Here the pari gen uses two 64 bit words to provide at least
+        100 bits of precision.  This can be used, for example, to convert
+        quad-double numbers to pari numbers.
+        """
+        cdef long words = prec_bits_to_words(bits)
+        cdef GEN g
+        sig_on()
+        if x == 0:
+            return self.new_gen(real_0_bit(-bits))
+        else:
+            g = dbltor(x)
+            return self.new_gen(gtofp(g, words))
 
     def complex(self, re, im):
         """
