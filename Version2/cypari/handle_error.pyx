@@ -21,12 +21,12 @@ AUTHORS:
 #*****************************************************************************
 
 
-from .paridecl cimport *
-from .paripriv cimport *
-include "cysignals/signals.pxi"
+#from .paridecl cimport *
+#from .paripriv cimport *
+#include "cysignals/signals.pxi"
 
 from cpython cimport PyErr_Occurred
-from pari_instance cimport pari_instance
+#from pari_instance cimport pari_instance
 
 
 # We derive PariError from RuntimeError, for backward compatibility with

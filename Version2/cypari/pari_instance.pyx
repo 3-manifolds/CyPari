@@ -197,38 +197,33 @@ Check that ``default()`` works properly::
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-from .paridecl cimport *
-from .paripriv cimport *
-include "cysignals/signals.pxi"
-cdef extern from *:
-    int sig_on_count "cysigs.sig_on_count"
-
 import sys
 
-cimport libc.stdlib
-from libc.stdio cimport *
-cimport cython
-
-include "cysignals/memory.pxi"
 IF SAGE:
+    cimport libc.stdlib
+    from libc.stdio cimport *
+    cimport cython
+    from .paridecl cimport *
+    from .paripriv cimport *
+    include "cysignals/signals.pxi"
+    include "cysignals/memory.pxi"
     from sage.ext.memory import init_memory_functions
     from sage.structure.parent cimport Parent
     from sage.libs.gmp.all cimport *
     from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
     from sage.libs.flint.fmpz_mat cimport *
-
     from sage.libs.pari.gen cimport gen, objtogen
     from sage.libs.pari.handle_error cimport _pari_init_error_handling
     from sage.misc.superseded import deprecation, deprecated_function_alias
-
 ELSE:
-    from gen cimport gen, objtogen
-    from handle_error cimport _pari_init_error_handling
     cdef deprecation(int id, char* message):
         # Decide how to handle this in CyPari
         pass
     cdef deprecated_function_alias(id, alias):
         return alias
+
+cdef extern from *:
+    int sig_on_count "cysigs.sig_on_count"
 
 
 # real precision in decimal digits: see documentation for
@@ -655,6 +650,7 @@ ELSE:
 
 @cython.final
 cdef class PariInstance(PariInstance_base):
+    
     def __init__(self, long size=1000000, unsigned long maxprime=500000):
         """
         Initialize the PARI system.
@@ -720,7 +716,6 @@ cdef class PariInstance(PariInstance_base):
         paristack_setsize(size, stack_max)
         # Initialize a callback method that can be provided by a graphical UI
         # to update the display on a timer.
-        self.UI_callback = None
         
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.

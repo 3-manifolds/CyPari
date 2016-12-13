@@ -16,14 +16,7 @@ import os, sys, relocate
 
 pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
-if sys.platform == 'linux2':
-    pari_library = os.path.join(pari_library_dir, 'libpari.a')
-elif sys.platform == 'darwin':
-    pari_library = os.path.join(pari_library_dir, 'libpari.a')
-pari_runtime_library_dir = '$ORIGIN/../cypari/'
-#pari_runtime_library_dir = os.path.join('.', pari_library_dir)
-#pari_library_dir = '/usr/local/lib/'
-#pari_library = os.path.join(pari_library_dir, 'libpari.a')
+pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 
 import cysignals
 python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
@@ -47,9 +40,9 @@ class Clean(Command):
     def finalize_options(self):
         pass
     def run(self):
-        os.system('rm -rf build dist')
+        os.system('rm -rf build/lib* build/temp* build/bdist* dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -if cypari/{gen.c,pari_instance.c,handle_error.c,closure.c}')
+        os.system('rm -if cypari/*.c')
         os.system('rm -if cypari/*.pyc')
         os.system('rm -if cypari/*.so*')
 
@@ -59,51 +52,18 @@ class CyPariBuildExt(build_ext):
         
     def run(self):
         build_ext.run(self)
-        os.system('if [ -d build/lib*/cypari ] ; then cp %s build/lib.*/cypari ; fi'%pari_library)
         if sys.platform == 'darwin':
             relocate.make_relocatable()
 
 if 'clean' not in sys.argv:
-    cython_sources = ['cypari/gen.pyx',
-                      'cypari/pari_instance.pyx',
-                      'cypari/handle_error.pyx',
-                      'cypari/closure.pyx']
+    cython_sources = ['cypari/gen.pyx']
     cythonize(cython_sources, include_path=[python_package_dir])
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     runtime_library_dirs=[pari_runtime_library_dir],
-                     libraries=['pari', 'm'],
-#                     extra_link_args=[pari_library],
-                     )
-
-pari_instance = Extension('cypari.pari_instance',
-                     sources=['cypari/pari_instance.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     runtime_library_dirs=[pari_runtime_library_dir],
-                     libraries=['pari', 'm'],
-#                     extra_link_args=[pari_library],
-                     )
-
-pari_error = Extension('cypari.handle_error',
-                     sources=['cypari/handle_error.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     runtime_library_dirs=[pari_runtime_library_dir],
-                     libraries=['pari'],
-#                     extra_link_args=[pari_library],
-                     )
-pari_closure = Extension('cypari.closure',
-                     sources=['cypari/closure.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
-                     library_dirs=[pari_library_dir],
-                     runtime_library_dirs=[pari_runtime_library_dir],
-                     libraries=['pari'],
-#                     extra_link_args=[pari_library],
-                     )
+                     extra_link_args=[pari_static_library],
+)
 
 # Load version number
 exec(open('cypari/version.py').read())
@@ -114,9 +74,8 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari'},
-    package_data = {'cypari': [pari_library]},
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
-    ext_modules = [pari_gen, pari_instance, pari_error, pari_closure],
+    ext_modules = [pari_gen],
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',
