@@ -1,17 +1,16 @@
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
-from . import pari_instance
-
+    
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
         string, num = re.subn('([\n\A]\s*)sage:', '\g<1>>>>', string)
         string, num = re.subn('\.\.\.\.:', '...', string)
         return doctest.DocTestParser.parse(self, string, name)
 
-extra_globals = dict([('pari', pari_instance.pari)])    
+extra_globals = dict([('pari', gen.pari)])    
 modules_to_test = [
-    (pari_instance, extra_globals),
+#    (pari_instance, extra_globals),
     (gen, extra_globals),
     (tests, extra_globals),
 ]
