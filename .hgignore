@@ -13,4 +13,5 @@ Version2/build
 Version2/cypari/auto*
 Version2/cypari/*.c
 Version2/cypari/pari_instance.h
-
+Version2/cysignals
+pythonenv

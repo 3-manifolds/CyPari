@@ -11,7 +11,8 @@ fi
 PREFIX=`pwd`/build/pari
 echo "Untarring Pari..."
 cd build
-tar xzf ../pari-2.8.tgz
+tar xvzf ../pari-2.9.1.tar.gz
+mv pari-2.9.1 pari_src
 cd pari_src
 
 echo "Building Pari libary..." 
