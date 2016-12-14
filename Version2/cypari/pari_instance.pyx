@@ -36,8 +36,7 @@ EXAMPLES::
     sage: pari('5! + 10/x')
     (120*x + 10)/x
     sage: pari('intnum(x=0,13,sin(x)+sin(x^2) + x)')
-    83.8179442684285  # 32-bit
-    84.1818153922297  # 64-bit
+    85.6215190762676
     sage: f = pari('x^3-1')
     sage: v = f.factor(); v
     [x - 1, 1; x^2 + x + 1, 1]
@@ -46,7 +45,7 @@ EXAMPLES::
     sage: v[1]
     [1, 1]~
 
-Arithmetic obeys the usual coercion rules::
+Arithmetic operations cause all arguments to be converted to PARI::
 
     sage: type(pari(1) + 1)
     <type 'sage.libs.pari.gen.gen'>
@@ -121,7 +120,7 @@ bogus 11 bits. The function p.python() returns a Sage object with
 exactly the same precision as the Pari object p. So
 pari(s).python() is definitely not equal to s, since it has 64 bits
 of precision, including the bogus 11 bits. The correct way of
-avoiding this is to coerce pari(s).python() back into a domain with
+avoiding this is to convert pari(s).python() back into a domain with
 the right precision. This has to be done by the user (or by Sage
 functions that use Pari library functions in gen.pyx). For
 instance, if we want to use the Pari library to compute sqrt(pi)
@@ -215,6 +214,7 @@ IF SAGE:
     from sage.libs.pari.gen cimport gen, objtogen
     from sage.libs.pari.handle_error cimport _pari_init_error_handling
     from sage.misc.superseded import deprecation, deprecated_function_alias
+    from sage.env import CYGWIN_VERSION
 ELSE:
     cdef deprecation(int id, char* message):
         # Decide how to handle this in CyPari
@@ -706,16 +706,26 @@ cdef class PariInstance(PariInstance_base):
         # As a simple heuristic, we set the virtual stack to 1/4 of the
         # virtual memory.
 
-        IF SAGE:
-           from sage.misc.memory_info import MemoryInfo
-           stack_max = MemoryInfo().virtual_memory_limit() // 4
-        ELSE:
-           from memory import total_ram
-           stack_max = total_ram() // 2
         pari_init_opts(size, maxprime, INIT_DFTm)
-        paristack_setsize(size, stack_max)
-        # Initialize a callback method that can be provided by a graphical UI
-        # to update the display on a timer.
+        IF SAGE:
+            from sage.misc.memory_info import MemoryInfo
+            mem = MemoryInfo()
+            sizemax = mem.virtual_memory_limit() // 4
+            
+            if CYGWIN_VERSION and CYGWIN_VERSION < (2, 5, 2):
+                # Cygwin's mmap is broken for large NORESERVE mmaps (>~ 4GB) See
+                # http://trac.sagemath.org/ticket/20463 So we set the max stack
+                # size to a little below 4GB (putting it right on the margin proves
+                # too fragile)
+                #
+                # The underlying issue is fixed in Cygwin v2.5.2
+                sizemax = min(sizemax, 0xf0000000)
+ 
+            paristack_setsize(size, sizemax)
+        ELSE:
+            from memory import total_ram
+            sizemax = total_ram() // 2
+            paristack_setsize(size, sizemax)
         
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.
@@ -736,12 +746,10 @@ cdef class PariInstance(PariInstance_base):
         pariOut.puts = sage_puts
         pariOut.flush = sage_flush
 
-        # Display only 15 digits
-        self._real_precision = 15
-        sd_format("g.15", d_SILENT)
+        # Use 15 decimal digits as default precision
+        self.set_real_precision(15)
 
-        # Init global prec variable (PARI's precision is always a
-        # multiple of the machine word size)
+        # Init global prec variable with the precision in words
         global prec
         prec = prec_bits_to_words(64)
 
@@ -822,22 +830,6 @@ cdef class PariInstance(PariInstance_base):
 
     def __hash__(self):
         return 907629390   # hash('pari')
-
-    def __richcmp__(left, right, int op):
-        """
-        EXAMPLES::
-
-            sage: pari == pari
-            True
-            sage: pari == gp
-            False
-            sage: pari == 5
-            False
-        """
-        IF SAGE:
-           return (<Parent>left)._richcmp(right, op)
-        ELSE:
-           return left._richcmp(right, op)
 
     def set_debug_level(self, level):
         """
@@ -1151,8 +1143,7 @@ cdef class PariInstance(PariInstance_base):
         self.set_real_precision(old_prec)
         return x
 
-
-    cdef long get_var(self, v):
+    cdef long get_var(self, v) except -2:
         """
         Convert ``v`` into a PARI variable number.
 
@@ -1197,6 +1188,17 @@ cdef class PariInstance(PariInstance_base):
             Traceback (most recent call last):
             ...
             PariError: incorrect priority in gtopoly: variable x <= xx
+
+        TESTS:
+
+        The following example caused Sage to crash before
+        :trac:`20630`::
+
+            sage: R.<theta> = QQ[]
+            sage: K.<a> = NumberField(theta^2 + 1)
+            sage: K.galois_group(type='pari')
+            Galois group PARI group [2, -1, 1, "S2"] of degree 2 of the Number Field in a with defining polynomial theta^2 + 1
+
         """
         if v is None:
             return -1
@@ -1212,7 +1214,10 @@ cdef class PariInstance(PariInstance_base):
         if v == -1:
             return -1
         cdef bytes s = bytes(v)
-        return fetch_user_var(s)
+        sig_on()
+        varno = fetch_user_var(s)
+        sig_off()
+        return varno
 
     ############################################################
     # Initialization
@@ -1362,8 +1367,8 @@ cdef class PariInstance(PariInstance_base):
         paristack_setsize(s, sizemax)
         sig_off()
         if not silent:
-            print("PARI stack size set to {} bytes, maximum size set to {}".
-                format(self.stacksize(), self.stacksizemax()))
+            print "PARI stack size set to {} bytes, maximum size set to {}".format(
+                self.stacksize(), self.stacksizemax())
 
     def pari_version(self):
         return str(PARIVERSION)
@@ -1646,19 +1651,7 @@ cdef class PariInstance(PariInstance_base):
             sage: x = polygen(QQ)
             sage: pari.genus2red([-5*x^5, x^3 - 2*x^2 - 2*x + 1])
             [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
-
-        This is the old deprecated syntax::
-
-            sage: pari.genus2red(x^3 - 2*x^2 - 2*x + 1, -5*x^5)
-            doctest:...: DeprecationWarning: The 2-argument version of genus2red() is deprecated, use genus2red(P) or genus2red([P,Q]) instead
-            See http://trac.sagemath.org/16997 for details.
-            [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
         """
-        if P0 is not None:
-            IF SAGE:
-                from sage.misc.superseded import deprecation
-            deprecation(16997, 'The 2-argument version of genus2red() is deprecated, use genus2red(P) or genus2red([P,Q]) instead')
-            P = [P0, P]
         cdef gen t0 = objtogen(P)
         sig_on()
         return self.new_gen(genus2red(t0.g, NULL))
