@@ -12,7 +12,7 @@ from setuptools import setup, Command
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
-import os, sys, relocate
+import os, sys
 
 pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
