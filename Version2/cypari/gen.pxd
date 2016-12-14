@@ -52,7 +52,7 @@ IF SAGE == False:
         cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address)
         cdef gen new_ref(self, GEN g, gen parent)
         cdef gen _empty_vector(self, long n)
-        cdef long get_var(self, v)
+        cdef long get_var(self, v) except -2
         cpdef _real_coerced_to_bits_prec(self, double x, long bits)
         cdef _UI_callback
     

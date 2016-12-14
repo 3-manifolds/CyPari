@@ -37,8 +37,8 @@ from cpython.ref cimport Py_INCREF
 IF SAGE:
     include "cysignals/signals.pxi"
     from .paridecl cimport *
-    from pari_instance cimport pari_instance
-    from gen cimport objtogen
+    from .pari_instance cimport pari_instance
+    from .gen cimport objtogen
 
 cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_func) except NULL:
     """
