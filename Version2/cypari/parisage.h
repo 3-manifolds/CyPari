@@ -12,6 +12,6 @@
 
 
 /* These are declared extern in Pari.  We define them here. */
-THREAD VOLATILE int PARI_SIGINT_block;
-THREAD VOLATILE int PARI_SIGINT_pending;
+//THREAD VOLATILE int PARI_SIGINT_block;
+//THREAD VOLATILE int PARI_SIGINT_pending;
 

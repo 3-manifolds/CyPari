@@ -48,9 +48,8 @@ class CyPariBuildExt(build_ext):
         
     def run(self):
         build_ext.run(self)
-        if sys.platform == 'darwin':
-            relocate.make_relocatable()
 
+include_dirs = []
 if 'clean' not in sys.argv:
     try:
         import cysignals
@@ -59,13 +58,13 @@ if 'clean' not in sys.argv:
         sys.exit()
     python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
     cysignals_include_dir = os.path.join(python_package_dir, 'cysignals/')
-
+    include_dirs=[pari_include_dir, cysignals_include_dir]
     cython_sources = ['cypari/gen.pyx']
     cythonize(cython_sources, include_path=[python_package_dir])
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
-                     include_dirs=[pari_include_dir, cysignals_include_dir],
+                     include_dirs=include_dirs,
                      extra_link_args=[pari_static_library],
 )
 
