@@ -642,11 +642,26 @@ IF SAGE:
            return self.PARI_ZERO
 
 ELSE:
-   cdef class PariInstance_base(PariInstance_auto):
-       """
-       Dummy base class for CyPari which defines no methods.
-       """
-       pass
+    cdef void swallow_s(char* s):
+        return
+
+    cdef void swallow_ch(char ch):
+        return
+
+    cdef class PariInstance_base(PariInstance_auto):
+        """
+        Base class for CyPari.
+        """
+
+        def shut_up(self):
+            global pariErr
+            pariErr.putch = swallow_ch
+            pariErr.puts = swallow_s
+
+        def speak_up(self):
+            global pariErr
+            pariErr.putch = sage_putchar
+            pariErr.puts = sage_puts
 
 @cython.final
 cdef class PariInstance(PariInstance_base):
