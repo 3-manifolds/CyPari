@@ -18,10 +18,6 @@ pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 
-import cysignals
-python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
-cysignals_include_dir = os.path.join(python_package_dir, 'cysignals/')
-
 if not os.path.exists('build/pari') and 'clean' not in sys.argv:
     if sys.platform == 'win32':
         print('Please run the bash script build_pari.sh first')
@@ -56,6 +52,14 @@ class CyPariBuildExt(build_ext):
             relocate.make_relocatable()
 
 if 'clean' not in sys.argv:
+    try:
+        import cysignals
+    except ImportError:
+        print 'Please install cysignals before building CyPari: "pip install cysignals".'
+        sys.exit()
+    python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
+    cysignals_include_dir = os.path.join(python_package_dir, 'cysignals/')
+
     cython_sources = ['cypari/gen.pyx']
     cythonize(cython_sources, include_path=[python_package_dir])
 
@@ -71,6 +75,7 @@ exec(open('cypari/version.py').read())
 setup(
     name = 'cypari',
     version = version,
+    install_requires = ['cysignals'],
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari'},
