@@ -81,12 +81,12 @@ from cpython.object cimport Py_EQ, Py_NE, Py_LE, Py_GE, Py_LT, Py_GT
 
 from .paridecl cimport *
 from .paripriv cimport *
-include "cysignals/memory.pxi"
-include "cysignals/signals.pxi"
 cimport libc.stdlib
 from libc.stdio cimport *
 
 IF SAGE:
+    include "cysignals/memory.pxi"
+    include "cysignals/signals.pxi"
     from sage.misc.randstate cimport randstate, current_randstate
     from sage.structure.sage_object cimport rich_to_bool
     from sage.misc.superseded import deprecation, deprecated_function_alias
@@ -98,6 +98,8 @@ IF SAGE:
                                 prec_words_to_bits, default_bitprec)
     cdef PariInstance P = pari_instance
 ELSE:
+    include "cypari/cysignals/memory.pxi"
+    include "cypari/cysignals/signals.pxi"
     include "pari_instance.pyx"
     include "convert.pyx"
     include "handle_error.pyx"

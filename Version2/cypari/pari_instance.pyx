@@ -204,8 +204,8 @@ IF SAGE:
     cimport cython
     from .paridecl cimport *
     from .paripriv cimport *
-    include "cysignals/signals.pxi"
-    include "cysignals/memory.pxi"
+    include "signals.pxi"
+    include "memory.pxi"
     from sage.ext.memory import init_memory_functions
     from sage.structure.parent cimport Parent
     from sage.libs.gmp.all cimport *
@@ -414,7 +414,7 @@ cdef void sage_putchar(char c):
     # Let PARI think the last character was a newline,
     # so it doesn't print one when an error occurs.
     pari_set_last_newline(1)
-
+    
 cdef void sage_puts(char* s):
     sys.stdout.write(s)
     pari_set_last_newline(1)
