@@ -17,6 +17,7 @@ import os, sys
 pari_include_dir = os.path.join('build', 'pari', 'include')
 pari_library_dir = os.path.join('build', 'pari', 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
+cysignals_include_dir = os.path.join('cypari', 'cysignals')
 
 if not os.path.exists('build/pari') and 'clean' not in sys.argv:
     if sys.platform == 'win32':
@@ -29,6 +30,9 @@ if (not os.path.exists('cypari/auto_gen.pxi')
     import autogen
     autogen.autogen_all()
 
+if not os.path.exists('cysignals/implementation.o'):
+    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 implementation.c -I ../../build/pari/include implementation.c')
+    
 class Clean(Command):
     user_options = []
     def initialize_options(self):
@@ -41,6 +45,7 @@ class Clean(Command):
         os.system('rm -if cypari/*.c')
         os.system('rm -if cypari/*.pyc')
         os.system('rm -if cypari/*.so*')
+        os.system('cd cypari/cysignals; rm -if alarm.c signals.c signals_api.h implementation.o')
 
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -51,21 +56,28 @@ class CyPariBuildExt(build_ext):
 
 include_dirs = []
 if 'clean' not in sys.argv:
-    try:
-        import cysignals
-    except ImportError:
-        print 'Please install cysignals before building CyPari: "pip install cysignals".'
-        sys.exit()
-    python_package_dir = os.path.dirname(os.path.dirname(cysignals.__file__))
-    cysignals_include_dir = os.path.join(python_package_dir, 'cysignals/')
     include_dirs=[pari_include_dir, cysignals_include_dir]
-    cython_sources = ['cypari/gen.pyx']
-    cythonize(cython_sources, include_path=[python_package_dir])
+    cython_sources = ['cypari/gen.pyx',
+                      'cypari/cysignals/signals.pyx',
+                      'cypari/cysignals/alarm.pyx']
+    cythonize(cython_sources)
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=include_dirs,
                      extra_link_args=[pari_static_library],
+)
+
+cysignals = Extension('cypari.cysignals.signals',
+                     sources=['cypari/cysignals/implementation.c',
+                              'cypari/cysignals/signals.c'],
+                     include_dirs=include_dirs,
+                     extra_link_args=[pari_static_library],
+)
+
+alarm = Extension('cypari.cysignals.alarm',
+                     sources=['cypari/cysignals/alarm.c'],
+                     include_dirs=include_dirs,
 )
 
 # Load version number
@@ -74,12 +86,11 @@ exec(open('cypari/version.py').read())
 setup(
     name = 'cypari',
     version = version,
-    install_requires = ['cysignals'],
     description = "Sage's PARI extension, modified to stand alone.",
-    packages = ['cypari'],
-    package_dir = {'cypari':'cypari'},
+    packages = ['cypari', 'cypari.cysignals'],
+    package_dir = {'cypari':'cypari', 'cypari.cysignals':'cypari/cysignals'},
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
-    ext_modules = [pari_gen],
+    ext_modules = [pari_gen, cysignals, alarm],
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',
