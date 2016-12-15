@@ -14,24 +14,10 @@ from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
 import os, sys
 
-pari_include_dir = os.path.join('build', 'pari', 'include')
-pari_library_dir = os.path.join('build', 'pari', 'lib')
+pari_include_dir = 'build/pari/include'
+pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
-cysignals_include_dir = os.path.join('cypari', 'cysignals')
-
-if not os.path.exists('build/pari') and 'clean' not in sys.argv:
-    if sys.platform == 'win32':
-        print('Please run the bash script build_pari.sh first')
-    if os.system('bash build_pari.sh') != 0:
-        sys.exit("***Failed to build PARI library***")
-
-if (not os.path.exists('cypari/auto_gen.pxi')
-    or not os.path.exists('cypari/auto_instance.pxi')):
-    import autogen
-    autogen.autogen_all()
-
-if not os.path.exists('cysignals/implementation.o'):
-    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 implementation.c -I ../../build/pari/include implementation.c')
+cysignals_include_dir = 'cypari/cysignals'
     
 class Clean(Command):
     user_options = []
@@ -45,7 +31,7 @@ class Clean(Command):
         os.system('rm -if cypari/*.c')
         os.system('rm -if cypari/*.pyc')
         os.system('rm -if cypari/*.so*')
-        os.system('cd cypari/cysignals; rm -if alarm.c signals.c signals_api.h implementation.o')
+        os.system('cd cypari/cysignals; rm -if alarm.c signals.c signals.h signals_api.h implementation.o')
 
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -54,13 +40,25 @@ class CyPariBuildExt(build_ext):
     def run(self):
         build_ext.run(self)
 
+if not os.path.exists('build/pari') and 'clean' not in sys.argv:
+    if sys.platform == 'win32':
+        sys.exit('Please run the bash script build_pari.sh first.')
+    if os.system('bash build_pari.sh') != 0:
+        sys.exit("***Failed to build PARI library***")
+
+if (not os.path.exists('cypari/auto_gen.pxi')
+    or not os.path.exists('cypari/auto_instance.pxi')):
+    import autogen
+    autogen.autogen_all()
+
 include_dirs = []
 if 'clean' not in sys.argv:
     include_dirs=[pari_include_dir, cysignals_include_dir]
-    cython_sources = ['cypari/gen.pyx',
-                      'cypari/cysignals/signals.pyx',
-                      'cypari/cysignals/alarm.pyx']
+    cython_sources = ['cypari/cysignals/signals.pyx',
+                      'cypari/cysignals/alarm.pyx',
+                      'cypari/gen.pyx',]
     cythonize(cython_sources)
+    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 implementation.c -I ../../build/pari/include implementation.c')
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
