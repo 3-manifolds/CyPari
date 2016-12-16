@@ -15,27 +15,21 @@ tar xvzf ../pari-2.9.1.tar.gz
 mv pari-2.9.1 pari_src
 cd pari_src
 
-echo "Building Pari libary..." 
-if [ "$(uname)" = "Darwin" ] ; then  # OS X
-    export CFLAGS='-arch x86_64'
-    ./Configure --prefix=${PREFIX} --without-gmp --host=x86_64-darwin
-    cd Odarwin-x86_64
-    make install
-    make install-lib-sta
-    cd ../..
-    cp pari_src/src/language/anal.h pari/include/pari
-
-elif [ "$(uname)" = *MINGW32* ] ; then # MinGW on Windows
-    ./Configure --prefix=${PREFIX} --libdir=lib --without-gmp --host=i386-mingw
-    cd Omingw-i386
-    make install
-    make install-lib-sta
-
-else  # Linux
-    ./Configure --prefix=${PREFIX} --without-gmp
-    cd Olinux-*
-    make install
-    make install-lib-sta
-    cd ../..
-    cp pari_src/src/language/anal.h pari/include/pari
-fi
+echo "Building Pari libary..."
+# Pari has become smarter about figuring out the platform.  But we may
+# still need to deal with fat binaries for macOS.  So leaving this here.
+# if [ "$(uname)" = "Darwin" ] ; then  # OS X
+#     export CFLAGS='-arch x86_64'
+#     ./Configure --prefix=${PREFIX} --without-gmp --host=x86_64-darwin
+#     cd Odarwin-x86_64
+#     make install
+#     make install-lib-sta
+#     cd ../..
+#     cp pari_src/src/language/anal.h pari/include/pari
+#else
+./Configure --prefix=${PREFIX} --without-gmp
+make install
+make install-lib-sta
+cd ../..
+cp pari_src/src/language/anal.h pari/include/pari
+#fi
