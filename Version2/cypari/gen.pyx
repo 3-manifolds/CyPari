@@ -105,6 +105,19 @@ ELSE:
     include "handle_error.pyx"
     include "closure.pyx"
 
+    # from libc.stdlib cimport malloc as sig_malloc, calloc as sig_calloe
+    # from libc.stdlib cimport realloc as sig_realloc, free as sig_free
+    # cdef sig_on():
+    #     pass
+    # cdef sig_off():
+    #     pass
+    # cdef sig_block():
+    #     pass
+    # cdef sig_unblock():
+    #     pass
+    # cdef sig_error():
+    #     pass
+    
 include 'auto_gen.pxi'
 
 IF SAGE == True:

@@ -20,6 +20,10 @@
 
 #ifndef CYSIGNALS_STRUCT_SIGNALS_H
 #define CYSIGNALS_STRUCT_SIGNALS_H
+#ifdef __MINGW32__
+#define sigjmp_buf jmp_buf
+#define siglongjmp longjmp
+#endif
 
 
 #include <setjmp.h>

@@ -35,7 +35,7 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     lipo lib/i386-libpari.a lib/x86_64-libpari.a -create -output lib/libpari.a
     ranlib lib/*.a
     ln -s include32 include
-
+ 
 elif [[ "$(uname)" = *MINGW32* ]] ; then # MinGW on Windows
     ./Configure --prefix=`pwd` --libdir=lib --without-gmp --host=i386-mingw
     cd Omingw-i386
@@ -43,7 +43,6 @@ elif [[ "$(uname)" = *MINGW32* ]] ; then # MinGW on Windows
     make install-include
 else  # Linux
     ./Configure --prefix=`pwd` --without-gmp
-    cd Olinux-*
     make install-lib-sta
     make install-include
 fi 

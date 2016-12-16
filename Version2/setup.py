@@ -15,7 +15,10 @@ from Cython.Build import cythonize
 import os, sys
 
 pari_include_dir = 'build/pari/include'
-pari_library_dir = 'build/pari/lib'
+if sys.platform == 'win32':
+    pari_library_dir = 'build/pari/bin'
+else:
+    pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 cysignals_include_dir = 'cypari/cysignals'
     
@@ -31,8 +34,12 @@ class Clean(Command):
         os.system('rm -if cypari/*.c')
         os.system('rm -if cypari/*.pyc')
         os.system('rm -if cypari/*.so*')
-        os.system('cd cypari/cysignals; rm -if alarm.c signals.c signals.h signals_api.h implementation.o')
-
+        os.system('rm -if cypari/cysignals/alarm.c')
+        os.system('rm -if cypari/cysignals/signals.c')
+        os.system('rm -if cypari/cysignals/signals.h')
+        os.system('rm -if cypari/cysignals/signals_api.h')
+        os.system('rm -if cypari/cysignals/implementation.o')
+        
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
         build_ext.__init__(self, dist)
@@ -41,8 +48,8 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 if not os.path.exists('build/pari') and 'clean' not in sys.argv:
-    if sys.platform == 'win32':
-        sys.exit('Please run the bash script build_pari.sh first.')
+#    if sys.platform == 'win32':
+#        sys.exit('Please run the bash script build_pari.sh first.')
     if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
 
@@ -54,23 +61,27 @@ if (not os.path.exists('cypari/auto_gen.pxi')
 include_dirs = []
 if 'clean' not in sys.argv:
     include_dirs=[pari_include_dir, cysignals_include_dir]
-    cython_sources = ['cypari/cysignals/signals.pyx',
-                      'cypari/cysignals/alarm.pyx',
-                      'cypari/gen.pyx',]
+    cython_sources = ['cypari/gen.pyx',
+                      'cypari/cysignals/signals.pyx']
+    if sys.platform != 'win32':
+                      cython_sources.append('cypari/cysignals/alarm.pyx')
     cythonize(cython_sources)
-    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 implementation.c -I ../../build/pari/include implementation.c')
+    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 -I ../../build/pari/include implementation.c')
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=include_dirs,
                      extra_link_args=[pari_static_library],
+                     extra_compile_args=['-g']
 )
 
+cysignals_sources = ['cypari/cysignals/signals.c']
+#                     'cypari/cysignals/implementation.c']
+    
 cysignals = Extension('cypari.cysignals.signals',
-                     sources=['cypari/cysignals/implementation.c',
-                              'cypari/cysignals/signals.c'],
-                     include_dirs=include_dirs,
-                     extra_link_args=[pari_static_library],
+                      sources=cysignals_sources,
+                      include_dirs=include_dirs,
+                      extra_link_args=[pari_static_library],
 )
 
 alarm = Extension('cypari.cysignals.alarm',
@@ -81,6 +92,9 @@ alarm = Extension('cypari.cysignals.alarm',
 # Load version number
 exec(open('cypari/version.py').read())
 
+cypari_extensions = [pari_gen, cysignals]
+if sys.platform != 'win32':
+    cypari_extensions.append(alarm)
 setup(
     name = 'cypari',
     version = version,
@@ -88,7 +102,7 @@ setup(
     packages = ['cypari', 'cypari.cysignals'],
     package_dir = {'cypari':'cypari', 'cypari.cysignals':'cypari/cysignals'},
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
-    ext_modules = [pari_gen, cysignals, alarm],
+    ext_modules = cypari_extensions,
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',
