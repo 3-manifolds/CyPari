@@ -91,8 +91,13 @@ extern "C" {
  * a short-circuiting operator (the second argument is only evaluated
  * if the first returns 0).
  */
-#define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(sigsetjmp(cysigs.env,0)) )
-
+#ifdef __MINGW32__
+  //  #define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(setjmp(cysigs.env)) )
+#define _sig_on_(message) ( 1 )
+#else
+  #define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(sigsetjmp(cysigs.env,0)) )
+#endif
+  
 /*
  * Set message, return 0 if we need to sigsetjmp(), return 1 otherwise.
  */
@@ -156,13 +161,7 @@ static inline int _sig_on_postjmp(int jmpret)
  */
 static inline void _sig_off_(const char* file, int line)
 {
-#if ENABLE_DEBUG_CYSIGNALS
-    if (cysigs.debug_level >= 4)
-    {
-        fprintf(stderr, "sig_off (count = %i) at %s:%i\n", cysigs.sig_on_count, file, line);
-        fflush(stderr);
-    }
-#endif
+#ifndef __MINGW32__
     if (unlikely(cysigs.sig_on_count <= 0))
     {
         _sig_off_warning(file, line);
@@ -171,6 +170,7 @@ static inline void _sig_off_(const char* file, int line)
     {
         --cysigs.sig_on_count;
     }
+#endif
 }
 
 
@@ -230,17 +230,15 @@ static inline void sig_block(void)
 
 static inline void sig_unblock(void)
 {
-#if ENABLE_DEBUG_CYSIGNALS
-    if (cysigs.block_sigint != 1)
-    {
-        fprintf(stderr, "\n*** WARNING *** sig_unblock() with sig_on_count = %i, block_sigint = %i\n", cysigs.sig_on_count, cysigs.block_sigint);
-        print_backtrace();
-    }
-#endif
     cysigs.block_sigint = 0;
 
+#ifdef __MINGW32__
+    if (unlikely(cysigs.interrupt_received) && cysigs.sig_on_count > 0)
+      raise(cysigs.interrupt_received);  /* Re-raise the signal */
+#else
     if (unlikely(cysigs.interrupt_received) && cysigs.sig_on_count > 0)
         kill(getpid(), cysigs.interrupt_received);  /* Re-raise the signal */
+#endif
 }
 
 

@@ -12,6 +12,11 @@ def total_ram():
     elif platform == 'darwin':
         out, err = Popen(['sysctl', 'hw.memsize'], stdout=PIPE).communicate()
         return int(out.split()[1])
+    elif platform == 'win32':
+         proc = Popen(['wmic', 'computersystem', 'get', 'TotalPhysicalMemory'],
+                      stdout=PIPE)
+         out, err = proc.communicate()
+         return int(out.split()[1])
 
             
             

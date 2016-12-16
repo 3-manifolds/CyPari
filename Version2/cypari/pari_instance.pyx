@@ -225,7 +225,6 @@ ELSE:
 cdef extern from *:
     int sig_on_count "cysigs.sig_on_count"
 
-
 # real precision in decimal digits: see documentation for
 # get_real_precision() and set_real_precision().  This variable is used
 # in gp to set the precision of input quantities (e.g. sqrt(2)), and for

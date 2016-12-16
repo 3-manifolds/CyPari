@@ -260,7 +260,7 @@ def get_raw_doc(function):
         ...
         RuntimeError: no help found for 'abcde'
     """
-    doc = subprocess.check_output(["build/pari/bin/gphelp", "-raw", function])
+    doc = subprocess.check_output(["perl", "./build/pari/bin/gphelp", "-raw", function])
     if doc.endswith(b"""' not found !\n"""):
         raise RuntimeError("no help found for '{}'".format(function))
     return doc

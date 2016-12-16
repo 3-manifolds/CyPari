@@ -88,25 +88,29 @@ cdef public int sig_raise_exception "sig_raise_exception"(int sig, const char* m
     # Convert msg to Python string, assuming UTF-8 encoding
     s = msg.decode("utf-8") if msg is not NULL else None
 
-    if sig == SIGHUP or sig == SIGTERM:
+    if sig == SIGTERM:
         # Redirect stdin from /dev/null to close interactive sessions
         _ = freopen("/dev/null", "r", stdin)
         # This causes Python to exit
         raise SystemExit
     if sig == SIGINT:
         raise KeyboardInterrupt
-    if sig == SIGALRM:
-        raise AlarmInterrupt
     if sig == SIGILL:
         raise SignalError(s or "Illegal instruction")
     if sig == SIGABRT:
         raise RuntimeError(s or "Aborted")
     if sig == SIGFPE:
         raise FloatingPointError(s or "Floating point exception")
-    if sig == SIGBUS:
-        raise SignalError(s or "Bus error")
     if sig == SIGSEGV:
         raise SignalError(s or "Segmentation fault")
+    IF UNAME_SYSNAME != 'Windows':
+        if sig == SIGHUP:
+            _ = freopen("/dev/null", "r", stdin)
+            raise SystemExit
+        if sig == SIGALRM:
+            raise AlarmInterrupt
+        if sig == SIGBUS:
+            raise SignalError(s or "Bus error")
 
     raise SystemError("unknown signal number %s"%sig)
 
