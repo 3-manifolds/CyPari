@@ -30,6 +30,5 @@ echo "Building Pari libary..."
 ./Configure --prefix=${PREFIX} --without-gmp
 make install
 make install-lib-sta
-cd ../..
-cp pari_src/src/language/anal.h pari/include/pari
+cp src/language/anal.h ../pari/include/pari
 #fi
