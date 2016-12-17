@@ -9,11 +9,13 @@ if [ ! -d "build" ] ; then
     mkdir build
 fi
 PREFIX=`pwd`/build/pari
+LIBDIR=`pwd`/build/pari/lib
 echo "Untarring Pari..."
 cd build
 tar xvzf ../pari-2.9.1.tar.gz
 mv pari-2.9.1 pari_src
 cd pari_src
+export DESTDIR=
 
 echo "Building Pari libary..."
 # Pari has become smarter about figuring out the platform.  But we may
@@ -27,7 +29,7 @@ echo "Building Pari libary..."
 #     cd ../..
 #     cp pari_src/src/language/anal.h pari/include/pari
 #else
-./Configure --prefix=${PREFIX} --without-gmp
+./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 make install
 make install-lib-sta
 cp src/language/anal.h ../pari/include/pari

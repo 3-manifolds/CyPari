@@ -15,10 +15,7 @@ from Cython.Build import cythonize
 import os, sys
 
 pari_include_dir = 'build/pari/include'
-if sys.platform == 'win32':
-    pari_library_dir = 'build/pari/bin'
-else:
-    pari_library_dir = 'build/pari/lib'
+pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 cysignals_include_dir = 'cypari/cysignals'
     
