@@ -197,10 +197,6 @@ def init_cysignals():
     old = signal.signal(signal.SIGINT, python_check_interrupt)
 
     setup_cysignals_handlers()
-
-    # Set debug level to 2 by default (if debugging was enabled)
-    _set_debug_level(2)
-
     return old
 
 
