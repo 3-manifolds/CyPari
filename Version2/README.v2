@@ -1,5 +1,8 @@
 CyPari version 2.0
 
+**Below is mostly dated, mosty ignore at this point**
+
+
 This directory contains a new version of CyPari based on current
 (7.2) Sage sources.  In particular, it uses the automated build
 scripts written by Jeroen DeMeyer and the same version of Pari
