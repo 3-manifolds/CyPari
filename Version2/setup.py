@@ -14,6 +14,20 @@ from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
 import os, sys
 
+
+def manually_compile_files(sources, extra_include_dirs):
+    import distutils.sysconfig
+    import distutils.ccompiler
+    config_vars = distutils.sysconfig.get_config_vars()
+    python_include_dir = config_vars['INCLUDEPY']
+    compiler = distutils.ccompiler.new_compiler()
+    distutils.sysconfig.customize_compiler(compiler)
+    compiler.add_include_dir(python_include_dir)
+    for directory in extra_include_dirs:
+        compiler.add_include_dir(directory)
+    compiler.compile(sources=sources)
+
+
 pari_include_dir = 'build/pari/include'
 pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
@@ -63,7 +77,8 @@ if 'clean' not in sys.argv:
     if sys.platform != 'win32':
                       cython_sources.append('cypari/cysignals/alarm.pyx')
     cythonize(cython_sources)
-    os.system('cd cypari/cysignals; gcc -c -I /usr/include/python2.7 -I ../../build/pari/include implementation.c')
+    manually_compile_files(['cypari/cysignals/implementation.c'],
+                           [pari_include_dir])
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
