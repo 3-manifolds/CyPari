@@ -204,8 +204,11 @@ IF SAGE:
     cimport cython
     from .paridecl cimport *
     from .paripriv cimport *
-    include "signals.pxi"
-    include "memory.pxi"
+# These include directives cause Cython 0.25.* to crash.  Apparently
+# it tries to find the files even though it should ignore them, since
+# SAGE is false.  Cython 0.24.1 did not have this problem.
+#    include "signals.pxi"
+#    include "memory.pxi"
     from sage.ext.memory import init_memory_functions
     from sage.structure.parent cimport Parent
     from sage.libs.gmp.all cimport *
