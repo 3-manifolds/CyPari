@@ -43,6 +43,7 @@ elif [[ "$(uname)" = *MINGW32* ]] ; then # MinGW on Windows
     make install-include
 else  # Linux
     ./Configure --prefix=`pwd` --without-gmp
+    cd Olinux-*
     make install-lib-sta
     make install-include
 fi 
