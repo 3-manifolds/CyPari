@@ -86,7 +86,7 @@ if 'clean' not in sys.argv:
     manually_compile_files(['cypari/cysignals/implementation.c'],
                            [pari_include_dir])
 
-spec = ['-spec=spec90'] if sys.platform == 'win32' else []
+spec = ['-specs=specs90'] if sys.platform == 'win32' else []
     
     
 pari_gen = Extension('cypari.gen',
