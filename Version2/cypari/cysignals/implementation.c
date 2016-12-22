@@ -433,36 +433,55 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 {
   sig_atomic_t inside = cysigs.inside_signal_handler;
   cysigs.inside_signal_handler = 1;
-  fprintf(stderr, "call to cysigs_signal_handler for %d\n", sig);
+  fprintf(stderr, "call to cysigs_signal_handler for %d with sig_count %d.\n", sig, cysigs.sig_on_count);
 
   if (inside == 0 && cysigs.sig_on_count > 0)
+    /*
+     * We are inside sig_on(), so we can handle the signal!
+     */
     {
-      /* We are inside sig_on(), so if this is a fake FPE we can
-       * handle the signal!
+      /*
+       * Since we are using ANSI signals, we must reset the handler.
        */
-      /* Since we are using signal, we must reset the handler. */
       if (signal(sig, cysigs_signal_handler) == SIG_ERR)
 	{
 	  perror("signal");
 	  exit(1);
 	}
       else
+	  /* 
+	   * SIGFPE is raised by sig_error(), after setting the err_recover
+	   * flag.
+	   */
 	{
-	  /* Just remember the signal, unless it is SIGABRT */
-	  if (cysigs.interrupt_received != SIGABRT)
-	    {
-	      cysigs.interrupt_received = sig;
-	    }
-	  do_raise_exception(cysigs.interrupt_received);
+	  if (sig == SIGFPE && cysigs.err_recover) {
+	    cysigs.err_recover = 0;
+	    reset_CPU();
+	    longjmp(cysigs.env, 1<<28);
+	  }
+	  if (cysigs.interrupt_received != SIGFPE) {
+	    fprintf(stderr, "inside sig_on/sig_off: recording the signal\n");
+	    fprintf(stderr, "pending = %i\n", cysigs.interrupt_received);
+	    fflush(stderr);
+	    cysigs.interrupt_received = sig;
+	    do_raise_exception(cysigs.interrupt_received);
+	    abort();
+	  } else {
+	    fprintf(stderr, "inside sig_on/sig_off: SIGFPE pending - quit\n");
+	    fflush(stderr);
+	    // Figure out what we should do here.
+	    abort();
+	  }
 	}
       cysigs.inside_signal_handler = 0;
     }
   else
+    /* We are outside sig_on() and have no choice but to terminate Python */
     {
-      /* We are outside sig_on() and have no choice but to terminate Python */
+      fprintf(stderr, "outside sig_on/sig_off: killing Python.\n");
 
       /* Reset all signals to their default behaviour and unblock
-       * them in case something goes wrong as of now. */
+       * them in case something goes wrong. */
       signal(SIGINT, SIG_DFL);
       signal(SIGILL, SIG_DFL);
       signal(SIGABRT, SIG_DFL);
