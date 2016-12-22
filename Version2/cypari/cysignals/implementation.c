@@ -307,7 +307,7 @@ static void sigdie(int sig, const char* s)
  * this include must come at the end of this file. */
 #include "macros.h"
 
-#else
+#else /* Windows version */
 
 /*
 Interrupt and signal handling for Cython
@@ -416,6 +416,7 @@ static void cysigs_interrupt_handler(int sig)
       perror("signal");
       exit(1);
     }
+  fprintf(stderr, "cysigs_interrupt_handler ending.\n");
 }
 
 /* Handler for SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV
@@ -432,7 +433,8 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 {
   sig_atomic_t inside = cysigs.inside_signal_handler;
   cysigs.inside_signal_handler = 1;
-  
+  fprintf(stderr, "call to cysigs_signal_handler for %d\n", sig);
+
   if (inside == 0 && cysigs.sig_on_count > 0)
     {
       /* We are inside sig_on(), so if this is a fake FPE we can

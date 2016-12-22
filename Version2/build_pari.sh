@@ -6,31 +6,28 @@
 
 set -e
 if [ ! -d "build" ] ; then
-    mkdir build
+    mkdir build ;
+else
+    rm -rf build/pari_src
 fi
-PREFIX=`pwd`/build/pari
-LIBDIR=`pwd`/build/pari/lib
 echo "Untarring Pari..."
 cd build
 tar xvzf ../pari-2.9.1.tar.gz
 mv pari-2.9.1 pari_src
 cd pari_src
+PREFIX=../pari
+LIBDIR=../pari/lib
+
 export DESTDIR=
 
 echo "Building Pari libary..."
-# Pari has become smarter about figuring out the platform.  But we may
-# still need to deal with fat binaries for macOS.  So leaving this here.
-# if [ "$(uname)" = "Darwin" ] ; then  # OS X
-#     export CFLAGS='-arch x86_64'
-#     ./Configure --prefix=${PREFIX} --without-gmp --host=x86_64-darwin
-#     cd Odarwin-x86_64
-#     make install
-#     make install-lib-sta
-#     cd ../..
-#     cp pari_src/src/language/anal.h pari/include/pari
-#else
 ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+if [ $(uname | cut -b -5) = "MINGW" ] ; then
+    # remove the funky RUNPTH which confuses gcc and is irrelevant anyway
+    echo Patching the MinGW Makefile ...
+    sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
+fi
 make install
 make install-lib-sta
 cp src/language/anal.h ../pari/include/pari
-#fi
+

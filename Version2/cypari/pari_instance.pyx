@@ -741,7 +741,7 @@ cdef class PariInstance(PariInstance_base):
             paristack_setsize(size, sizemax)
         ELSE:
             from memory import total_ram
-            sizemax = total_ram() // 2
+            sizemax = total_ram() // 4
             paristack_setsize(size, sizemax)
         
         # Disable PARI's stack overflow checking which is incompatible

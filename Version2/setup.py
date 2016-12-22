@@ -14,13 +14,17 @@ from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
 import os, sys
 
+compiler_name = None
+for arg in sys.argv:
+    if arg.startswith('--compiler='):
+        compiler_name = arg.split('=')[1]
 
 def manually_compile_files(sources, extra_include_dirs):
     import distutils.sysconfig
     import distutils.ccompiler
     config_vars = distutils.sysconfig.get_config_vars()
     python_include_dir = config_vars['INCLUDEPY']
-    compiler = distutils.ccompiler.new_compiler()
+    compiler = distutils.ccompiler.new_compiler(compiler=compiler_name)
     distutils.sysconfig.customize_compiler(compiler)
     compiler.add_include_dir(python_include_dir)
     for directory in extra_include_dirs:
@@ -77,14 +81,15 @@ if 'clean' not in sys.argv:
     if sys.platform != 'win32':
                       cython_sources.append('cypari/cysignals/alarm.pyx')
     cythonize(cython_sources)
+    #if sys.platform == 'win32':
+    #    os.system('gcc -specs=spec90 -o cypari/cysignals/implementation.o cypari/cysignals/implementation.c')
     manually_compile_files(['cypari/cysignals/implementation.c'],
                            [pari_include_dir])
 
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=include_dirs,
-                     extra_link_args=[pari_static_library],
-                     extra_compile_args=['-g']
+                     extra_link_args=['-specs=specs90', pari_static_library],
 )
 
 cysignals_sources = ['cypari/cysignals/signals.c']
@@ -93,12 +98,13 @@ cysignals_sources = ['cypari/cysignals/signals.c']
 cysignals = Extension('cypari.cysignals.signals',
                       sources=cysignals_sources,
                       include_dirs=include_dirs,
-                      extra_link_args=[pari_static_library],
+                      extra_link_args=['-specs=specs90', pari_static_library],
 )
 
 alarm = Extension('cypari.cysignals.alarm',
                      sources=['cypari/cysignals/alarm.c'],
                      include_dirs=include_dirs,
+                     extra_link_args=['-specs=specs90']
 )
 
 # Load version number
