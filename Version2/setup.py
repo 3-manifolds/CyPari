@@ -86,25 +86,27 @@ if 'clean' not in sys.argv:
     manually_compile_files(['cypari/cysignals/implementation.c'],
                            [pari_include_dir])
 
+spec = ['-spec=spec90'] if sys.platform == 'win32' else []
+    
+    
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
                      include_dirs=include_dirs,
-                     extra_link_args=['-specs=specs90', pari_static_library],
+                     extra_link_args=[pari_static_library] + spec,
 )
 
 cysignals_sources = ['cypari/cysignals/signals.c']
-#                     'cypari/cysignals/implementation.c']
     
 cysignals = Extension('cypari.cysignals.signals',
                       sources=cysignals_sources,
                       include_dirs=include_dirs,
-                      extra_link_args=['-specs=specs90', pari_static_library],
+                      extra_link_args=[pari_static_library] + spec,
 )
 
 alarm = Extension('cypari.cysignals.alarm',
                      sources=['cypari/cysignals/alarm.c'],
                      include_dirs=include_dirs,
-                     extra_link_args=['-specs=specs90']
+                     extra_link_args=spec
 )
 
 # Load version number
