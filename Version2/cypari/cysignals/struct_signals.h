@@ -81,6 +81,13 @@ typedef struct
      */
     const char* s;
 
+    /* In Windows we use this flag to indicate that cb_pari_err_recover
+     * has been called.
+     */
+#ifdef __MINGW32__
+    volatile sig_atomic_t err_recover;
+#endif
+  
 #if ENABLE_DEBUG_CYSIGNALS
     int debug_level;
 #endif

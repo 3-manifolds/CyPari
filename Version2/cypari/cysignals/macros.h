@@ -92,8 +92,8 @@ extern "C" {
  * if the first returns 0).
  */
 #ifdef __MINGW32__
-  //  #define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(setjmp(cysigs.env)) )
-#define _sig_on_(message) ( 1 )
+#define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(setjmp(cysigs.env)) )
+  //#define _sig_on_(message) ( 1 )
 #else
   #define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(sigsetjmp(cysigs.env,0)) )
 #endif
@@ -104,13 +104,13 @@ extern "C" {
 static inline int _sig_on_prejmp(const char* message, const char* file, int line)
 {
     cysigs.s = message;
-#if ENABLE_DEBUG_CYSIGNALS
-    if (cysigs.debug_level >= 4)
+    //#if ENABLE_DEBUG_CYSIGNALS
+    //if (cysigs.debug_level >= 4)
     {
-        fprintf(stderr, "sig_on (count = %i) at %s:%i\n", cysigs.sig_on_count+1, file, line);
+        fprintf(stderr, "sig_on: setting count to %i at %s:%i\n", cysigs.sig_on_count+1, file, line);
         fflush(stderr);
     }
-#endif
+    //#endif
     if (cysigs.sig_on_count > 0)
     {
         cysigs.sig_on_count++;
@@ -161,16 +161,17 @@ static inline int _sig_on_postjmp(int jmpret)
  */
 static inline void _sig_off_(const char* file, int line)
 {
-#ifndef __MINGW32__
-    if (unlikely(cysigs.sig_on_count <= 0))
+  fprintf(stderr, "sig_off: setting count to %i at %s:%i\n",
+	  cysigs.sig_on_count-1, file, line);
+  fflush(stderr);
+  if (unlikely(cysigs.sig_on_count <= 0))
     {
-        _sig_off_warning(file, line);
+      _sig_off_warning(file, line);
     }
-    else
+  else
     {
-        --cysigs.sig_on_count;
+      --cysigs.sig_on_count;
     }
-#endif
 }
 
 
@@ -264,11 +265,25 @@ static inline void sig_retry(void)
  * to sig_on() where the exception will be seen. */
 static inline void sig_error(void)
 {
+  fprintf(stderr, "sig_error called with count %d\n", cysigs.sig_on_count);
     if (unlikely(cysigs.sig_on_count <= 0))
     {
         fprintf(stderr, "sig_error() without sig_on()\n");
     }
+#ifdef __MINGW32__
+    /* 
+     *In Windows, the abort function will terminate the process no
+     * matter what.  If a SIGABRT handler is set it will be called,
+     * but that is only to allow cleanup before the process is terminated.
+     * Moreover, with the exception of SIGFPE, signal handlers run with
+     * their own stack and therefore cannot call longjmp.  Thus we use
+     * SIGFPE to indicate that error recovery is needed.
+     */ 
+    cysigs.err_recover = 1;
+    raise(SIGFPE);
+#else
     abort();
+#endif
 }
 
 
