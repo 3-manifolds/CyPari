@@ -387,11 +387,7 @@ static inline void reset_CPU(void)
 static void cysigs_interrupt_handler(int sig)
 {
   /* 
-   * In Windows we cannot handle the interrupt immediately, since doing
-   * so involves a longjmp.  Instead we just record the signal (unless we
-   * have a SIGABRT pending already).  The longjmp will take place in
-   * the cb_pari_sigint callback, which gets called inside Pari's new_chunk
-   * function.
+   * In Windows ...
    */
   if (!cysigs.block_sigint && !PARI_SIGINT_block)
     {
@@ -433,8 +429,10 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 {
   sig_atomic_t inside = cysigs.inside_signal_handler;
   cysigs.inside_signal_handler = 1;
-  fprintf(stderr, "call to cysigs_signal_handler for %d with sig_count %d.\n", sig, cysigs.sig_on_count);
-
+#if ENABLE_DEBUG_SIGNALS
+  fprintf(stderr, "call to cysigs_signal_handler for %d with sig_count %d.\n",
+	  sig, cysigs.sig_on_count);
+#endif
   if (inside == 0 && cysigs.sig_on_count > 0)
     /*
      * We are inside sig_on(), so we can handle the signal!
@@ -449,37 +447,45 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 	  exit(1);
 	}
       else
-	  /* 
-	   * SIGFPE is raised by sig_error(), after setting the err_recover
-	   * flag.
-	   */
 	{
-	  if (sig == SIGFPE && cysigs.err_recover) {
-	    cysigs.err_recover = 0;
-	    reset_CPU();
-	    longjmp(cysigs.env, 1<<28);
-	  }
-	  if (cysigs.interrupt_received != SIGFPE) {
-	    fprintf(stderr, "inside sig_on/sig_off: recording the signal\n");
-	    fprintf(stderr, "pending = %i\n", cysigs.interrupt_received);
-	    fflush(stderr);
-	    cysigs.interrupt_received = sig;
-	    do_raise_exception(cysigs.interrupt_received);
-	    abort();
-	  } else {
-	    fprintf(stderr, "inside sig_on/sig_off: SIGFPE pending - quit\n");
-	    fflush(stderr);
-	    // Figure out what we should do here.
-	    abort();
-	  }
+	  /* 
+	   * Any signal which needs to be handled immediately, is
+	   * mapped to FPE by setting sig_mapped_to_FPE and raising
+	   * SIGFPE.  SIGFPE is the only signal which supports calling
+	   * longjmp within the handler.
+	   */
+	  if (sig == SIGFPE){
+	    if (cysigs.sig_mapped_to_FPE)
+	      {
+		int mapped_sig = cysigs.sig_mapped_to_FPE;
+		cysigs.sig_mapped_to_FPE = 0;
+		reset_CPU();
+		longjmp(cysigs.env, mapped_sig);
+	      }
+	    else /* This really is a floating point exception */
+	      {
+		reset_CPU();
+		do_raise_exception(SIGFPE);
+		longjmp(cysigs.env, SIGFPE);
+	      }
+	  } else /* Can't longjmp here, so map the signal and raise SIGFPE */
+	    {
+#if ENABLE_DEBUG_SIGNALS
+	      fprintf(stderr, "inside sig_on/sig_off: save and raise SIGFPE\n");
+	      fflush(stderr);
+#endif	      
+	      cysigs.sig_mapped_to_FPE = sig;
+	      raise(SIGFPE);
+	    }
 	}
       cysigs.inside_signal_handler = 0;
     }
   else
     /* We are outside sig_on() and have no choice but to terminate Python */
     {
+#if ENABLE_DEBUG_SIGNALS
       fprintf(stderr, "outside sig_on/sig_off: killing Python.\n");
-
+#endif
       /* Reset all signals to their default behaviour and unblock
        * them in case something goes wrong. */
       signal(SIGINT, SIG_DFL);

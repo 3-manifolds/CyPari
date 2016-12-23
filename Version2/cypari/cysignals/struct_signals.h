@@ -81,11 +81,11 @@ typedef struct
      */
     const char* s;
 
-    /* In Windows we use this flag to indicate that cb_pari_err_recover
-     * has been called.
+    /* In Windows we use this to indicate that a signal has been
+     * mapped to SIGFPE (to allow immediate processing with longjmp).
      */
 #ifdef __MINGW32__
-    volatile sig_atomic_t err_recover;
+    volatile sig_atomic_t sig_mapped_to_FPE;
 #endif
   
 #if ENABLE_DEBUG_CYSIGNALS
