@@ -104,13 +104,12 @@ extern "C" {
 static inline int _sig_on_prejmp(const char* message, const char* file, int line)
 {
     cysigs.s = message;
-    //#if ENABLE_DEBUG_CYSIGNALS
-    //if (cysigs.debug_level >= 4)
+#if ENABLE_DEBUG_CYSIGNALS
     {
         fprintf(stderr, "sig_on: setting count to %i at %s:%i\n", cysigs.sig_on_count+1, file, line);
         fflush(stderr);
     }
-    //#endif
+#endif
     if (cysigs.sig_on_count > 0)
     {
         cysigs.sig_on_count++;
@@ -161,9 +160,11 @@ static inline int _sig_on_postjmp(int jmpret)
  */
 static inline void _sig_off_(const char* file, int line)
 {
+#if ENABLE_DEBUG_SIGNALS
   fprintf(stderr, "sig_off: setting count to %i at %s:%i\n",
 	  cysigs.sig_on_count-1, file, line);
   fflush(stderr);
+#endif
   if (unlikely(cysigs.sig_on_count <= 0))
     {
       _sig_off_warning(file, line);
@@ -254,8 +255,14 @@ static inline void sig_retry(void)
      * out */
     if (unlikely(cysigs.sig_on_count <= 0))
     {
+#if ENABLE_DEBUG_SIGNALS
         fprintf(stderr, "sig_retry() without sig_on()\n");
+#endif
+#ifdef __MINGW32__
+	raise(SIGABRT);
+#else
         abort();
+#endif
     }
     siglongjmp(cysigs.env, -1);
 }
@@ -265,7 +272,9 @@ static inline void sig_retry(void)
  * to sig_on() where the exception will be seen. */
 static inline void sig_error(void)
 {
+#if ENABLE_DEBUG_SYMBOLS
   fprintf(stderr, "sig_error called with count %d\n", cysigs.sig_on_count);
+#endif
     if (unlikely(cysigs.sig_on_count <= 0))
     {
         fprintf(stderr, "sig_error() without sig_on()\n");
@@ -279,7 +288,7 @@ static inline void sig_error(void)
      * their own stack and therefore cannot call longjmp.  Thus we use
      * SIGFPE to indicate that error recovery is needed.
      */ 
-    cysigs.err_recover = 1;
+    cysigs.sig_mapped_to_FPE = 128;
     raise(SIGFPE);
 #else
     abort();
