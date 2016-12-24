@@ -170,7 +170,7 @@ extern int sig_raise_exception(int sig, const char* msg);
 
 /* This calls sig_raise_exception() to actually raise the exception. */
 static void do_raise_exception(int sig)
-{
+{ G = pari('x^30 + 11*x^29 - 110*x^28 + 1234567').nfinit()
     /* Call Cython function to raise exception */
     sig_raise_exception(sig, cysigs.s);
 }
@@ -309,6 +309,7 @@ static void sigdie(int sig, const char* s)
 
 #else /* Windows version */
 
+#define ENABLE_DEBUG_CYSIGNALS 0
 /*
 Interrupt and signal handling for Cython
 */
@@ -355,6 +356,8 @@ static void do_raise_exception(int sig);
 static void sigdie(int sig, const char* s);
 static void print_backtrace(void);
 static void setup_cysignals_handlers(void);
+static void cysigs_interrupt_handler(int sig);
+static void cysigs_signal_handler(int sig);
 
 /* Do whatever is needed to reset the CPU to a sane state after
  * handling a signals.  In particular on x86 CPUs, we need to clear
@@ -374,45 +377,69 @@ static inline void reset_CPU(void)
 
 /* Handler for SIGINT, SIGALRM
  *
- * Inside sig_on() (i.e. when cysigs.sig_on_count is positive), this
- * raises an exception and jumps back to sig_on().
- * Outside of sig_on(), we set Python's interrupt flag using
- * PyErr_SetInterrupt()
- *
- * On Windows (which does not have SIGHUP) this handler will be called
- * from a separate thread which has a different stack, causing longjmp
- * to be suicidal.  So on Windows when we are inside sig_on() we simply
- * record that a SIGINT was received and return.
+ * On Windows, the way we handle an interrupt immediately is by
+ * mapping it to SIGFPE.  Specifically, we save the signal number in
+ * cysigs.sig_mapped_to_FPE and raise SIGFPE.  The handler for SIGFPE
+ * will then call longjmp.  The reason that it is done this way is
+ * that for most signals in Windows the handler is run in a separate
+ * thread, with its own stack.  This makes it impossible to call
+ * longjmp from a signal handler.  However, longjmp within a signal
+ * handler is supported for exactly one signal, namely SIGFPE.
  */
 static void cysigs_interrupt_handler(int sig)
 {
-  /* 
-   * In Windows ...
-   */
-  if (!cysigs.block_sigint && !PARI_SIGINT_block)
-    {
-      if (cysigs.interrupt_received != SIGABRT)
-	{
-	  cysigs.interrupt_received = sig;
-	  PARI_SIGINT_pending = sig;
-	  fprintf(stderr, "Remembered signal %d\n", sig);
-	  fflush(stderr);
-	}
-    }
-  if (cysigs.sig_on_count == 0)
-    {
-      /* Set the Python interrupt indicator, which will cause the
-       * Python-level interrupt handler in cysignals/signals.pyx to
-       * be called. */
-      PyErr_SetInterrupt();
-    }
+#if ENABLE_DEBUG_CYSIGNALS
+  fprintf(stderr, "call to cysigs_interrupt_handler with signal %d\n", sig);
+  fflush(stderr);
+#endif
   /* Since we are using signal, we must reset the handler. */
   if (signal(sig, cysigs_interrupt_handler) == SIG_ERR)
     {
       perror("signal");
       exit(1);
     }
-  fprintf(stderr, "cysigs_interrupt_handler ending.\n");
+  if (cysigs.sig_on_count > 0)
+    {
+#if ENABLE_DEBUG_CYSIGNALS
+      fprintf(stderr, "inside a sig_on, sig_off block\n");
+      fflush(stderr);
+#endif
+      if (!cysigs.block_sigint && !PARI_SIGINT_block)
+        {
+#if ENABLE_DEBUG_CYSIGNALS
+	  fprintf(stderr, "processing interrupt immediately\n");
+	  fflush(stderr);
+#endif
+	  /* Save the signal number and raise SIGFPE. */
+	  cysigs.sig_mapped_to_FPE = sig;
+	  if (signal(sig, cysigs_interrupt_handler) == SIG_ERR)
+	    {
+	      perror("signal");
+	      exit(1);
+	    }
+	  signal(SIGFPE, cysigs_signal_handler);
+	  return;
+        }
+    }
+  else
+    {
+#if ENABLE_DEBUG_CYSIGNALS
+      fprintf(stderr, "outside a sig_on, sig_off block - raise an exception\n");
+      fflush(stderr);
+#endif
+      /* Set the Python interrupt indicator, which will cause the
+       * Python-level interrupt handler in cysignals/signals.pyx to
+       * be called. */
+      PyErr_SetInterrupt();
+    }
+  /* If we are here, we could not handle the interrupt immediately, so
+   * we store the signal number for later use.  But make sure we
+   * don't overwrite a SIGTERM which we already received. */
+  if (cysigs.interrupt_received != SIGTERM)
+    {
+        cysigs.interrupt_received = sig;
+        PARI_SIGINT_pending = sig;
+    }
 }
 
 /* Handler for SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV
@@ -425,11 +452,11 @@ static void cysigs_interrupt_handler(int sig)
  * callback.
  */
 
-__cdecl void cysigs_signal_handler(int sig, int flag)
+static void cysigs_signal_handler(int sig)
 {
   sig_atomic_t inside = cysigs.inside_signal_handler;
   cysigs.inside_signal_handler = 1;
-#if ENABLE_DEBUG_SIGNALS
+#if ENABLE_DEBUG_CYSIGNALS
   fprintf(stderr, "call to cysigs_signal_handler for %d with sig_count %d.\n",
 	  sig, cysigs.sig_on_count);
 #endif
@@ -459,6 +486,7 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 	      {
 		int mapped_sig = cysigs.sig_mapped_to_FPE;
 		cysigs.sig_mapped_to_FPE = 0;
+		do_raise_exception(mapped_sig);
 		reset_CPU();
 		longjmp(cysigs.env, mapped_sig);
 	      }
@@ -470,11 +498,16 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
 	      }
 	  } else /* Can't longjmp here, so map the signal and raise SIGFPE */
 	    {
-#if ENABLE_DEBUG_SIGNALS
+#if ENABLE_DEBUG_CYSIGNALS
 	      fprintf(stderr, "inside sig_on/sig_off: save and raise SIGFPE\n");
 	      fflush(stderr);
 #endif	      
 	      cysigs.sig_mapped_to_FPE = sig;
+	      if (signal(sig, cysigs_interrupt_handler) == SIG_ERR)
+		{
+		  perror("signal");
+		  exit(1);
+		}
 	      raise(SIGFPE);
 	    }
 	}
@@ -483,7 +516,7 @@ __cdecl void cysigs_signal_handler(int sig, int flag)
   else
     /* We are outside sig_on() and have no choice but to terminate Python */
     {
-#if ENABLE_DEBUG_SIGNALS
+#if ENABLE_DEBUG_CYSIGNALS
       fprintf(stderr, "outside sig_on/sig_off: killing Python.\n");
 #endif
       /* Reset all signals to their default behaviour and unblock
