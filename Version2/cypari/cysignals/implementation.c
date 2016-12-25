@@ -170,7 +170,7 @@ extern int sig_raise_exception(int sig, const char* msg);
 
 /* This calls sig_raise_exception() to actually raise the exception. */
 static void do_raise_exception(int sig)
-{ G = pari('x^30 + 11*x^29 - 110*x^28 + 1234567').nfinit()
+{
     /* Call Cython function to raise exception */
     sig_raise_exception(sig, cysigs.s);
 }
