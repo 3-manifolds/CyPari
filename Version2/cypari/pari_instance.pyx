@@ -1726,3 +1726,20 @@ IF SAGE:
             mpz_set_ui(mpq_denref(value), 1)
         else:
             pari_err(e_TYPE, <char*>"conversion to mpq", g)
+
+# Getters and setters for Pari global variables -- used in cysignals. 
+cpdef int _get_pari_sigint_block():
+    global PARI_SIGINT_block
+    return PARI_SIGINT_block
+
+cpdef void _set_pari_sigint_block(int value):
+    global PARI_SIGINT_block
+    PARI_SIGINT_block = value
+
+cpdef int _get_pari_sigint_pending():
+    global PARI_SIGINT_pending
+    return PARI_SIGINT_pending
+
+cpdef void _set_pari_sigint_pending(int value):
+    global PARI_SIGINT_pending
+    PARI_SIGINT_pending = value

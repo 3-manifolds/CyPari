@@ -79,7 +79,7 @@ cysignals_sources = ['cypari/cysignals/signals.c']
 cysignals = Extension('cypari.cysignals.signals',
                       sources=cysignals_sources,
                       include_dirs=include_dirs,
-                      extra_link_args=[pari_static_library] + spec,
+                      extra_link_args=spec,
 )
 
 alarm = Extension('cypari.cysignals.alarm',
