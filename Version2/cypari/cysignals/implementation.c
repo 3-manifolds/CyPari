@@ -37,6 +37,12 @@ Interrupt and signal handling for Cython
 #include "struct_signals.h"
 #include "signals.h"
 
+/* Getters and setters imported from cypari.gen: */
+extern int get_pari_sigint_block(void);
+extern void set_pari_sigint_block(int);
+extern int get_pari_sigint_pending(void);
+extern void set_pari_sigint_pending(int);
+
 /* The cysigs object (there is a unique copy of this, shared by all
  * Cython modules using cysignals) */
 static cysigs_t cysigs;
@@ -70,7 +76,7 @@ static void cysigs_interrupt_handler(int sig)
 {
     if (cysigs.sig_on_count > 0)
     {
-        if (!cysigs.block_sigint && !PARI_SIGINT_block)
+      if (!cysigs.block_sigint && !get_pari_sigint_block())
         {
             /* Raise an exception so Python can see it */
             do_raise_exception(sig);
@@ -94,7 +100,7 @@ static void cysigs_interrupt_handler(int sig)
     if (cysigs.interrupt_received != SIGHUP && cysigs.interrupt_received != SIGTERM)
     {
         cysigs.interrupt_received = sig;
-        PARI_SIGINT_pending = sig;
+        set_pari_sigint_pending(sig);
     }
 }
 
@@ -187,7 +193,7 @@ static void _sig_on_interrupt_received(void)
     do_raise_exception(cysigs.interrupt_received);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    PARI_SIGINT_pending = 0;
+    set_pari_sigint_pending(0);
 
     sigprocmask(SIG_SETMASK, &oldset, NULL);
 }
@@ -197,10 +203,10 @@ static void _sig_on_interrupt_received(void)
 static void _sig_on_recover(void)
 {
     cysigs.block_sigint = 0;
-    PARI_SIGINT_block = 0;
+    set_pari_sigint_block(0);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    PARI_SIGINT_pending = 0;
+    set_pari_sigint_pending(0);
 
     /* Reset signal mask */
     sigprocmask(SIG_SETMASK, &default_sigmask, NULL);
@@ -404,7 +410,7 @@ static void cysigs_interrupt_handler(int sig)
       fprintf(stderr, "inside a sig_on, sig_off block\n");
       fflush(stderr);
 #endif
-      if (!cysigs.block_sigint && !PARI_SIGINT_block)
+      if (!cysigs.block_sigint && !get_pari_sigint_block())
         {
 #if ENABLE_DEBUG_CYSIGNALS
 	  fprintf(stderr, "processing interrupt immediately\n");
@@ -438,7 +444,7 @@ static void cysigs_interrupt_handler(int sig)
   if (cysigs.interrupt_received != SIGTERM)
     {
         cysigs.interrupt_received = sig;
-        PARI_SIGINT_pending = sig;
+        set_pari_sigint_pending(sig);
     }
 }
 
@@ -573,7 +579,7 @@ static void _sig_on_interrupt_received(void)
     do_raise_exception(cysigs.interrupt_received);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    PARI_SIGINT_pending = 0;
+    set_pari_sigint_pending(0);
 #if 0
     sigprocmask(SIG_SETMASK, &oldset, NULL);
 #endif
@@ -584,10 +590,10 @@ static void _sig_on_interrupt_received(void)
 static void _sig_on_recover(void)
 {
     cysigs.block_sigint = 0;
-    PARI_SIGINT_block = 0;
+    set_pari_sigint_block(0);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    PARI_SIGINT_pending = 0;
+    set_pari_sigint_pending(0);
 
     /* Reset signal mask */
 #if 0

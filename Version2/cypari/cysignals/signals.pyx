@@ -26,6 +26,18 @@ See ``tests.pyx`` for extensive tests.
 from libc.signal cimport *
 from libc.stdio cimport freopen, stdin
 from cpython.exc cimport PyErr_Occurred
+from cypari.gen import (_get_pari_sigint_block, _set_pari_sigint_block,
+                        _get_pari_sigint_pending, _set_pari_sigint_pending)
+
+# Make these available to implementation.c
+cdef public int get_pari_sigint_block():
+    return _get_pari_sigint_block()
+cdef public void set_pari_sigint_block(int n):
+    _set_pari_sigint_block(n)
+cdef public int get_pari_sigint_pending():
+    return _get_pari_sigint_pending()
+cdef public void set_pari_sigint_pending(int n):
+    _set_pari_sigint_pending(n)
 
 cdef extern from "implementation.c":
     cysigs_t cysigs "cysigs"
@@ -34,7 +46,7 @@ cdef extern from "implementation.c":
     void _sig_on_interrupt_received() nogil
     void _sig_on_recover() nogil
     void _sig_off_warning(const char*, int) nogil
-
+    
 
 class AlarmInterrupt(KeyboardInterrupt):
     """
