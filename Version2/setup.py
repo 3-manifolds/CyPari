@@ -19,19 +19,6 @@ for arg in sys.argv:
     if arg.startswith('--compiler='):
         compiler_name = arg.split('=')[1]
 
-def manually_compile_files(sources, extra_include_dirs):
-    import distutils.sysconfig
-    import distutils.ccompiler
-    config_vars = distutils.sysconfig.get_config_vars()
-    python_include_dir = config_vars['INCLUDEPY']
-    compiler = distutils.ccompiler.new_compiler(compiler=compiler_name)
-    distutils.sysconfig.customize_compiler(compiler)
-    compiler.add_include_dir(python_include_dir)
-    for directory in extra_include_dirs:
-        compiler.add_include_dir(directory)
-    compiler.compile(sources=sources)
-
-
 pari_include_dir = 'build/pari/include'
 pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
@@ -53,7 +40,6 @@ class Clean(Command):
         os.system('rm -if cypari/cysignals/signals.c')
         os.system('rm -if cypari/cysignals/signals.h')
         os.system('rm -if cypari/cysignals/signals_api.h')
-        os.system('rm -if cypari/cysignals/implementation.o')
         
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -63,8 +49,6 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 if not os.path.exists('build/pari') and 'clean' not in sys.argv:
-#    if sys.platform == 'win32':
-#        sys.exit('Please run the bash script build_pari.sh first.')
     if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
 
@@ -81,13 +65,8 @@ if 'clean' not in sys.argv:
     if sys.platform != 'win32':
                       cython_sources.append('cypari/cysignals/alarm.pyx')
     cythonize(cython_sources)
-    #if sys.platform == 'win32':
-    #    os.system('gcc -specs=spec90 -o cypari/cysignals/implementation.o cypari/cysignals/implementation.c')
-    manually_compile_files(['cypari/cysignals/implementation.c'],
-                           [pari_include_dir])
 
 spec = ['-specs=specs90'] if sys.platform == 'win32' else []
-    
     
 pari_gen = Extension('cypari.gen',
                      sources=['cypari/gen.c'],
