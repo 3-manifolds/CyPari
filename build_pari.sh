@@ -36,8 +36,7 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     lipo lib/i386-libpari.a lib/x86_64-libpari.a -create -output lib/libpari.a
     ranlib lib/*.a
     ln -s include32 include
- 
-elif [[ "$(uname)" = *MINGW32* ]] || ["$APPVEYOR"]; then # MinGW on Windows
+elif [[ "$(uname)" = *MINGW32* ]] || [[ "$(uname)" = *MSYS* ]; then # MinGW on Windows
     ./Configure --prefix=`pwd` --libdir=lib --without-gmp --host=i386-mingw
     cd Omingw-i386
     make install-lib-sta
@@ -48,4 +47,3 @@ else  # Linux
     make install-lib-sta
     make install-include
 fi 
-
