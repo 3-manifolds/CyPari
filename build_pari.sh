@@ -36,7 +36,7 @@ if [ "$(uname)" = "Darwin" ] ; then  # OS X
     ranlib lib/*.a
     ln -s include32 include
  
-elif [[ "$(uname)" = *MINGW32* ]] ; then # MinGW on Windows
+elif [[ "$(uname)" = *MINGW32* ]] || ["$APPVEYOR"]; then # MinGW on Windows
     ./Configure --prefix=`pwd` --libdir=lib --without-gmp --host=i386-mingw
     cd Omingw-i386
     make install-lib-sta
