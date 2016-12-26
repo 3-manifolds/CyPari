@@ -47,3 +47,4 @@ else  # Linux
     make install-lib-sta
     make install-include
 fi 
+echo "$(uname)"
