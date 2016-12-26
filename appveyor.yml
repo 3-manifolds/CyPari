@@ -1,3 +1,7 @@
+# We use AppVeyor to build our Windows binaries automatically:
+#
+# https://ci.appveyor.com/project/nathan_dunfield/cypari
+
 environment:
 
   matrix:
