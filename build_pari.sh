@@ -12,7 +12,8 @@ echo "Untarring Pari..."
 tar xzf pari-2.5.5.tar.gz
 cd pari-2.5.5
 
-echo "Building Pari libary..." 
+echo "Building Pari libary..."
+echo "$(uname)"
 if [ "$(uname)" = "Darwin" ] ; then  # OS X
     export CFLAGS='-arch i386 -mmacosx-version-min=10.4 '
     ./Configure --prefix=`pwd` --without-gmp --host=i386-darwin
@@ -42,7 +43,6 @@ elif [[ "$(uname)" = *MINGW32* ]] || ["$APPVEYOR"]; then # MinGW on Windows
     make install-lib-sta
     make install-include
 else  # Linux
-    echo "$(uname)"
     ./Configure --prefix=`pwd` --without-gmp
     cd Olinux-*
     make install-lib-sta
