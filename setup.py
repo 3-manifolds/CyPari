@@ -55,6 +55,11 @@ pari_gen = setuptools.Extension('cypari.gen',
 # Load version number
 exec(open('cypari_src/version.py').read())
 
+if sys.platform.startswith('win'):
+    install_requires = ['pyreadline']
+else:
+    install_requires
+
 setup(
     name = 'cypari',
     version = version,
@@ -63,7 +68,7 @@ setup(
     package_dir = {'cypari':'cypari_src'}, 
     cmdclass = {'clean':clean},
     ext_modules = [pari_gen],
-    
+    install_requires = install_requires,    
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',

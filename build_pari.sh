@@ -13,7 +13,6 @@ tar xzf pari-2.5.5.tar.gz
 cd pari-2.5.5
 
 echo "Building Pari libary on platform $(uname)"
-bison --version
 if [ "$(uname)" = "Darwin" ] ; then  # OS X
     export CFLAGS='-arch i386 -mmacosx-version-min=10.4 '
     ./Configure --prefix=`pwd` --without-gmp --host=i386-darwin
