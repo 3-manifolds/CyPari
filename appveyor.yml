@@ -15,10 +15,10 @@ environment:
 
 install:
   # These Python packages are needed to build FXrays
-  - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - set PATH=%PATH%;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;
-  - "bash build_pari.sh" 
+  - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - "%PYTHON%\\python.exe -m pip install Cython wheel pyreadline"
+  - "bash build_pari.sh" 
   - "%PYTHON%\\python.exe setup.py build -c mingw32"
   - "%PYTHON%\\python.exe setup.py install"
   
