@@ -15,6 +15,7 @@ install:
   - set PATH=%PATH%;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;
   - "bash build_pari.sh" 
   - "%PYTHON%\\python.exe -m pip install Cython wheel"
+  - "%PYTHON%\\python.exe setup.py build -c mingw32"
   - "%PYTHON%\\python.exe setup.py install"
   
 build: none
