@@ -18,7 +18,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - set PATH=%PATH%;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;
   - "bash build_pari.sh" 
-  - "%PYTHON%\\python.exe -m pip install Cython wheel"
+  - "%PYTHON%\\python.exe -m pip install Cython wheel pyreadline"
   - "%PYTHON%\\python.exe setup.py build -c mingw32"
   - "%PYTHON%\\python.exe setup.py install"
   
