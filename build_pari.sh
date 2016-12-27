@@ -40,6 +40,7 @@ elif [[ "$(uname)" = *MINGW32* ]] || [[ "$(uname)" = *MSYS* ]]; then # MinGW on 
     cd Omingw-i386
     make install-lib-sta
     make install-include
+    make test-all
 else  # Linux
     ./Configure --prefix=`pwd` --without-gmp
     cd Olinux-*
