@@ -98,12 +98,13 @@ IF SAGE:
                                 prec_words_to_bits, default_bitprec)
     cdef PariInstance P = pari_instance
 ELSE:
-    include "cypari/cysignals/memory.pxi"
-    include "cypari/cysignals/signals.pxi"
+    include "cypari/memory.pxi"
+    include "cypari/signals.pyx"
     include "pari_instance.pyx"
     include "convert.pyx"
     include "handle_error.pyx"
     include "closure.pyx"
+    init_cysignals()
 
 include 'auto_gen.pxi'
 

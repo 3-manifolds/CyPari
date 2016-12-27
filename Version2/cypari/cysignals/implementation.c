@@ -21,8 +21,14 @@ Interrupt and signal handling for Cython
  * along with cysignals.  If not, see <http://www.gnu.org/licenses/>.
  *
  ****************************************************************************/
+#define ENABLE_DEBUG_CYSIGNALS 1
+#if ENABLE_DEBUG_CYSIGNALS
+#define DEBUG(...) fprintf(stderr, __VA_ARGS__); fflush(stderr);
+#endif
 
+/* Posix version */
 #ifndef __MINGW32__
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -315,31 +321,6 @@ static void sigdie(int sig, const char* s)
 
 #else /* Windows version */
 
-#define ENABLE_DEBUG_CYSIGNALS 0
-/*
-Interrupt and signal handling for Cython
-*/
-
-/*****************************************************************************
- *       Copyright (C) 2006 William Stein <wstein@gmail.com>
- *                     2006-2016 Martin Albrecht <martinralbrecht+cysignals@gmail.com>
- *                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
- *
- * cysignals is free software: you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as published
- * by the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * cysignals is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with cysignals.  If not, see <http://www.gnu.org/licenses/>.
- *
- ****************************************************************************/
-
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -394,10 +375,7 @@ static inline void reset_CPU(void)
  */
 static void cysigs_interrupt_handler(int sig)
 {
-#if ENABLE_DEBUG_CYSIGNALS
-  fprintf(stderr, "call to cysigs_interrupt_handler with signal %d\n", sig);
-  fflush(stderr);
-#endif
+  DEBUG( "call to cysigs_interrupt_handler with signal %d\n", sig )
   /* Since we are using signal, we must reset the handler. */
   if (signal(sig, cysigs_interrupt_handler) == SIG_ERR)
     {
@@ -406,36 +384,24 @@ static void cysigs_interrupt_handler(int sig)
     }
   if (cysigs.sig_on_count > 0)
     {
-#if ENABLE_DEBUG_CYSIGNALS
-      fprintf(stderr, "inside a sig_on, sig_off block\n");
-      fflush(stderr);
-#endif
+      DEBUG( "Inside a sig_on, sig_off block -\n" )
       if (!cysigs.block_sigint && !get_pari_sigint_block())
         {
-#if ENABLE_DEBUG_CYSIGNALS
-	  fprintf(stderr, "processing interrupt immediately\n");
-	  fflush(stderr);
-#endif
+	  DEBUG( "processing interrupt immediately\n" )
 	  /* Save the signal number and raise SIGFPE. */
 	  cysigs.sig_mapped_to_FPE = sig;
-	  if (signal(sig, cysigs_interrupt_handler) == SIG_ERR)
-	    {
-	      perror("signal");
-	      exit(1);
-	    }
 	  signal(SIGFPE, cysigs_signal_handler);
+	  reset_CPU();
+	  raise(SIGFPE);
 	  return;
         }
     }
   else
     {
-#if ENABLE_DEBUG_CYSIGNALS
-      fprintf(stderr, "outside a sig_on, sig_off block - raise an exception\n");
-      fflush(stderr);
-#endif
       /* Set the Python interrupt indicator, which will cause the
        * Python-level interrupt handler in cysignals/signals.pyx to
        * be called. */
+      DEBUG( "Outside a sig_on, sig_off block -Raising Python exception.\n" )
       PyErr_SetInterrupt();
     }
   /* If we are here, we could not handle the interrupt immediately, so
@@ -444,8 +410,9 @@ static void cysigs_interrupt_handler(int sig)
   if (cysigs.interrupt_received != SIGTERM)
     {
         cysigs.interrupt_received = sig;
-        set_pari_sigint_pending(sig);
+        //set_pari_sigint_pending(sig);
     }
+  DEBUG( "Handler returning.\n" )
 }
 
 /* Handler for SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV
@@ -462,10 +429,8 @@ static void cysigs_signal_handler(int sig)
 {
   sig_atomic_t inside = cysigs.inside_signal_handler;
   cysigs.inside_signal_handler = 1;
-#if ENABLE_DEBUG_CYSIGNALS
-  fprintf(stderr, "call to cysigs_signal_handler for %d with sig_count %d.\n",
-	  sig, cysigs.sig_on_count);
-#endif
+  DEBUG("call to cysigs_signal_handler for %d with sig_count %d.\n",
+	  sig, cysigs.sig_on_count)
   if (inside == 0 && cysigs.sig_on_count > 0)
     /*
      * We are inside sig_on(), so we can handle the signal!
@@ -474,6 +439,7 @@ static void cysigs_signal_handler(int sig)
       /*
        * Since we are using ANSI signals, we must reset the handler.
        */
+      DEBUG("Inside sig_on - sig_off block\n")
       if (signal(sig, cysigs_signal_handler) == SIG_ERR)
 	{
 	  perror("signal");
@@ -490,10 +456,12 @@ static void cysigs_signal_handler(int sig)
 	  if (sig == SIGFPE){
 	    if (cysigs.sig_mapped_to_FPE)
 	      {
+		DEBUG("Mapped from %d\n", cysigs.sig_mapped_to_FPE)
 		int mapped_sig = cysigs.sig_mapped_to_FPE;
 		cysigs.sig_mapped_to_FPE = 0;
 		do_raise_exception(mapped_sig);
 		reset_CPU();
+		DEBUG("Calling longjmp\n")
 		longjmp(cysigs.env, mapped_sig);
 	      }
 	    else /* This really is a floating point exception */
@@ -579,7 +547,7 @@ static void _sig_on_interrupt_received(void)
     do_raise_exception(cysigs.interrupt_received);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    set_pari_sigint_pending(0);
+    //set_pari_sigint_pending(0);
 #if 0
     sigprocmask(SIG_SETMASK, &oldset, NULL);
 #endif
@@ -590,10 +558,10 @@ static void _sig_on_interrupt_received(void)
 static void _sig_on_recover(void)
 {
     cysigs.block_sigint = 0;
-    set_pari_sigint_block(0);
+    //set_pari_sigint_block(0);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
-    set_pari_sigint_pending(0);
+    //set_pari_sigint_pending(0);
 
     /* Reset signal mask */
 #if 0
