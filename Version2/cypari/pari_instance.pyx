@@ -199,25 +199,27 @@ include "sage.pxi"
 import sys
 
 IF SAGE:
-    cimport libc.stdlib
-    from libc.stdio cimport *
-    cimport cython
-    from .paridecl cimport *
-    from .paripriv cimport *
+    pass
+#    cimport libc.stdlib
+#    from libc.stdio cimport *
+#    cimport cython
+#    from .paridecl cimport *
+#    from .paripriv cimport *
 # These include directives cause Cython 0.25.* to crash.  Apparently
 # it tries to find the files even though it should ignore them, since
 # SAGE is false.  Cython 0.24.1 did not have this problem.
 #    include "signals.pxi"
 #    include "memory.pxi"
-    from sage.ext.memory import init_memory_functions
-    from sage.structure.parent cimport Parent
-    from sage.libs.gmp.all cimport *
-    from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
-    from sage.libs.flint.fmpz_mat cimport *
-    from sage.libs.pari.gen cimport gen, objtogen
-    from sage.libs.pari.handle_error cimport _pari_init_error_handling
-    from sage.misc.superseded import deprecation, deprecated_function_alias
-    from sage.env import CYGWIN_VERSION
+# The others just generate garbage errors, for the same reason.
+#   from sage.ext.memory import init_memory_functions
+#    from sage.structure.parent cimport Parent
+#    from sage.libs.gmp.all cimport *
+#    from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
+#    from sage.libs.flint.fmpz_mat cimport *
+#    from sage.libs.pari.gen cimport gen, objtogen
+#    from sage.libs.pari.handle_error cimport _pari_init_error_handling
+#    from sage.misc.superseded import deprecation, deprecated_function_alias
+#    from sage.env import CYGWIN_VERSION
 ELSE:
     cdef deprecation(int id, char* message):
         # Decide how to handle this in CyPari
@@ -1728,18 +1730,18 @@ IF SAGE:
             pari_err(e_TYPE, <char*>"conversion to mpq", g)
 
 # Getters and setters for Pari global variables -- used in cysignals. 
-cpdef int _get_pari_sigint_block():
+cpdef public int _get_pari_sigint_block():
     global PARI_SIGINT_block
     return PARI_SIGINT_block
 
-cpdef void _set_pari_sigint_block(int value):
+cpdef public void _set_pari_sigint_block(int value):
     global PARI_SIGINT_block
     PARI_SIGINT_block = value
 
-cpdef int _get_pari_sigint_pending():
+cpdef public int _get_pari_sigint_pending():
     global PARI_SIGINT_pending
     return PARI_SIGINT_pending
 
-cpdef void _set_pari_sigint_pending(int value):
+cpdef public void _set_pari_sigint_pending(int value):
     global PARI_SIGINT_pending
     PARI_SIGINT_pending = value

@@ -104,12 +104,7 @@ extern "C" {
 static inline int _sig_on_prejmp(const char* message, const char* file, int line)
 {
     cysigs.s = message;
-#if ENABLE_DEBUG_CYSIGNALS
-    {
-        fprintf(stderr, "sig_on: setting count to %i at %s:%i\n", cysigs.sig_on_count+1, file, line);
-        fflush(stderr);
-    }
-#endif
+    DEBUG("sig_on: setting count to %i at %s:%i\n", cysigs.sig_on_count+1, file, line)
     if (cysigs.sig_on_count > 0)
     {
         cysigs.sig_on_count++;
@@ -160,11 +155,7 @@ static inline int _sig_on_postjmp(int jmpret)
  */
 static inline void _sig_off_(const char* file, int line)
 {
-#if ENABLE_DEBUG_SIGNALS
-  fprintf(stderr, "sig_off: setting count to %i at %s:%i\n",
-	  cysigs.sig_on_count-1, file, line);
-  fflush(stderr);
-#endif
+  DEBUG("sig_off: setting count to %i at %s:%i\n", cysigs.sig_on_count-1, file, line)
   if (unlikely(cysigs.sig_on_count <= 0))
     {
       _sig_off_warning(file, line);
@@ -223,8 +214,8 @@ static inline void sig_block(void)
 #if ENABLE_DEBUG_CYSIGNALS
     if (cysigs.block_sigint != 0)
     {
-        fprintf(stderr, "\n*** WARNING *** sig_block() with sig_on_count = %i, block_sigint = %i\n", cysigs.sig_on_count, cysigs.block_sigint);
-        print_backtrace();
+      DEBUG("sig_block called with sig_on_count = %i, block_sigint = %i\n", cysigs.sig_on_count, cysigs.block_sigint);
+        //print_backtrace();
     }
 #endif
     cysigs.block_sigint = 1;
@@ -253,13 +244,13 @@ static inline void sig_retry(void)
 {
     /* If we're outside of sig_on(), we can't jump, so we can only bail
      * out */
+    DEBUG("Call to sig_retry.\n")
     if (unlikely(cysigs.sig_on_count <= 0))
     {
-#if ENABLE_DEBUG_SIGNALS
-        fprintf(stderr, "sig_retry() without sig_on()\n");
-#endif
+      DEBUG( "sig_retry() without sig_on()\n")
 #ifdef __MINGW32__
-	raise(SIGABRT);
+	// FIX ME!!!!
+	raise(SIGFPE);
 #else
         abort();
 #endif
@@ -267,28 +258,28 @@ static inline void sig_retry(void)
     siglongjmp(cysigs.env, -1);
 }
 
-/* Used in error callbacks from C code (in particular NTL and PARI).
- * This should be used after an exception has been raised to jump back
- * to sig_on() where the exception will be seen. */
+/* This is called by Pari's cb_pari_err_recover callback.
+ * In Posix this sends a SIGABRT.  In Windows this raises SIGFPE
+ * with an out-of-range mapped signal.  The signal handler should
+ * either do a longjmp back to the last sig_on, or schedule one for later.
+ */
 static inline void sig_error(void)
 {
-#if ENABLE_DEBUG_SYMBOLS
-  fprintf(stderr, "sig_error called with count %d\n", cysigs.sig_on_count);
-#endif
+    DEBUG( "sig_error called with count %d\n", cysigs.sig_on_count)
     if (unlikely(cysigs.sig_on_count <= 0))
     {
         fprintf(stderr, "sig_error() without sig_on()\n");
     }
 #ifdef __MINGW32__
     /* 
-     *In Windows, the abort function will terminate the process no
+     * The Windows abort function will terminate the process no
      * matter what.  If a SIGABRT handler is set it will be called,
      * but that is only to allow cleanup before the process is terminated.
-     * Moreover, with the exception of SIGFPE, signal handlers run with
-     * their own stack and therefore cannot call longjmp.  Thus we use
-     * SIGFPE to indicate that error recovery is needed.
-     */ 
+     * So we can't call abort if we are on Windows.
+     */
+    
     cysigs.sig_mapped_to_FPE = 128;
+    DEBUG("sig_error raising SIGFPE\n")
     raise(SIGFPE);
 #else
     abort();
