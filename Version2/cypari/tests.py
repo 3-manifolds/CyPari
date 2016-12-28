@@ -34,17 +34,18 @@ which is now automatically generated:
 
 Reading a gp file::
 
-    >>> import tempfile
-    >>> gpfile = tempfile.NamedTemporaryFile(mode="w")
-    >>> gpfile.file.write("mysquare(n) = {\n")
-    >>> gpfile.file.write("    n^2;\n")
-    >>> gpfile.file.write("}\n")
-    >>> gpfile.file.write("polcyclo(5)\n")
-    >>> gpfile.file.flush()
-    >>> pari.read(gpfile.name)
+    >>> import tempfile, os
+    >>> handle, gpfilename = tempfile.mkstemp(text=True)
+    >>> with open(gpfilename, 'wb+') as gpfile:
+    ...   gpfile.write("mysquare(n) = {\n n^2;\n}\npolcyclo(5)\n")
+    ...   gpfile.flush()
+    ...
+    >>> pari.read(gpfilename)
     x^4 + x^3 + x^2 + x + 1
     >>> pari('mysquare(12)')
     144
+    >>> os.close(handle)
+    >>> os.unlink(gpfilename)
 
 Constants::
 

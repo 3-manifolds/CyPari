@@ -24,9 +24,9 @@ AUTHORS:
 #from .paridecl cimport *
 #from .paripriv cimport *
 #include "cysignals/signals.pxi"
+#from pari_instance cimport pari_instance
 
 from cpython cimport PyErr_Occurred
-#from pari_instance cimport pari_instance
 
 import sys
 
@@ -188,7 +188,7 @@ cdef int _pari_err_handle(GEN E) except 0:
     finally:
         sig_unblock()
 
-
+# This gets assigned as Pari's cb_pari_err_recover callback
 cdef void _pari_err_recover(long errnum):
     """
     Reset the error string and jump back to ``sig_on()``, either to

@@ -36,9 +36,11 @@ include "sage.pxi"
 from cpython.int cimport PyInt_AS_LONG
 from libc.limits cimport LONG_MIN, LONG_MAX
 IF SAGE:
-    include "cysignals/signals.pxi"
-    from .paridecl cimport *
-    from .pari_instance cimport pari_instance as P
+    pass
+    # comment these out to avoid Cython 0.25 bug
+#    include "cysignals/signals.pxi"
+#    from .paridecl cimport *
+#    from .pari_instance cimport pari_instance as P
 
 cdef extern from "longintrepr.h":
     cdef _PyLong_New(Py_ssize_t s)

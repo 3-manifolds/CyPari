@@ -35,10 +35,12 @@ from cpython.object cimport PyObject_Call
 from cpython.ref cimport Py_INCREF
 
 IF SAGE:
-    include "cysignals/signals.pxi"
-    from .paridecl cimport *
-    from .pari_instance cimport pari_instance
-    from .gen cimport objtogen
+    pass
+    # Comment these out to avoid Cython 0.25 bug.
+#    include "cysignals/signals.pxi"
+#    from .paridecl cimport *
+#    from .pari_instance cimport pari_instance
+#    from .gen cimport objtogen
 
 cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_func) except NULL:
     """

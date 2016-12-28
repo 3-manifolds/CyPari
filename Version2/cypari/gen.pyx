@@ -85,18 +85,20 @@ cimport libc.stdlib
 from libc.stdio cimport *
 
 IF SAGE:
-    include "cysignals/memory.pxi"
-    include "cysignals/signals.pxi"
-    from sage.misc.randstate cimport randstate, current_randstate
-    from sage.structure.sage_object cimport rich_to_bool
-    from sage.misc.superseded import deprecation, deprecated_function_alias
-    from sage.libs.pari.closure cimport objtoclosure
-    from sage.rings.integer cimport Integer
-    from sage.rings.rational cimport Rational
-    from sage.rings.infinity import Infinity
-    from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
-                                prec_words_to_bits, default_bitprec)
-    cdef PariInstance P = pari_instance
+    pass
+    # Commented these out to deal with Cython-0.25 bug
+#    include "cysignals/memory.pxi"
+#    include "cysignals/signals.pxi"
+#    from sage.misc.randstate cimport randstate, current_randstate
+#    from sage.structure.sage_object cimport rich_to_bool
+#    from sage.misc.superseded import deprecation, deprecated_function_alias
+#    from sage.libs.pari.closure cimport objtoclosure
+#    from sage.rings.integer cimport Integer
+#    from sage.rings.rational cimport Rational
+#    from sage.rings.infinity import Infinity
+#    from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
+#                                prec_words_to_bits, default_bitprec)
+#    cdef PariInstance P = pari_instance
 ELSE:
     include "cypari/memory.pxi"
     include "cypari/signals.pyx"
