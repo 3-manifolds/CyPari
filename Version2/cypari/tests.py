@@ -1376,14 +1376,14 @@ General number fields::
     Xsage: F = NumberField(x^3-2, 'alpha')
     Xsage: nf = F._pari_()
     >>> nf = pari('x^3 - 2').nfinit()
-    >>> x = pari('[1, -1, 2]~')
-    >>> y = pari('[1, -1, 3]~')
+    >>> x = pari('[2, -2, 2]~')
+    >>> y = pari('[4, -4, 4]~')
     >>> nf.idealcoprime(x, y)
-    [1, 0, 0]~
+    [1/6, 1/6, 0]~
 
     >>> y = pari('[2, -2, 4]~')
     >>> nf.idealcoprime(x, y)
-    [5/43, 9/43, -1/43]~
+    [-1/2, 0, 1/2]~
 
     Xsage: R.<x> = PolynomialRing(QQ)
     Xsage: K.<a> = NumberField(x^2 + 1)
