@@ -381,12 +381,9 @@ static void cysigs_interrupt_handler(int sig)
       DEBUG( "Inside a sig_on, sig_off block -\n" )
 	if (!cysigs.block_sigint && !PARI_SIGINT_block)
         {
-	  DEBUG( "processing interrupt immediately\n" )
-	  /* Save the signal number and raise SIGFPE. */
+	  DEBUG( "Incrementing win32ctrlc\n" )
 	  cysigs.sig_mapped_to_FPE = sig;
-	  //signal(SIGFPE, cysigs_signal_handler);
-	  ///reset_CPU();
-	  //raise(SIGFPE);
+	  win32ctrlc += 1;
 	  return;
         }
     }

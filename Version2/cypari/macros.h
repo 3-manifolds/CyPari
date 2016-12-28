@@ -285,7 +285,7 @@ static inline void sig_error(void)
     abort();
 #endif
 }
-
+  
 #ifdef __cplusplus
 }  /* extern "C" */
 #endif

@@ -21,11 +21,6 @@ AUTHORS:
 #*****************************************************************************
 
 
-#from .paridecl cimport *
-#from .paripriv cimport *
-#include "cysignals/signals.pxi"
-#from pari_instance cimport pari_instance
-
 from cpython cimport PyErr_Occurred
 
 import sys
@@ -136,14 +131,8 @@ cdef void _pari_init_error_handling():
     """
     global cb_pari_err_handle
     global cb_pari_err_recover
-    global cb_pari_sigint
     cb_pari_err_handle = _pari_err_handle
     cb_pari_err_recover = _pari_err_recover
-    if sys.platform == 'win32':
-        cb_pari_sigint = _pari_sigint
-
-cdef _pari_sigint():
-    raise KeyboardInterrupt
     
 cdef int _pari_err_handle(GEN E) except 0:
     """
@@ -210,3 +199,4 @@ cdef void _pari_err_recover(long errnum):
     # An exception was raised.  Jump to the signal-handling code
     # which will cause sig_on() to see the exception.
     sig_error()
+

@@ -76,6 +76,7 @@ cdef extern from "parisage.h":
     GEN     gen_0
     GEN     gnil
     int     PARI_SIGINT_block, PARI_SIGINT_pending
+    int     win32ctrlc, win32alrm
     void    NEXT_PRIME_VIADIFF(long, byteptr)
     void    PREC_PRIME_VIADIFF(long, byteptr)
     int     INIT_JMPm, INIT_SIGm, INIT_DFTm, INIT_noPRIMEm, INIT_noIMTm
