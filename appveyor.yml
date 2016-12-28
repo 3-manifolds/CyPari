@@ -10,15 +10,27 @@ environment:
     # http://www.appveyor.com/docs/installed-software#python
 
     - PYTHON: "C:\\Python27"
-    #- PYTHON: "C:\\Python34"
+    - PYTHON: "C:\\Python34"
     #- PYTHON: "C:\\Python35"
+    #- PYTHON: "C:\\Python36"
 
 install:
-  # These Python packages are needed to build FXrays
-  - set PATH=%PATH%;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;
+  # Note that you must use the environment variable %PYTHON% to refer to
+  # the interpreter you're using - Appveyor does not do anything special
+  # to put the Python version you want to use on PATH.
+  
+  # CyPari is built using the 32-bit MinGW compilers, so we need them in
+  # our path. 
+  - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
+
+  # Need a few Python packages to build CyPari
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - "%PYTHON%\\python.exe -m pip install Cython wheel"
-  - "bash build_pari.sh" 
+
+  # Must build Pari first
+  - "bash build_pari.sh"
+
+  # Now build CyPari itself. 
   - "%PYTHON%\\python.exe setup.py build -c mingw32"
   - "%PYTHON%\\python.exe setup.py install"
   
@@ -26,26 +38,15 @@ build: none
   
 test_script:
   # Put your test command here.
-  # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-  # you can remove "build.cmd" from the front of the command, as it's
-  # only needed to support those cases.
-  # Note that you must use the environment variable %PYTHON% to refer to
-  # the interpreter you're using - Appveyor does not do anything special
-  # to put the Python evrsion you want to use on PATH.
   - "%PYTHON%\\python.exe -m cypari.test"
 
 after_test:
   # This step builds your wheels.
-  # Again, you only need build.cmd if you're building C extensions for
-  # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-  # interpreter
   - "%PYTHON%\\python.exe setup.py bdist_wheel"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
   - path: dist\*.whl
-  - path: build\lib.win32-2.7\cypari
-  - path: pari-2.5.5
 
 #on_success:
 #  You can use this step to upload your artifacts to a public website.
