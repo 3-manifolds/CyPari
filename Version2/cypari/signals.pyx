@@ -26,27 +26,14 @@ See ``tests.pyx`` for extensive tests.
 from libc.signal cimport *
 from libc.stdio cimport freopen, stdin
 from cpython.exc cimport PyErr_Occurred
-from cypari.gen import (_get_pari_sigint_block, _set_pari_sigint_block,
-                        _get_pari_sigint_pending, _set_pari_sigint_pending)
-
-# Make these available to implementation.c
-cdef public int get_pari_sigint_block():
-    return _get_pari_sigint_block()
-cdef public void set_pari_sigint_block(int n):
-    _set_pari_sigint_block(n)
-cdef public int get_pari_sigint_pending():
-    return _get_pari_sigint_pending()
-cdef public void set_pari_sigint_pending(int n):
-    _set_pari_sigint_pending(n)
 
 cdef extern from "implementation.c":
-    cysigs_t cysigs "cysigs"
     void setup_cysignals_handlers() nogil
     void print_backtrace() nogil
     void _sig_on_interrupt_received() nogil
     void _sig_on_recover() nogil
     void _sig_off_warning(const char*, int) nogil
-    
+
 
 class AlarmInterrupt(KeyboardInterrupt):
     """
@@ -54,18 +41,18 @@ class AlarmInterrupt(KeyboardInterrupt):
 
     EXAMPLES::
 
-        >>> from cysignals import AlarmInterrupt
-        >>> from signal import alarm
-        >>> try:
+        XXX from cysignals import AlarmInterrupt
+        XXX from signal import alarm
+        XXX try:
         ...     _ = alarm(1)
         ...     while True:
         ...         pass
         ... except AlarmInterrupt:
         ...     print("alarm!")
         alarm!
-        >>> from cysignals.signals import sig_print_exception
-        >>> import signal
-        >>> sig_print_exception(signal.SIGALRM)
+        XXX from cysignals.signals import sig_print_exception
+        XXX import signal
+        XXX sig_print_exception(signal.SIGALRM)
         AlarmInterrupt
 
     """
@@ -78,7 +65,6 @@ class SignalError(BaseException):
 
     EXAMPLES::
 
-        >>> from cysignals.signals import sig_print_exception
         >>> import signal
         >>> sig_print_exception(signal.SIGSEGV)
         SignalError: Segmentation fault
@@ -133,20 +119,20 @@ def sig_print_exception(sig, msg=None):
 
     EXAMPLES::
 
-        >>> from cysignals.signals import sig_print_exception
-        >>> import signal
-        >>> sig_print_exception(signal.SIGFPE)
+        XXX from cysignals.signals import sig_print_exception
+        XXX import signal
+        XXX sig_print_exception(signal.SIGFPE)
         FloatingPointError: Floating point exception
-        >>> sig_print_exception(signal.SIGBUS, "CUSTOM MESSAGE")
+        XXX sig_print_exception(signal.SIGBUS, "CUSTOM MESSAGE")
         SignalError: CUSTOM MESSAGE
-        >>> sig_print_exception(0)
+        XXX sig_print_exception(0)
         SystemError: unknown signal number 0
 
     For interrupts, the message is ignored::
 
-        >>> sig_print_exception(signal.SIGINT, "ignored")
+        XXX sig_print_exception(signal.SIGINT, "ignored")
         KeyboardInterrupt
-        >>> sig_print_exception(signal.SIGALRM, "ignored")
+        XXX sig_print_exception(signal.SIGALRM, "ignored")
         AlarmInterrupt
 
     """
@@ -191,8 +177,8 @@ def init_cysignals():
 
     EXAMPLES::
 
-        >>> from cysignals.signals import init_cysignals
-        >>> init_cysignals()
+        XXX from cysignals.signals import init_cysignals
+        XXX init_cysignals()
         <built-in function python_check_interrupt>
 
     """
@@ -217,11 +203,11 @@ def sig_on_reset():
 
     EXAMPLES::
 
-        >>> from cysignals.signals import sig_on_reset
-        >>> from cysignals.tests import _sig_on
-        >>> _sig_on(); sig_on_reset()
+        XXX from cysignals.signals import sig_on_reset
+        XXX from cysignals.tests import _sig_on
+        XXX _sig_on(); sig_on_reset()
         1
-        >>> sig_on_reset()
+        XXX sig_on_reset()
         0
 
     """

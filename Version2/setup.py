@@ -22,7 +22,6 @@ for arg in sys.argv:
 pari_include_dir = 'build/pari/include'
 pari_library_dir = 'build/pari/lib'
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
-cysignals_include_dir = 'cypari/cysignals'
     
 class Clean(Command):
     user_options = []
@@ -33,13 +32,10 @@ class Clean(Command):
     def run(self):
         os.system('rm -rf build/lib* build/temp* build/bdist* dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -if cypari/*.c')
         os.system('rm -if cypari/*.pyc')
         os.system('rm -if cypari/*.so*')
-        os.system('rm -if cypari/cysignals/alarm.c')
-        os.system('rm -if cypari/cysignals/signals.c')
-        os.system('rm -if cypari/cysignals/signals.h')
-        os.system('rm -if cypari/cysignals/signals_api.h')
+        os.system('rm -if cypari/gen.c')
+        os.system('rm -if cypari/gen_api.h')
         
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -59,11 +55,10 @@ if (not os.path.exists('cypari/auto_gen.pxi')
 
 include_dirs = []
 if 'clean' not in sys.argv:
-    include_dirs=[pari_include_dir, cysignals_include_dir]
-    cython_sources = ['cypari/gen.pyx',
-                      'cypari/cysignals/signals.pyx']
-    if sys.platform != 'win32':
-                      cython_sources.append('cypari/cysignals/alarm.pyx')
+    include_dirs=[pari_include_dir]
+    cython_sources = ['cypari/gen.pyx']
+#    if sys.platform != 'win32':
+#                      cython_sources.append('cypari/cysignals/alarm.pyx')
     cythonize(cython_sources)
 
 spec = ['-specs=specs90'] if sys.platform == 'win32' else []
@@ -74,32 +69,18 @@ pari_gen = Extension('cypari.gen',
                      extra_link_args=[pari_static_library] + spec,
 )
 
-cysignals_sources = ['cypari/cysignals/signals.c']
-    
-cysignals = Extension('cypari.cysignals.signals',
-                      sources=cysignals_sources,
-                      include_dirs=include_dirs,
-                      extra_link_args=spec,
-)
-
-alarm = Extension('cypari.cysignals.alarm',
-                     sources=['cypari/cysignals/alarm.c'],
-                     include_dirs=include_dirs,
-                     extra_link_args=spec
-)
-
 # Load version number
 exec(open('cypari/version.py').read())
 
-cypari_extensions = [pari_gen, cysignals]
-if sys.platform != 'win32':
-    cypari_extensions.append(alarm)
+cypari_extensions = [pari_gen]
+#if sys.platform != 'win32':
+#    cypari_extensions.append(alarm)
 setup(
     name = 'cypari',
     version = version,
     description = "Sage's PARI extension, modified to stand alone.",
-    packages = ['cypari', 'cypari.cysignals'],
-    package_dir = {'cypari':'cypari', 'cypari.cysignals':'cypari/cysignals'},
+    packages = ['cypari'],
+    package_dir = {'cypari':'cypari'},
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
     ext_modules = cypari_extensions,
     zip_safe = False,

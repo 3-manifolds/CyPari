@@ -87,10 +87,6 @@ typedef struct
 #ifdef __MINGW32__
     volatile sig_atomic_t sig_mapped_to_FPE;
 #endif
-  
-#if ENABLE_DEBUG_CYSIGNALS
-    int debug_level;
-#endif
 } cysigs_t;
 
 #ifdef __cplusplus
