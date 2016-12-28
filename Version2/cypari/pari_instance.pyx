@@ -1036,7 +1036,7 @@ cdef class PariInstance(PariInstance_base):
         >>> old_precision = pari.set_real_precision(64)
         >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
         >>> x
-        1.23456789012345669043213547411141917110
+        1.23456789012345669043213547411141917109
         >>> x.length()
         2
         >>> pari.set_real_precision(old_precision)
