@@ -45,11 +45,17 @@ try:
 except ImportError:
     pass 
 
+if sys.platform == 'win32':
+    extra_link_args = ['-static-libgcc']
+else:
+    extra_link_args = []
+
 pari_gen = setuptools.Extension('cypari.gen',
                      sources=['cypari_src/gen.c'],
                      include_dirs=[pari_include_dir],
                      library_dirs=[pari_library_dir],
                      libraries=['pari', 'm'],
+                     extra_link_args=extra_link_args
                      )
 
 # Load version number
