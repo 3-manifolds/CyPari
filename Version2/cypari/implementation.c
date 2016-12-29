@@ -381,9 +381,9 @@ static void cysigs_interrupt_handler(int sig)
       DEBUG( "Inside a sig_on, sig_off block -\n" )
 	if (!cysigs.block_sigint && !PARI_SIGINT_block)
         {
-	  DEBUG( "Incrementing win32ctrlc\n" )
 	  cysigs.sig_mapped_to_FPE = sig;
 	  win32ctrlc += 1;
+	  DEBUG( "Incremented win32ctrlc to %d\n", win32ctrlc )
 	  return;
         }
     }
@@ -412,14 +412,10 @@ static void cysigs_interrupt_handler(int sig)
  * raises an exception and jumps back to sig_on().
  * Outside of sig_on(), we terminate Python.
  *
- * Again, the actual work must be done instide the pari_sigint_cb
- * callback.
  */
 
 static void cysigs_signal_handler(int sig)
 {
-  sig_atomic_t inside = cysigs.inside_signal_handler;
-  cysigs.inside_signal_handler = 1;
   DEBUG( "call to cysigs_signal_handler for %d with sig_count %d.\n",
 	  sig, cysigs.sig_on_count )
   /*
@@ -430,7 +426,7 @@ static void cysigs_signal_handler(int sig)
       perror("signal");
       exit(1);
     }
-  if (inside == 0 && cysigs.sig_on_count > 0)
+  if (cysigs.sig_on_count > 0)
     {
       DEBUG( "Inside sig_on - sig_off block\n" )
       /*
@@ -461,12 +457,17 @@ static void cysigs_signal_handler(int sig)
       }
       else
       {
-	/* Not SIGFPE. Can't longjmp. Map the signal and raise SIGFPE */
-	DEBUG( "inside sig_on/sig_off: save and raise SIGFPE later\n" )
-	  cysigs.sig_mapped_to_FPE = sig;
-	  //   raise(SIGFPE);
+	/* We are not handling SIGFPE, so we Can't longjmp here.  If
+	 * the signal is SIGINT then pari will call pari_error later.
+	 * Otherwise we need to deal with it somehow.
+	*/
+	DEBUG( "inside sig_on/sig_off\n" )
+	cysigs.sig_mapped_to_FPE = sig;
+	if (sig != SIGINT) {
+          DEBUG( "raising SIGFPE\n" )
+	  raise(SIGFPE);
 	}
-      cysigs.inside_signal_handler = 0;
+      }
     }
   else
     {
@@ -481,8 +482,6 @@ static void cysigs_signal_handler(int sig)
       signal(SIGFPE, SIG_DFL);
       signal(SIGSEGV, SIG_DFL);
       signal(SIGTERM, SIG_DFL);
-
-      if (inside) sigdie(sig, "An error occured during signal handling.");
 
       /* Quit Python with an appropriate message. */
       switch(sig)
@@ -533,8 +532,7 @@ static void _sig_on_interrupt_received(void)
 #endif
 }
 
-/* Cleanup after siglongjmp() (reset signal mask to the default, set
- * sig_on_count to zero) */
+/* Cleanup after siglongjmp() (set sig_on_count to zero) */
 static void _sig_on_recover(void)
 {
     cysigs.block_sigint = 0;
@@ -542,14 +540,7 @@ static void _sig_on_recover(void)
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
     PARI_SIGINT_pending = 0;
-
-    /* Reset signal mask */
-#if 0
-    sigprocmask(SIG_SETMASK, &default_sigmask, NULL);
-#else
-    setup_cysignals_handlers();
-#endif
-    cysigs.inside_signal_handler = 0;
+    win32ctrlc = 0;
 }
 
 /* Give a warning that sig_off() was called without sig_on() */
@@ -601,7 +592,7 @@ static void sigdie(int sig, const char* s)
     if (s) {
         fprintf(stderr,
             "%s\nsig_on count = %d\n"	
-            "YYYYThis probably occurred because a *compiled* module has a bug\n"
+            "This probably occurred because a *compiled* module has a bug\n"
             "in it and is not properly wrapped with sig_on(), sig_off().\n"
 	    "Python will now terminate.\n", s, cysigs.sig_on_count);
         print_sep();

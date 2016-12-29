@@ -163,6 +163,14 @@ static inline void _sig_off_(const char* file, int line)
   else
     {
       --cysigs.sig_on_count;
+#ifdef __MINGW32__
+      /* If a pari_error was generated, mingw32ctrlc should be reset to 0. */
+      if (win32ctrlc > 0)
+	{
+	win32ctrlc = 0;
+	raise(SIGINT);
+	}
+#endif
     }
 }
 
@@ -285,6 +293,12 @@ static inline void sig_error(void)
     abort();
 #endif
 }
+
+#ifdef __MINGW32__
+  #define send_signal(sig) raise(sig)
+#else
+  #define send_signal(sig) kill(get_pid(), sig)
+#endif
   
 #ifdef __cplusplus
 }  /* extern "C" */

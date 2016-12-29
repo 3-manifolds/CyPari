@@ -72,6 +72,8 @@ IF SAGE == False:
         void sig_block() nogil
         void sig_unblock() nogil
 
+        void send_signal(int sig) nogil
+
         # Macros behaving exactly like sig_on, sig_str and sig_check but
         # which are *not* declared "except 0".  This is useful if some
         # low-level Cython code wants to do its own exception handling.

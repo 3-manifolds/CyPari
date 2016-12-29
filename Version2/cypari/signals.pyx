@@ -120,18 +120,20 @@ def sig_print_exception(sig, msg=None):
     EXAMPLES::
 
         XXX from cysignals.signals import sig_print_exception
-        XXX import signal
-        XXX sig_print_exception(signal.SIGFPE)
+        >>> import signal
+        >>> sig_print_exception(signal.SIGFPE)
         FloatingPointError: Floating point exception
+
         XXX sig_print_exception(signal.SIGBUS, "CUSTOM MESSAGE")
         SignalError: CUSTOM MESSAGE
-        XXX sig_print_exception(0)
+        >>> sig_print_exception(0)
         SystemError: unknown signal number 0
 
     For interrupts, the message is ignored::
 
-        XXX sig_print_exception(signal.SIGINT, "ignored")
+        >>> sig_print_exception(signal.SIGINT, "ignored")
         KeyboardInterrupt
+
         XXX sig_print_exception(signal.SIGALRM, "ignored")
         AlarmInterrupt
 
@@ -178,7 +180,7 @@ def init_cysignals():
     EXAMPLES::
 
         XXX from cysignals.signals import init_cysignals
-        XXX init_cysignals()
+        >>> init_cysignals()
         <built-in function python_check_interrupt>
 
     """
@@ -223,3 +225,35 @@ def python_check_interrupt(sig, frame):
     ``implementation.c``.
     """
     sig_check()
+
+def test_signal(int sig):
+    """
+    Test whether critical signals can be handled within a sig_on-sig_off
+    block.
+
+    >>> from signal import *
+    >>> from cypari.gen import test_signal
+    >>> test_signal(SIGFPE)
+    Traceback (most recent call last):
+        ...
+    ZeroDivisionError: float division
+    >>> test_signal(SIGSEGV)
+    Traceback (most recent call last):
+        ...
+    SignalError: Segmentation fault
+    """
+    cdef float x = 1.0, y = 0.0
+    cdef int *p = NULL
+    import signal
+    if sig == signal.SIGFPE:
+        sig_on()
+        x = x/y
+        sig_off()
+    elif sig == signal.SIGSEGV:
+        sig_on()
+        p[0] = 5
+        sig_off()
+    else:
+        sig_on()
+        send_signal(sig)
+        sig_off()
