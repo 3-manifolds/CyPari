@@ -294,10 +294,11 @@ static inline void sig_error(void)
 #endif
 }
 
+#define test_sigsegv() {int *p = NULL; *p = 5;}
 #ifdef __MINGW32__
   #define send_signal(sig) raise(sig)
 #else
-  #define send_signal(sig) kill(get_pid(), sig)
+  #define send_signal(sig) kill(getpid(), sig)
 #endif
   
 #ifdef __cplusplus
