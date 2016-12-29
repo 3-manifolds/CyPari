@@ -26,7 +26,8 @@ if __name__ == '__main__':
     
     finder = doctest.DocTestFinder(parser=DocTestParser())
     failed, attempted = 0, 0
-    runner = doctest.DocTestRunner(verbose=verbose)
+    runner = doctest.DocTestRunner(verbose=verbose,
+                                   optionflags=doctest.ELLIPSIS)
     for module, extra_globals in modules_to_test:
         for test in finder.find(module, extraglobs=extra_globals):
             runner.run(test)

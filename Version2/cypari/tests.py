@@ -51,12 +51,15 @@ Constants::
 
     >>> pari.euler()
     0.577215664901533
-    >>> pari.euler(precision=100).python()
-    0.577215664901532860606512090082...
     >>> pari.pi()
     3.14159265358979
-    >>> pari.pi(precision=100).python()
-    3.1415926535897932384626433832...
+    >>> old_precision = pari.set_real_precision(100)
+    >>> pari.euler(precision=100)
+    0.577215664901532860606512090082...
+    >>> pari.pi(precision=100)
+    3.141592653589793238462643383279...
+    >>> pari.set_real_precision(old_precision)
+    100
 
 Polynomial functions::
 

@@ -102,11 +102,11 @@ IF SAGE:
 ELSE:
     include "cypari/memory.pxi"
     include "cypari/signals.pyx"
+    init_cysignals()
     include "pari_instance.pyx"
     include "convert.pyx"
     include "handle_error.pyx"
     include "closure.pyx"
-    init_cysignals()
 
 include 'auto_gen.pxi'
 

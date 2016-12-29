@@ -1033,12 +1033,13 @@ cdef class PariInstance(PariInstance_base):
         to at least the given precision.  The resulting gen object
         will have word length (not including codewords) which is large
         enough to provide the requested number of bits, but no larger.
+        >>> from cypari.gen import prec_bits_to_words
         >>> old_precision = pari.set_real_precision(64)
         >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
         >>> x
         1.23456789012345669043213547411141917109
-        >>> x.length()
-        2
+        >>> x.length() == prec_bits_to_words(100) - 2
+        True
         >>> pari.set_real_precision(old_precision)
 	64
 
