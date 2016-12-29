@@ -72,7 +72,9 @@ IF SAGE == False:
         void sig_block() nogil
         void sig_unblock() nogil
 
+        # for testing signal handling
         void send_signal(int sig) nogil
+        void test_sigsegv() nogil
 
         # Macros behaving exactly like sig_on, sig_str and sig_check but
         # which are *not* declared "except 0".  This is useful if some
