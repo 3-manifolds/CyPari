@@ -236,22 +236,16 @@ def test_signal(int sig):
     >>> test_signal(SIGFPE)
     Traceback (most recent call last):
         ...
-    ZeroDivisionError: float division
+    FloatingPointError: Floating point exception
     >>> test_signal(SIGSEGV)
     Traceback (most recent call last):
         ...
     SignalError: Segmentation fault
     """
-    cdef float x = 1.0, y = 0.0
-    cdef int *p = NULL
     import signal
-    if sig == signal.SIGFPE:
+    if sig == signal.SIGSEGV:
         sig_on()
-        x = x/y
-        sig_off()
-    elif sig == signal.SIGSEGV:
-        sig_on()
-        p[0] = 5
+        test_sigsegv()
         sig_off()
     else:
         sig_on()
