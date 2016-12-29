@@ -75,6 +75,7 @@ static inline void reset_CPU(void)
  * PyErr_SetInterrupt() */
 static void cysigs_interrupt_handler(int sig)
 {
+    DEBUG("Call to cysigs_interrupt_handler with signal %d\n", sig)
     if (cysigs.sig_on_count > 0)
     {
       if (!cysigs.block_sigint && !PARI_SIGINT_block)
@@ -114,11 +115,13 @@ static void cysigs_signal_handler(int sig)
 {
     sig_atomic_t inside = cysigs.inside_signal_handler;
     cysigs.inside_signal_handler = 1;
+    DEBUG("Call to cysigs_interrupt_handler with signal %d, count=%d\n", sig,
+	  cysigs.sig_on_count)
 
     if (inside == 0 && cysigs.sig_on_count > 0 && sig != SIGQUIT)
     {
         /* We are inside sig_on(), so we can handle the signal! */
-
+        DEBUG("Inside sig_on-sig_off -- calling siglongjmp.\n")
         /* Raise an exception so Python can see it */
         do_raise_exception(sig);
 
@@ -129,6 +132,7 @@ static void cysigs_signal_handler(int sig)
     else
     {
         /* We are outside sig_on() and have no choice but to terminate Python */
+        DEBUG("Outside sig-on-sig_off -- terminating Python.\n")
 
         /* Reset all signals to their default behaviour and unblock
          * them in case something goes wrong as of now. */
@@ -187,6 +191,7 @@ static void do_raise_exception(int sig)
  * received *before* the call to sig_on(). */
 static void _sig_on_interrupt_received(void)
 {
+    DEBUG("Call to _sig_on_interrupt_received.\n")
     /* Momentarily block signals to avoid race conditions */
     sigset_t oldset;
     sigprocmask(SIG_BLOCK, &sigmask_with_sigint, &oldset);
@@ -203,6 +208,7 @@ static void _sig_on_interrupt_received(void)
  * sig_on_count to zero) */
 static void _sig_on_recover(void)
 {
+    DEBUG("Call to _sig_on_recover.\n")
     cysigs.block_sigint = 0;
     PARI_SIGINT_block = 0;
     cysigs.sig_on_count = 0;
@@ -231,6 +237,7 @@ static void _sig_off_warning(const char* file, int line)
 
 static void setup_cysignals_handlers(void)
 {
+    DEBUG("Setting up signal handlers\n")
     /* Reset the cysigs structure */
     memset(&cysigs, 0, sizeof(cysigs));
 
@@ -295,7 +302,7 @@ static void sigdie(int sig, const char* s)
     if (s) {
         fprintf(stderr,
             "%s\n"
-            "XXXXThis probably occurred because a *compiled* module has a bug\n"
+            "This probably occurred because a *compiled* module has a bug\n"
             "in it and is not properly wrapped with sig_on(), sig_off().\n"
             "Python will now terminate.\n", s);
         print_sep();
@@ -517,24 +524,17 @@ static void do_raise_exception(int sig)
  * received *before* the call to sig_on(). */
 static void _sig_on_interrupt_received(void)
 {
-    /* Momentarily block signals to avoid race conditions */
-#if 0
-    // How to do this in Windows??? 
-    sigset_t oldset;
-    sigprocmask(SIG_BLOCK, &sigmask_with_sigint, &oldset);
-#endif
+    DEBUG("Call to _sig_on_interrupt_received.\n")
     do_raise_exception(cysigs.interrupt_received);
     cysigs.sig_on_count = 0;
     cysigs.interrupt_received = 0;
     PARI_SIGINT_pending = 0;
-#if 0
-    sigprocmask(SIG_SETMASK, &oldset, NULL);
-#endif
 }
 
 /* Cleanup after siglongjmp() (set sig_on_count to zero) */
 static void _sig_on_recover(void)
 {
+    DEBUG("Call to _sig_on_recover.\n")
     cysigs.block_sigint = 0;
     PARI_SIGINT_block = 0;
     cysigs.sig_on_count = 0;
