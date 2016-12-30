@@ -4,8 +4,9 @@ from subprocess import Popen, PIPE
 wmic = 'C:\Windows\System32\wbem\wmic'
 
 def total_ram():
-    if platform == 'linux2':
+    if platform.startswith('linux'):
         out, err = Popen(['free', '-b'], stdout=PIPE).communicate()
+        out = out.decode()
         lines = out.split('\n')
         for line in lines:
             words = line.split()
