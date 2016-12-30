@@ -72,7 +72,6 @@ include "sage.pxi"
 
 import types
 cimport cython
-from cpython.string cimport PyString_AsString
 from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.float cimport PyFloat_AS_DOUBLE
@@ -100,8 +99,8 @@ IF SAGE:
 #                                prec_words_to_bits, default_bitprec)
 #    cdef PariInstance P = pari_instance
 ELSE:
-    include "cypari/memory.pxi"
-    include "cypari/signals.pyx"
+    include "memory.pxi"
+    include "signals.pyx"
     init_cysignals()
     include "pari_instance.pyx"
     include "convert.pyx"
@@ -547,7 +546,7 @@ cdef class gen(gen_base):
             PariError: not a function in function call
         """
         cdef str s = "_." + attr
-        cdef char *t = PyString_AsString(s)
+        cdef char *t = <bytes>s
         sig_on()
         return P.new_gen(closure_callgen1(strtofunction(t), self.g))
 
@@ -4783,7 +4782,7 @@ cpdef gen objtogen(s):
     # common case.
     if isinstance(s, str):
         sig_on()
-        g = gp_read_str(PyString_AsString(s))
+        g = gp_read_str(<char*>s)
         if g == gnil:
             P.clear_stack()
             return None

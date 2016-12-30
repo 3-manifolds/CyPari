@@ -12,7 +12,7 @@ else
 fi
 echo "Untarring Pari..."
 cd build
-tar xvzf ../pari-2.9.1.tar.gz
+tar xzf ../pari-2.9.1.tar.gz
 mv pari-2.9.1 pari_src
 cd pari_src
 PREFIX=../pari

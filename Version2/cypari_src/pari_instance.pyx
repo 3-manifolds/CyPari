@@ -885,7 +885,7 @@ cdef class PariInstance(PariInstance_base):
             60
         """
         prev = self._real_precision
-        cdef bytes strn = str(n)
+        cdef bytes strn = bytes(str(n).encode())
         sig_on()
         sd_realprecision(strn, d_SILENT)
         sig_off()

@@ -32,10 +32,10 @@ class Clean(Command):
     def run(self):
         os.system('rm -rf build/lib* build/temp* build/bdist* dist')
         os.system('rm -rf cypari*.egg-info')
-        os.system('rm -if cypari/*.pyc')
-        os.system('rm -if cypari/*.so*')
-        os.system('rm -if cypari/gen.c')
-        os.system('rm -if cypari/gen_api.h')
+        os.system('rm -if cypari_src/*.pyc')
+        os.system('rm -if cypari_src/*.so*')
+        os.system('rm -if cypari_src/gen.c')
+        os.system('rm -if cypari_src/gen_api.h')
         
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -48,39 +48,37 @@ if not os.path.exists('build/pari') and 'clean' not in sys.argv:
     if os.system('bash build_pari.sh') != 0:
         sys.exit("***Failed to build PARI library***")
 
-if (not os.path.exists('cypari/auto_gen.pxi')
-    or not os.path.exists('cypari/auto_instance.pxi')):
-    import autogen
-    autogen.autogen_all()
+if (not os.path.exists('cypari_src/auto_gen.pxi')
+    or not os.path.exists('cypari_src/auto_instance.pxi')):
+    if 'clean' not in sys.argv:
+        import autogen
+        autogen.autogen_all()
 
 include_dirs = []
 if 'clean' not in sys.argv:
     include_dirs=[pari_include_dir]
-    cython_sources = ['cypari/gen.pyx']
-#    if sys.platform != 'win32':
-#                      cython_sources.append('cypari/cysignals/alarm.pyx')
+    cython_sources = ['cypari_src/gen.pyx']
     cythonize(cython_sources)
 
 spec = ['-specs=specs90'] if sys.platform == 'win32' else []
     
 pari_gen = Extension('cypari.gen',
-                     sources=['cypari/gen.c'],
+                     sources=['cypari_src/gen.c'],
                      include_dirs=include_dirs,
                      extra_link_args=[pari_static_library] + spec,
 )
 
 # Load version number
-exec(open('cypari/version.py').read())
+exec(open('cypari_src/version.py').read())
 
 cypari_extensions = [pari_gen]
-#if sys.platform != 'win32':
-#    cypari_extensions.append(alarm)
+
 setup(
     name = 'cypari',
     version = version,
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
-    package_dir = {'cypari':'cypari'},
+    package_dir = {'cypari':'cypari_src'},
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
     ext_modules = cypari_extensions,
     zip_safe = False,

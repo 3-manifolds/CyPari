@@ -51,7 +51,10 @@ cdef extern from "longintrepr.h":
 
     cdef long PyLong_SHIFT
     cdef digit PyLong_MASK
+    cdef int Py_SIZE(void*)
 
+ctypedef struct PyVarObject:
+    Py_ssize_t ob_size
 
 cpdef integer_to_gen(x):
     """
@@ -214,13 +217,14 @@ cdef GEN PyLong_AsGEN(x):
     # Size of the input
     cdef size_t sizedigits
     cdef long sgn
-    if L.ob_size == 0:
+    cdef int ob_size = Py_SIZE(L)
+    if ob_size == 0:
         return gen_0
-    elif L.ob_size > 0:
-        sizedigits = L.ob_size
+    elif ob_size > 0:
+        sizedigits = ob_size
         sgn = evalsigne(1)
     else:
-        sizedigits = -L.ob_size
+        sizedigits = -ob_size
         sgn = evalsigne(-1)
 
     # Size of the output, in bits and in words
@@ -287,7 +291,6 @@ cdef GEN PyLong_AsGEN(x):
 
     return g
 
-
 cdef PyLong_FromGEN(GEN g):
     # Size of input in words, bits and Python digits. The size in
     # digits might be a small over-estimation, but that is not a
@@ -330,8 +333,8 @@ cdef PyLong_FromGEN(GEN g):
 
     # Set correct size
     if signe(g) > 0:
-        L.ob_size = sizedigits_final
+        (<PyVarObject*>L).ob_size = sizedigits_final
     else:
-        L.ob_size = -sizedigits_final
+        (<PyVarObject*>L).ob_size = -sizedigits_final
 
     return x
