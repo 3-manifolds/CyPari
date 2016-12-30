@@ -1,0 +1,21 @@
+Sage's Python wrapper for the PARI library, modified to stand alone.
+
+License: All parts of this package are released under the GNU General
+Public License, version 2 or (at your discretion) any later version as
+published by the Free Software Foundation. Specifically:
+
+* PARI/GP is Copyright (C) 2000-2013 by The PARI Group, Bordeaux, and
+  released under GPL v2+ as per the README file in the included pari tarball.
+
+* The Cython code is primary derived from Sage version 4.8 and is
+  copyright 2012 by William Stein et. al. and released under GPL v2+ as
+  per http://www.sagemath.org/src-old/sage-4.8.tar
+
+* The modifications are copyright 2012-present by Marc Culler and
+  Nathan Dunfield and are hereby released under GPL v2+.
+
+Please see
+
+     http://www.gnu.org/licenses/gpl-2.0.txt 
+
+for the complete license text.
