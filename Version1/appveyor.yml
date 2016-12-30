@@ -22,6 +22,7 @@ install:
   # CyPari is built using the 32-bit MinGW compilers, so we need them in
   # our path. 
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
+  - cd Version1
 
   # Need a few Python packages to build CyPari
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
@@ -46,7 +47,7 @@ after_test:
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
-  - path: dist\*.whl
+  - path: Version1\dist\*.whl
 
 #on_success:
 #  You can use this step to upload your artifacts to a public website.
