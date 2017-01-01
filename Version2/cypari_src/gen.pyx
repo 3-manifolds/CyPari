@@ -42,7 +42,7 @@ TESTS:
 Before :trac:`15654`, this used to take a very long time.
 Now it takes much less than a second::
 
-    sage: pari.allocatemem(200000)
+    sage: pari.allocatemem(200000, silent=False)
     PARI stack size set to 200000 bytes, maximum size set to ...
 
     #sage: x = polygen(ZpFM(3,10))
