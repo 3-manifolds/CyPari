@@ -46,7 +46,7 @@ except ImportError:
     pass 
 
 if sys.platform == 'win32':
-    extra_link_args = ['-static-libgcc']
+    extra_link_args = ['-static-libgcc', '-specs=specs90']
 else:
     extra_link_args = []
 

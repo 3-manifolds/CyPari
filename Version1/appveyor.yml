@@ -10,7 +10,7 @@ environment:
     # http://www.appveyor.com/docs/installed-software#python
 
     - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python34"
+    #- PYTHON: "C:\\Python34"
     #- PYTHON: "C:\\Python35"
     #- PYTHON: "C:\\Python36"
 
@@ -22,7 +22,9 @@ install:
   # CyPari is built using the 32-bit MinGW compilers, so we need them in
   # our path. 
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
-  - cd Version1
+  - cd Version2\toolchain
+  - "bash install_files_32.sh"
+  - cd ..\..\Version1
 
   # Need a few Python packages to build CyPari
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
