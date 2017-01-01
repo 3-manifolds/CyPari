@@ -1286,7 +1286,7 @@ cdef class PariInstance(PariInstance_base):
         """
         return pari_mainstack.vsize
 
-    def allocatemem(self, size_t s=0, size_t sizemax=0, *, silent=True):
+    def allocatemem(self, size_t s=0, size_t sizemax=0, *, silent=False):
         r"""
         Change the PARI stack space to the given size ``s`` (or double
         the current size if ``s`` is `0`) and change the maximum stack
@@ -1319,13 +1319,13 @@ cdef class PariInstance(PariInstance_base):
 
         EXAMPLES::
 
-            sage: pari.allocatemem(10^7, silent=False)
+            sage: pari.allocatemem(10^7)
             PARI stack size set to 10000000 bytes, maximum size set to 67108864
-            sage: pari.allocatemem(silent=False)  # Double the current size
+            sage: pari.allocatemem()  # Double the current size
             PARI stack size set to 20000000 bytes, maximum size set to 67108864
             sage: pari.stacksize()
             20000000
-            sage: pari.allocatemem(10^6, silent=False)
+            sage: pari.allocatemem(10^6)
             PARI stack size set to 1000000 bytes, maximum size set to 67108864
 
         The following computation will automatically increase the PARI
@@ -1355,7 +1355,7 @@ cdef class PariInstance(PariInstance_base):
         Do the same without using the string interface and starting
         from a very small stack size::
 
-            sage: pari.allocatemem(1, 2^26, silent=False)
+            sage: pari.allocatemem(1, 2^26)
             PARI stack size set to 1024 bytes, maximum size set to 67108864
             sage: a = pari(2)^100000000
             sage: pari.stacksize()
