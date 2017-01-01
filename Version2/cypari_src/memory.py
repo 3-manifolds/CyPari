@@ -1,4 +1,5 @@
 from sys import platform
+import subprocess
 from subprocess import Popen, PIPE
 
 wmic = 'C:\Windows\System32\wbem\wmic'
@@ -18,10 +19,13 @@ def total_ram():
                          stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
         return int(out.split()[1])
     elif platform == 'win32':
-         proc = Popen([wmic, 'computersystem', 'get', 'TotalPhysicalMemory'],
-                      stdin=PIPE, stdout=PIPE, stderr=PIPE)
-         out, err = proc.communicate()
-         return int(out.split()[1])
+        startup = subprocess.STARTUPINFO()
+        startup.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        proc = Popen([wmic, 'computersystem', 'get', 'TotalPhysicalMemory'],
+                     stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                     startupinfo=startup)
+        out, err = proc.communicate()
+        return int(out.split()[1])
 
             
             
