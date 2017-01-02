@@ -1,33 +1,42 @@
 CyPari version 2.0
 
-**Below is mostly dated, mosty ignore at this point**
+This directory contains a new version of CyPari based on current (7.4
+as of January 2017) Sage sources.  In particular, it uses the
+automated build scripts written by Jeroen DeMeyer.  It uses Pari 2.9.1,
+which is newer than that used in Sage 7.4.  The fact that the build
+process worked perfectly with a newer, changed, Pari is a strong
+validation of Jeroen's flexible build scheme.
 
+This version of CyPari handles critical signals such as SIGSEGV
+when sent from within a sig_on - sig_off block and long computations
+in sig_on - sig_off blocks are interruptable with a SIGINT. These
+features work on Windows as well as linux and macOS.
 
-This directory contains a new version of CyPari based on current
-(7.2) Sage sources.  In particular, it uses the automated build
-scripts written by Jeroen DeMeyer and the same version of Pari
-which was used in the github version of Sage as of June 2016.
-(The scripts should allow easy adaption to new releases of Pari.)
+CyPari is intended to be easily distributable as a binary, so it
+needed to be possible to build a pip wheel for it.  This forced some
+changes to the overall design.  First it was necessary to embed the
+relevant parts of the cysignals module, since cysignals is not
+distributable as a wheel.  Second, we needed to statically link with
+the pari library so that we don't depend on or interfere with the
+user's Pari installation.  The second requirement made it desirable to
+generate a single shared library for the extension module, partly
+because Windows does not allow functions in one shared library to
+access global data in another shared library.
 
-Currently I have only tried building this on Ubuntu 16.04.  The code
-depends on cysignals and the build requires access to the installed
-cysignals module.  At the moment I am handling this as follows:
+The module should build and/or install with the usual commands:
 
-ln -s /usr/local/lib/python2.7/dist-packages/cysignals .
+python setup.py install
+python setup.py install
 
-STATUS (2016-06-14):
-This now makes a working CyPari on Ubuntu and (x86_64) Mac.
+Note, however, that building on Windows expects you to have a
+working msys2 system with a mingw32 toolchain which has been
+modified as described in the file Windows/README.Windows.
+Also, we currently only support 32-bit executables on Windows,
+so you must use the 32-bit python from python.org.
 
-To install the extension in place for testing:
+Doctests can be run with:
 
-$ pip install --upgrade cysignals
-$ python setup.py build_ext --inplace
+python -m cypari.test
 
-To test it, do:
->>> from cypari import pari
-
-To run the doctests:
-$ python -m cypari.test
-
-Note that many doctests will fail because they are expecting results
-from Sage, or use Sage constructs that don't exist here.
+and all tests should pass on all three platforms.  The doctests
+test the signal handling as well as the Pari computations.
