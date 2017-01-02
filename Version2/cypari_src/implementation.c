@@ -6,6 +6,7 @@ Interrupt and signal handling for Cython
  *       Copyright (C) 2006 William Stein <wstein@gmail.com>
  *                     2006-2016 Martin Albrecht <martinralbrecht+cysignals@gmail.com>
  *                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+ *                     2016 Marc Culler and Nathan Dunfield
  *
  * cysignals is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -17,6 +18,10 @@ Interrupt and signal handling for Cython
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Lesser General Public License for more details.
  *
+ * This version of cysignals includes both posix and Windows versions, and
+ * is embedded in CyPari, rather than being a separate extension module.
+ * Some features have been removed for this special use.
+ * 
  * You should have received a copy of the GNU Lesser General Public License
  * along with cysignals.  If not, see <http://www.gnu.org/licenses/>.
  *

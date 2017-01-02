@@ -2,6 +2,7 @@
  *       Copyright (C) 2006 William Stein <wstein@gmail.com>
  *                     2006 Martin Albrecht <martinralbrecht+cysignals@gmail.com>
  *                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+ *                     2016 Marc Culler and Nathan Dunfield
  *
  * cysignals is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published

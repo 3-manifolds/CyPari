@@ -5,6 +5,8 @@ AUTHORS:
 
 - Jeroen Demeyer (2015-04-10): initial version, :trac:`18052`.
 
+- Marc Culler and Nathan Dunfield 2016: adapted for CyPari
+
 EXAMPLES::
 
     sage: def the_answer():
@@ -20,6 +22,7 @@ EXAMPLES::
 
 #*****************************************************************************
 #       Copyright (C) 2015 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#                     2016 Marc Culler and Nathan Dunfield
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
