@@ -21,17 +21,38 @@ LIBDIR=../pari/lib
 export DESTDIR=
 
 echo "Building Pari libary..."
-if [ $(uname) = "Darwin" ] ; then
+if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
+    export CFLAGS='-mmacosx-version-min=10.5 -arch i386' ;
+    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+    cd Odarwin-i386
+    make install-lib-sta
+    make install-include
+    cd ..
+    cp src/language/anal.h ../pari/include/pari
+    mv ../pari ../pari-i386
     export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64' ;
-fi
+    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp --host=x86_64-darwin
+    cd Odarwin-x86_64
+    make install
+    make install-lib-sta
+    cd ..
+    #rm -rf ../pari-i386
+    lipo ../pari-i386/lib/libpari.a ../pari/lib/libpari.a -create -output ../pari/lib/libpari.a
+    #ranlib ../pari/lib/*.a
+    cp src/language/anal.h ../pari/include/pari
+    cd ..
+    echo Patching paricfg.h for dual architectures
+    patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
+else
+    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 
-./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
-if [ $(uname | cut -b -5) = "MINGW" ] ; then
+    if [ $(uname | cut -b -5) = "MINGW" ] ; then
     # remove the funky RUNPTH which confuses gcc and is irrelevant anyway
     echo Patching the MinGW Makefile ...
     sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
+    fi
+    make install
+    make install-lib-sta
+    cp src/language/anal.h ../pari/include/pari
 fi
-make install
-make install-lib-sta
-cp src/language/anal.h ../pari/include/pari
 

@@ -294,7 +294,7 @@ static inline void sig_error(void)
 #endif
 }
 
-#define test_sigsegv() {int *p = NULL; *p = 5;}
+#define test_sigsegv() {int *p = (void*)5; *p = 5;}
 #ifdef __MINGW32__
   #define send_signal(sig) raise(sig)
 #else
