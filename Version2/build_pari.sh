@@ -21,6 +21,10 @@ LIBDIR=../pari/lib
 export DESTDIR=
 
 echo "Building Pari libary..."
+if [ $(uname) = "Darwin" ] ; then
+    export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64' ;
+fi
+
 ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 if [ $(uname | cut -b -5) = "MINGW" ] ; then
     # remove the funky RUNPTH which confuses gcc and is irrelevant anyway
