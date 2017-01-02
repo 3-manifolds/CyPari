@@ -23,9 +23,9 @@ install:
   # our path, plus some special sauce.
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
   - set MSYSTEM=MINGW32
-  - cd Version2\toolchain
+  - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
-  - cd ..
+  - cd ..\..
 
   # Must build Pari first
   - "bash build_pari.sh"
