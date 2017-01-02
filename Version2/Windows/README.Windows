@@ -17,19 +17,21 @@ tested, but may work.)
 requires two non-trivial things: (i) the module must have appropriate
 SIGINT handlers and (see "About longjmp" below); and (ii) the terminal
 must send a SIGINT signal (see "About SIGINT" below).  The caveat here
-is that the Cygwin Mintty terminal provided with MSys2 DOES NOT
-correctly send a SIGINT when control C is pressed.  (The
-KeyboardInterrupt which you see when typing Control-C followed by
-return is actually being raised by your pyreadline package and has no
-effect when C code is being run from an extension module.)  Moreover,
-it is not possible to run python interactively in Mintty, unless you
-run python within a winpty wrapper: $ winpty python The terminal which
-shipped with the original MSys package does send control C correctly,
-however.  It may be possible to get the Windows Command Prompt to work
-as well, by setting appropriate handlers for Cntrl_C_Event or
-Cntrl_Break_Event. (The Windows 10 Command Prompt is much improved,
-notably with respect to cut and paste, but it traps the Control-C for
-cutting text.)
+is that the Cygwin Mintty terminal provided with MSys2 does not handle
+sending a SIGINT in the same way as the Windows console, which causes
+different behavior. More importantly, it is not possible to run python
+interactively in Mintty at all, unless you run the python process
+within a winpty wrapper:
+$ winpty python
+
+One way to handle this is to add something like the following to the
+end of the .bash_profile in your msys2 home directory:
+
+export PATH="/c/Python27:/c/Python27/Scripts:/c/emacs-2.4.v/bin:/c/Program Files (x86)/Common Files/Microsoft/Visual C++ for Python/9.0/VC/bin:$PATH"
+winpty bash; exit
+
+(The second line runs bash in a winpty wrapper and exits when that shell
+is killed.)
 
 About Segfaults
 ---------------
@@ -64,12 +66,12 @@ which consist of a DLL, which has been assigned a cryprographic key
 uniquely identifying its precise version, and an xml "Manifest file"
 which specifies the key.  These must appear in the same subdirectory
 of the C:\Windows\winsxs directory.  In order for a third party DLL or
-EXE to call functions from the DLL, the library must have its own
-manifest file which matches the one in winsxs.  This user manifest
-file must either appear in the same directory as the DLL or EXE, or
-else be embedded in it as a Windows "Resource".  The gcc linker is
-able to embed these resource files, if they are supplied on the
-command line.
+EXE to call functions from a dll in a side-by-side assemply, the
+library must have its own manifest file which matches the one in
+winsxs.  This user manifest file must either appear in the same
+directory as the DLL or EXE, or else be embedded in it as a Windows
+"Resource".  The gcc linker is able to embed these resource files, if
+they are supplied on the command line.
 
 So, to ensure that our cypari extension module gets its C runtime
 functions from the same DLL as the Python executable we need to do two
@@ -79,16 +81,24 @@ This is done by providing gcc with a "specs" file which specifies
 things such as which "hidden" link libraries (e.g. C runtimes) are
 linked before the user-supplied libraries.  Our specs file specifies
 that gcc should link agains the msvcr90 runtime. Second, we need to
-provide a resource file that matches the mscv90 runtime so that
-the OS will allow the extension module to access the runtime.  The
-final technical item is that one of the hidden libraries, called
+provide a resource file that matches the msvcr90 runtime so that the
+OS will allow the extension module to access the runtime.  The final
+technical item is that one of the hidden libraries, called
 libmoldname, which has the job of mapping names of runtime functions
-to the older name which has an underscore prepended, probably has
-to be replaced with one that has symbols matching msvcr90 instead
-of msvcrt.  The relevant files in our case are named specs90,
-mscvr90.res and libmoldname90.a.  These must be added to the mingw32
-toolchain.  To make gcc use the specs file, we need the option
-specs=specs90.
+to the older name which has an underscore prepended, probably has to
+be replaced with one that has symbols matching msvcr90 instead of
+msvcrt.  To accomplish all this we need to add three files to the
+mingw32 toolchain.  Thes files are named specs90, mscvr90.res and
+libmoldname90.a. In addition, to make gcc use the specs file, we need
+to pass the option specs=specs90 to the mingw32 linker.  Our spec
+file is a modified version of the one developed by the mingwpy
+project (https://mingwpy.github.io/).  Instructions for using the
+gnu dlltool to build libmoldname90.a can be found on the pygame
+website (http://www.pygame.org/wiki/PreparingMinGW).  The tool used
+to convert an xml file to a windows resource is called windres
+(see http://www.mingw.org/wiki/MS_resource_compiler).  The structure
+of a manifest file is described on the Microsoft developer site
+(https://msdn.microsoft.com/en-us/library/windows/desktop/aa375365(v=vs.85).aspx).
 
 About longjmp
 -------------
@@ -105,7 +115,7 @@ if (setjmp(env) == 0) {
 ... go on from here ...   
 
 The setjmp function saves a copy of the current stack frame in the
-global struct env and return 0.  If one wants to be able to interrupt
+global struct env and returns 0.  If one wants to be able to interrupt
 the long running code one needs a signal handler like this:
 
 void handler(int signum) {
@@ -116,32 +126,40 @@ void handler(int signum) {
 The effect of the call to longjmp is to use the saved frame to
 reconstruct the stack so it is in the same state that it would have
 been in if the function setjmp had returned the value signum instead
-of 0 and then coninue execution.  Thus when the signal handler returns
-the program executes as if it had simply skipped the entire
-block of long running code.  The return value of setjmp can be used
-to determine how to recover from the interrupt.
+of 0, and then coninue execution at the next instruction past the
+longjmp.  Thus when the signal handler returns, the program executes as
+if it had simply skipped the entire block of long running code.  The
+return value of setjmp can be used to determine how to recover from
+the interrupt.
 
-There are many things that can go wrong with this, the typical one
-being that the function which calls setjmp returns before the call
-to longjmp, resulting is a totally trashed stack and a big crash.
+There are many things that can go wrong with this.  The typical error
+is to call setjmp from a function which returns before the call to
+longjmp.  This inserts a stack frame at a random point in the stack,
+resulting is a totally trashed stack and a big crash.
 
-One thing to notice about this is that it assumes that the signal
-handler is running on the same stack as the main program.  While this
-is not a posix requirement, it is true for most posix systems
-including linux and macOS.  But it is NOT true for Windows.  In
-Windows, the signal handler runs in a separate thread with its own
-stack and no way of accessing the stack of its parent
+One thing to notice about this paradigm is that it assumes that the
+signal handler is running on the same stack as the main program.
+While this is not a posix requirement, it is true for most posix
+systems including linux and macOS.  But it is NOT true for Windows.
+In Windows, the signal handler runs in a separate thread with its own
+stack and has no way of accessing the stack of its parent
 process. However, it turns out that there is (exactly) one special
 signal for which Windows supports using longjmp in the handler, namely
-SIGFPE.  This is explicitly stated in the Windows documentation.  We
-take advantage of this quirk to port the cysignals package to Windows.
-When our handler is called with a different signal that SIGFPE,
-itstores the signal number inthe global cysigs structure and raises
-SIGFPE. When it is called with SIGFPE it chacks the cysigs structure
-and responds appropriately (no stored signal means that it is a real
-SIGFPE).
+SIGFPE.  This is explicitly stated in the Windows documentation:
+https://msdn.microsoft.com/en-us/library/xdkz3x12.aspx
+https://msdn.microsoft.com/en-us/library/aa246458(v=vs.60).aspx
 
-About SIGINT ------------
+We take advantage of this quirk to port the cysignals package to
+Windows.  When our handler is called with a different signal than
+SIGFPE, it stores the signal number in the global cysigs structure and
+raises SIGFPE. (This means we are raising a signal within a signal
+handler, which would be a no-no in posix but appears to be OK in
+Windows.)  When the handler is called with SIGFPE it chacks the cysigs
+structure and responds appropriately (no stored signal means that it
+is a real SIGFPE).
+
+About SIGINT
+------------
 
 In Windows it is not supported for one process to use signals to
 communicate with another.  In posix the "kill" function does not
@@ -157,15 +175,12 @@ that I know of: CTRL_C_EVENT and CTRL_BREAK_EVENT.  These events can
 have handlers, just like signals.  Windows has two distinct types of
 proecesses, "Console" processes and "Gui" processes, and only Console
 processes support these events.  The Windows Command Prompt knows how
-to deliver these "events", in response to the keystokes of the same
-name.  As far as I can tell, no other consoles can do this, MinTTY
-being the prime example.  This is why it is not a simple matter to
-arrange for delivery of a SIGINT signal when you want to interrupt a
-long-running computation.  (I believe that the original MSys terminal
-was actually a subclass of the same object as the CONS: Command
-Prompt, and that is why it was able to supply the SIGINT.  If a
-terminal can initiate a CTRL_C_EVENT, then all one needs to do is to
-create a CTRL-C-EVENT handler which raises SIGINT.  A Windows process
-is allowed to raise a signal to be handled by its own handler without
-being forced to terminate.  (Evidently Microsoft thinks of signals as
-exceptions, not as a means of communication.)
+to deliver these eponymous "events" in response to the keystokes in
+their name.  As far as I can tell, other consoles cannot do this,
+MinTTY being the prime example.  This is why it is not a trivial
+matter to arrange for delivery of a SIGINT signal when you want to
+interrupt a long-running computation.  (I believe that the original
+MSys terminal was actually a subclass of the same object as the CONS:
+Command Prompt, and that is why it was able to supply the SIGINT.  If
+a terminal can initiate a CTRL_C_EVENT, then one can create a
+CTRL-C-EVENT handler which raises SIGINT.
