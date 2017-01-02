@@ -21,6 +21,7 @@ some bit shuffling.
 
 #*****************************************************************************
 #       Copyright (C) 2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#                     2016 Marc Culler and Nathan Dunfield
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

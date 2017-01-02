@@ -31,6 +31,21 @@ AUTHORS:
 - Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
   CyPari module.
 
+#*****************************************************************************
+#       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
+#                     ???? Justin Walker
+#                     ???? Gonzalo Tornaria
+#                     2010 Robert Bradshaw <robertwb@math.washington.edu>
+#                     2013 Peter Bruin
+#                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#                     2016 Marc Culler and Nathan Dunfield
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#  as published by the Free Software Foundation; either version 2 of
+#  the License, or (at your option) any later version.
+#                  http://www.gnu.org/licenses/
+#*****************************************************************************
+
 EXAMPLES::
 
     sage: pari('5! + 10/x')

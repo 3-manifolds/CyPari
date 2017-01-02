@@ -7,11 +7,14 @@ AUTHORS:
 
 - Jeroen Demeyer (January 2015): use ``cb_pari_err_handle`` (:trac:`14894`)
 
+- Marc Culler and Nathan Dunfield (2016): adapted for CyPari
+
 """
 
 #*****************************************************************************
 #       Copyright (C) 2013 Peter Bruin
-#       Copyright (C) 2015 Jeroen Demeyer
+#                     2015 Jeroen Demeyer
+#                     2016 Marc Culler and Nathan Dunfield
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by

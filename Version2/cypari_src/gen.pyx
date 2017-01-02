@@ -55,10 +55,11 @@ Now it takes much less than a second::
 
 #*****************************************************************************
 #       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
-#       Copyright (C) ???? Justin Walker
-#       Copyright (C) ???? Gonzalo Tornaria
-#       Copyright (C) 2010 Robert Bradshaw <robertwb@math.washington.edu>
-#       Copyright (C) 2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#                     ???? Justin Walker
+#                     ???? Gonzalo Tornaria
+#                     2010 Robert Bradshaw <robertwb@math.washington.edu>
+#                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#                     2016 Marc Culler and Nathan Dunfield
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
