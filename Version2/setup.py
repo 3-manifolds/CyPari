@@ -66,6 +66,8 @@ if sys.platform == 'win32':
     link_args += ['-specs=specs90', '-Wl,--subsystem,windows']
     compile_args += ['-D__USE_MINGW_ANSI_STDIO',
                      '-Dprintf=__MINGW_PRINTF_FORMAT']
+    if sys.maxsize > 2**32:
+        compile_args.append('-DMS_WIN64')
 link_args += [pari_static_library]    
 pari_gen = Extension('cypari.gen',
                      sources=['cypari_src/gen.c'],
