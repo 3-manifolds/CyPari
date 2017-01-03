@@ -212,7 +212,6 @@ Check that ``default()`` works properly::
 include "sage.pxi"
 
 import sys
-DEF WIN64 = (UNAME_SYSNAME == 'Windows' and UNAME_MACHINE == 'AMD64')
 
 IF SAGE:
     pass
@@ -1672,11 +1671,7 @@ cdef class PariInstance(PariInstance_base):
                 for j from 0 <= j < n:
                     x = pari(entries[k])
                     A.refers_to[(i,j)] = x
-                    IF WIN64:
-                        # 64-bit Windows has 32 bit longs and 64 bit pointers
-                        (<GEN>(A.g)[j+1])[i+1] = <long long>(x.g)
-                    ELSE:
-                        (<GEN>(A.g)[j+1])[i+1] = <long>(x.g)
+                    (<GEN>(A.g)[j+1])[i+1] = <pari_longword>(x.g)
                     k = k + 1
         return A
 

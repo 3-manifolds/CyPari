@@ -3040,7 +3040,10 @@ cdef extern from "parisage.h":
     GEN     divrem(GEN x, GEN y, long v)
     GEN     floor_safe(GEN x)
     GEN     gceil(GEN x)
-    GEN     gcvtoi(GEN x, long *e)
+    # On 64 bit Windows e may be a pointer to a long long, so we declare
+    # this to be a void * here and cast it as <pari_longword*> in gen.pyx
+    # GEN     gcvtoi(GEN x, long *e)
+    GEN     gcvtoi(GEN x, void *e)
     GEN     gdeflate(GEN x, long v, long d)
     GEN     gdivent(GEN x, GEN y)
     GEN     gdiventgs(GEN x, long y)
@@ -3075,7 +3078,8 @@ cdef extern from "parisage.h":
     long    gprecision(GEN x)
     GEN     gpserprec(GEN x, long v)
     GEN     greal(GEN x)
-    GEN     grndtoi(GEN x, long *e)
+    # See comment above gcvtoi
+    GEN     grndtoi(GEN x, void *e)
     GEN     ground(GEN x)
     GEN     gshift(GEN x, long n)
     GEN     gsubst(GEN x, long v, GEN y)
