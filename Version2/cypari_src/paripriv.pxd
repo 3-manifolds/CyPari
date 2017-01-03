@@ -28,3 +28,6 @@ cdef extern from "pari/paripriv.h":
 
 cdef extern from "pari/anal.h":
     char* closure_func_err()
+
+cdef extern from "long_hack.h":
+    pass
