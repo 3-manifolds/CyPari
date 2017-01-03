@@ -61,13 +61,17 @@ if 'clean' not in sys.argv:
     cythonize(cython_sources)
 
 link_args = []
+compile_args = []
 if sys.platform == 'win32':
     link_args += ['-specs=specs90', '-Wl,--subsystem,windows']
+    compile_args += ['-D__USE_MINGW_ANSI_STDIO',
+                     '-Dprintf=__MINGW_PRINTF_FORMAT']
 link_args += [pari_static_library]    
 pari_gen = Extension('cypari.gen',
                      sources=['cypari_src/gen.c'],
                      include_dirs=include_dirs,
                      extra_link_args=link_args,
+                     extra_compile_args=compile_args,
 )
 
 # Load version number
