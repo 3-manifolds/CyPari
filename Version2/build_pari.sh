@@ -36,9 +36,7 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     make install
     make install-lib-sta
     cd ..
-    #rm -rf ../pari-i386
     lipo ../pari-i386/lib/libpari.a ../pari/lib/libpari.a -create -output ../pari/lib/libpari.a
-    #ranlib ../pari/lib/*.a
     cp src/language/anal.h ../pari/include/pari
     cd ..
     echo Patching paricfg.h for dual architectures
