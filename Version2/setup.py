@@ -14,6 +14,18 @@ from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
 import os, sys
 
+# Provide a compile time constant which indicates whether we
+# are building for 64 bit Python on Windows.  This is a special
+# case because 64 bit Windows has 32 bit longs, which the 64 bit
+# Pari deals with as:
+# #define long long long
+# thereby breaking lots of stuff.s 
+with open(os.path.join('cypari_src', 'win64'), 'wb') as output:
+    if sys.platform == 'win32' and sys.maxsize > 2**32:
+        output.write('DEF WIN64 = True\n')
+    else:
+        output.write('DEF WIN64 = False\n')
+
 compiler_name = None
 for arg in sys.argv:
     if arg.startswith('--compiler='):

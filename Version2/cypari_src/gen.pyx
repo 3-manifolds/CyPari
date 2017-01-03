@@ -84,9 +84,7 @@ from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
 
-DEF WIN64 = (UNAME_SYSNAME == 'Windows' and UNAME_MACHINE == 'AMD64')
-# On 64 bit Windows longs are 32 bits but Pari longs are 64 bits.
-# Pari longs are always the same size as pointers.
+include "cypari_src/win64"
 IF WIN64:
     ctypedef long long pari_longword
 ELSE:
