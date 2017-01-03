@@ -217,7 +217,11 @@ cdef GEN PyLong_AsGEN(x):
 
     # Size of the input
     cdef size_t sizedigits
-    cdef long sgn
+    # 64 bit Windows has 32 bit longs but Pari longs are 64 bits
+    IF WIN64:
+        cdef long long sgn
+    ELSE:
+        cdef long sgn
     cdef size_t ob_size = Py_SIZE(L)
     if ob_size == 0:
         return gen_0
