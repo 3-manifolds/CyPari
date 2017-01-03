@@ -110,78 +110,8 @@ ELSE:
 
 include 'auto_gen.pxi'
 
-IF SAGE == True:
-    cdef class gen_base(gen_auto):
-        """
-        Base class for Sage.
-        """
-        pass
-ELSE:
-    cdef class gen_base(gen_auto):
-        """
-        Base class for CyPari.
-        """
-
-    cdef pari_gen_to_python_int (gen pari_gen):
-            """
-            Return a Python int. If the number is too large to fit
-            into a C int, a Python long is returned instead.
-            
-            EXAMPLES::
-            
-                >>> int(pari(0))
-                0
-                >>> int(pari(10))
-                10
-                >>> int(pari(-10))
-                -10
-                >>> print( int(pari(123456789012345678901234567890)) )
-                123456789012345678901234567890
-                >>> print( int(pari(-123456789012345678901234567890)) )
-                -123456789012345678901234567890
-                >>> int(pari('2^31-1'))
-                2147483647
-                >>> int(pari('-2^31'))
-                -2147483648
-                >>> int(pari("Pol(10)"))
-                10
-            """
-            cdef GEN x
-            cdef long lx
-            cdef long *xp
-            cdef int sign
-            cdef H, L
-            if  typ(pari_gen.g)==t_POL and pari_gen.poldegree()<=0:
-                # Change a constant polynomial to its constant term
-                x = constant_term(pari_gen.g)
-            else:
-                x = pari_gen.g
-            if typ(x) != t_INT:
-                raise TypeError, "gen must be of PARI type t_INT or t_POL of degree 0"
-            sign = signe(x)
-            if not sign:
-                return 0
-            lx = lgefint(x) - 3   # take 1 to account for the MSW
-            xp = int_MSW(x)
-            # special case 1 word so we return int if it fits
-            if not lx:
-                if   sign | xp[0] > 0:     # both positive
-                    return xp[0]
-                elif sign & -xp[0] < 0:     # both negative
-                    return -xp[0]
-            H = <ulong>xp[0]
-            while lx:
-                xp = int_precW(xp)
-                L = <ulong>xp[0]
-                H = (H << BITS_IN_LONG) | L
-                lx = lx - 1
-            if sign > 0:
-                return H
-            else:
-                return -H
-
 @cython.final
-cdef class gen(gen_base):
+cdef class gen:
     """
     Cython extension class that models the PARI GEN type.
     """
