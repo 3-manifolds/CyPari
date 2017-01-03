@@ -84,6 +84,14 @@ from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
 
+DEF WIN64 = (UNAME_SYSNAME == 'Windows' and UNAME_MACHINE == 'AMD64')
+# On 64 bit Windows longs are 32 bits but Pari longs are 64 bits.
+# Pari longs are always the same size as pointers.
+IF WIN64:
+    ctypedef long long pari_longword
+ELSE:
+    ctypedef long pari_longword
+
 IF SAGE:
     pass
     # Commented these out to deal with Cython-0.25 bug
@@ -1141,11 +1149,7 @@ cdef class gen:
                     self.refers_to = {ind: x}
                 else:
                     self.refers_to[ind] = x
-                # 64 bit Windows has 32 bit longs and 64 bit pointers
-                IF WIN64:
-                    (<GEN>(self.g)[j+1])[i+1] = <long long>(x.g)
-                ELSE:
-                    (<GEN>(self.g)[j+1])[i+1] = <long>(x.g)
+                (<GEN>(self.g)[j+1])[i+1] = <pari_longword>(x.g)
                 return
 
             elif isinstance(n, slice):
@@ -1178,11 +1182,7 @@ cdef class gen:
                 i = i + 1
 
             ## actually set the value
-            IF WIN64:
-                #64 bit Windows has 32 bit longs and 64 bit pointers
-                (self.g)[i+1] = <long long>(x.g)
-            ELSE:
-                (self.g)[i+1] = <long>(x.g)
+            (self.g)[i+1] = <pari_longword>(x.g)
             return
         finally:
             sig_off()
@@ -1387,15 +1387,9 @@ cdef class gen:
             -36bb1e3929d1a8fe2802f083
         """
         cdef GEN x
-        IF WIN64:
-            # These are 64 bit Pari longs, not 32 bit Windows64 longs
-            cdef long long lx
-            cdef GEN xp
-            cdef long long w
-        ELSE:
-            cdef long lx
-            cdef long *xp
-            cdef long w
+        cdef pari_longword lx
+        cdef GEN xp
+        cdef pari_longword w
         cdef char *s
         cdef char *sp
         cdef char *hexdigits
@@ -2647,7 +2641,7 @@ cdef class gen:
         sig_on()
         if not estimate:
             return P.new_gen(ground(x.g))
-        y = P.new_gen(grndtoi(x.g, &e))
+        y = P.new_gen(grndtoi(x.g, <pari_longword*>&e))
         return y, e
 
     def sizeword(gen x):
@@ -2765,7 +2759,7 @@ cdef class gen:
         sig_on()
         if not estimate:
             return P.new_gen(gtrunc(x.g))
-        y = P.new_gen(gcvtoi(x.g, &e))
+        y = P.new_gen(gcvtoi(x.g, <pari_longword*>&e))
         return y, e
 
     def _valp(gen x):
