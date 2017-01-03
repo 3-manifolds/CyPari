@@ -1141,8 +1141,11 @@ cdef class gen:
                     self.refers_to = {ind: x}
                 else:
                     self.refers_to[ind] = x
-
-                (<GEN>(self.g)[j+1])[i+1] = <long>(x.g)
+                # 64 bit Windows has 32 bit longs and 64 bit pointers
+                IF WIN64:
+                    (<GEN>(self.g)[j+1])[i+1] = <long long>(x.g)
+                ELSE:
+                    (<GEN>(self.g)[j+1])[i+1] = <long>(x.g)
                 return
 
             elif isinstance(n, slice):
@@ -1175,7 +1178,11 @@ cdef class gen:
                 i = i + 1
 
             ## actually set the value
-            (self.g)[i+1] = <long>(x.g)
+            IF WIN64:
+                #64 bit Windows has 32 bit longs and 64 bit pointers
+                (self.g)[i+1] = <long long>(x.g)
+            ELSE:
+                (self.g)[i+1] = <long>(x.g)
             return
         finally:
             sig_off()
@@ -1380,9 +1387,15 @@ cdef class gen:
             -36bb1e3929d1a8fe2802f083
         """
         cdef GEN x
-        cdef long lx
-        cdef long *xp
-        cdef long w
+        IF WIN64:
+            # These are 64 bit Pari longs, not 32 bit Windows64 longs
+            cdef long long lx
+            cdef GEN xp
+            cdef long long w
+        ELSE:
+            cdef long lx
+            cdef long *xp
+            cdef long w
         cdef char *s
         cdef char *sp
         cdef char *hexdigits
