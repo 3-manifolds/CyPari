@@ -106,7 +106,7 @@ cdef extern from "parisage.h":
     extern _pari_mainstack* pari_mainstack
     struct PariOUT:
         void (*putch)(char)
-        void (*puts)(char*)
+        void (*puts)(const char*)
         void (*flush)()
     extern PariOUT* pariOut
     extern PariOUT* pariErr

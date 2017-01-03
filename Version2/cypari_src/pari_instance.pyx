@@ -434,7 +434,7 @@ cdef void sage_putchar(char c):
     # so it doesn't print one when an error occurs.
     pari_set_last_newline(1)
     
-cdef void sage_puts(char* s):
+cdef void sage_puts(const char* s):
     sys.stdout.write(s)
     pari_set_last_newline(1)
 
@@ -661,7 +661,7 @@ IF SAGE:
            return self.PARI_ZERO
 
 ELSE:
-    cdef void swallow_s(char* s):
+    cdef void swallow_s(const char* s):
         return
 
     cdef void swallow_ch(char ch):

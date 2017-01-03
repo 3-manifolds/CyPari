@@ -44,7 +44,7 @@ IF SAGE:
 #    from .pari_instance cimport pari_instance as P
 
 cdef extern from "longintrepr.h":
-    cdef _PyLong_New(Py_ssize_t s)
+    cdef PyLongObject* _PyLong_New(Py_ssize_t s)
     ctypedef unsigned int digit
     ctypedef struct PyLongObject:
         Py_ssize_t ob_size
@@ -218,7 +218,7 @@ cdef GEN PyLong_AsGEN(x):
     # Size of the input
     cdef size_t sizedigits
     cdef long sgn
-    cdef int ob_size = Py_SIZE(L)
+    cdef size_t ob_size = Py_SIZE(L)
     if ob_size == 0:
         return gen_0
     elif ob_size > 0:
@@ -303,8 +303,7 @@ cdef PyLong_FromGEN(GEN g):
     # Actual correct computed size
     cdef Py_ssize_t sizedigits_final = 0
 
-    x = _PyLong_New(sizedigits)
-    cdef PyLongObject* L = <PyLongObject*>(x)
+    cdef PyLongObject* L = _PyLong_New(<Py_ssize_t>sizedigits) 
     cdef digit* D = L.ob_digit
 
     cdef digit d
@@ -338,4 +337,4 @@ cdef PyLong_FromGEN(GEN g):
     else:
         (<PyVarObject*>L).ob_size = -sizedigits_final
 
-    return x
+    return <object>L
