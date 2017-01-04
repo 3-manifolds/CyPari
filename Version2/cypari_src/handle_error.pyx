@@ -43,7 +43,7 @@ class PariError(RuntimeError):
             sage: try:
             ....:     pari('1/0')
             ....: except PariError as err:
-            ....:     print err.errnum()
+            ....:     print(err.errnum())
             31
         """
         return self.args[0]
@@ -57,7 +57,7 @@ class PariError(RuntimeError):
             sage: try:
             ....:     pari('pi()')
             ....: except PariError as e:
-            ....:     print e.errtext()
+            ....:     print(e.errtext())
             not a function in function call
 
         """
@@ -102,7 +102,7 @@ class PariError(RuntimeError):
             sage: try:
             ....:     pari('1/0')
             ....: except PariError as err:
-            ....:     print err
+            ....:     print(err)
             _/_: impossible inverse in gdiv: 0
 
         A syntax error::
@@ -124,7 +124,7 @@ cdef void _pari_init_error_handling():
         sage: try:
         ....:     p = pari.polcyclo(-1)
         ....: except PariError as e:
-        ....:     print e.errtext()
+        ....:     print(e.errtext())
         domain error in polcyclo: index <= 0
 
     Warnings still work just like in GP::

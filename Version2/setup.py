@@ -22,9 +22,9 @@ import os, sys
 # thereby breaking lots of stuff.s 
 with open(os.path.join('cypari_src', 'win64'), 'wb') as output:
     if sys.platform == 'win32' and sys.maxsize > 2**32:
-        output.write('DEF WIN64 = True\n')
+        output.write(bytes('DEF WIN64 = True\n'.encode('ascii')))
     else:
-        output.write('DEF WIN64 = False\n')
+        output.write(bytes('DEF WIN64 = False\n'.encode('ascii')))
 
 compiler_name = None
 for arg in sys.argv:
@@ -75,7 +75,11 @@ if 'clean' not in sys.argv:
 link_args = []
 compile_args = []
 if sys.platform == 'win32':
-    link_args += ['-specs=specs90', '-Wl,--subsystem,windows']
+    if sys.version_info.major == 3:
+        link_args = ['-specs=specs100']
+    else:
+        link_args = ['-specs=specs90']
+    link_args += ['-Wl,--subsystem,windows']
     compile_args += ['-D__USE_MINGW_ANSI_STDIO',
                      '-Dprintf=__MINGW_PRINTF_FORMAT']
     if sys.maxsize > 2**32:

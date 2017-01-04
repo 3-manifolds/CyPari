@@ -66,12 +66,18 @@ Now it takes much less than a second::
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-#from __future__ import print_function
+from __future__ import print_function
 
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-import types
+import sys, types
+if sys.version_info.major > 2:
+    iterable_types = (list, tuple, types.GeneratorType)
+else:
+    iterable_types = (list, tuple, type.XRangeType, types.GeneratorType)
+from builtins import range
+
 cimport cython
 from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
@@ -151,7 +157,9 @@ cdef class gen:
         sig_unblock()
         sig_off()
 
-        s = str(c)
+        s = c
+        if not isinstance(s, str): # i.e. a bytes object in Python 3
+            s = s.decode('ascii')
         pari_free(c)
         return s
 
@@ -952,7 +960,7 @@ cdef class gen:
         elif isinstance(n, slice):
             l = glength(self.g)
             start, stop, step = n.indices(l)
-            inds = xrange(start, stop, step)
+            inds = range(start, stop, step)
             k = len(inds)
             # fast exit
             if k==0:
@@ -1152,7 +1160,7 @@ cdef class gen:
 
             elif isinstance(n, slice):
                 l = glength(self.g)
-                inds = xrange(*n.indices(l))
+                inds = range(*n.indices(l))
                 k = len(inds)
                 if k > len(y):
                     raise ValueError("attempt to assign sequence of size %s to slice of size %s" % (len(y), k))
@@ -4718,7 +4726,7 @@ cpdef gen objtogen(s):
     # common case.
     if isinstance(s, str):
         sig_on()
-        g = gp_read_str(<char*>s)
+        g = gp_read_str(<bytes>s.encode())
         if g == gnil:
             P.clear_stack()
             return None
@@ -4739,8 +4747,7 @@ cpdef gen objtogen(s):
         set_gel(g, 2, dbltor(PyComplex_ImagAsDouble(s)))
         return P.new_gen(g)
 
-    if isinstance(s, (list, types.XRangeType,
-                        tuple, types.GeneratorType)):
+    if isinstance(s, iterable_types):
         length = len(s)
         v = P._empty_vector(length)
         for i from 0 <= i < length:
