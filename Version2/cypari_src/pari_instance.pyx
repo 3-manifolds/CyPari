@@ -758,7 +758,7 @@ cdef class PariInstance(PariInstance_base):
             paristack_setsize(size, sizemax)
         ELSE:
             from memory import total_ram
-            if sys.maxint < 2**32:
+            if sys.maxsize < 2**32:
                 sizemax = min(total_ram() // 4, 2**30)
             else:
                 sizemax = total_ram() // 4
@@ -1405,8 +1405,8 @@ cdef class PariInstance(PariInstance_base):
         paristack_setsize(s, sizemax)
         sig_off()
         if not silent:
-            print "PARI stack size set to {} bytes, maximum size set to {}".format(
-                self.stacksize(), self.stacksizemax())
+            msg = "PARI stack size set to %s bytes, maximum size set to %s"%(self.stacksize(), self.stacksizemax())
+            printf(msg)
 
     def pari_version(self):
         return str(PARIVERSION)
