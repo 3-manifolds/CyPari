@@ -37,7 +37,7 @@ Reading a gp file::
     >>> import tempfile, os
     >>> handle, gpfilename = tempfile.mkstemp(text=True)
     >>> with open(gpfilename, 'wb+') as gpfile:
-    ...   gpfile.write("mysquare(n) = {\n n^2;\n}\npolcyclo(5)\n")
+    ...   n = gpfile.write(bytes("mysquare(n) = {\n n^2;\n}\npolcyclo(5)\n".encode('ascii')))
     ...   gpfile.flush()
     ...
     >>> pari.read(gpfilename)

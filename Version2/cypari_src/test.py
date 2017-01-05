@@ -26,15 +26,15 @@ if __name__ == '__main__':
     
     finder = doctest.DocTestFinder(parser=DocTestParser())
     failed, attempted = 0, 0
-    runner = doctest.DocTestRunner(verbose=verbose,
-                                   optionflags=doctest.ELLIPSIS)
     for module, extra_globals in modules_to_test:
+        runner = doctest.DocTestRunner(verbose=verbose,
+                                       optionflags=doctest.ELLIPSIS)
         for test in finder.find(module, extraglobs=extra_globals):
             runner.run(test)
-            result = runner.summarize()
-            print(result)
-            failed += result.failed
-            attempted += result.attempted
+        result = runner.summarize()
+        print(result)
+        failed += result.failed
+        attempted += result.attempted
     print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
 
 

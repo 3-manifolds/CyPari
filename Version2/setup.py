@@ -14,22 +14,27 @@ from distutils.command.build_ext import build_ext
 from Cython.Build import cythonize
 import os, sys
 
-# Provide a compile time constant which indicates whether we
-# are building for 64 bit Python on Windows.  This is a special
-# case because 64 bit Windows has 32 bit longs, which the 64 bit
-# Pari deals with as:
+# Provide compile time constants which indicates whether we
+# are building for 64 bit Python on Windows and which version
+# of Python we are using.
+# We need to know about 64 bit Windows because it is the only 64 bit
+# system which we support that has 32 bit longs.
+# Pari deals with this as:
 # #define long long long
-# thereby breaking lots of stuff.s
+# thereby breaking lots of stuff.
 
 ct_constants = b''
 if sys.platform == 'win32' and sys.maxsize > 2**32:
     ct_constants += b'DEF WIN64 = True\n'
 else:
     ct_constants += b'DEF WIN64 = False\n'
-ct_filename = os.path.join('cypari_src', 'ct_constants') 
+ct_filename = os.path.join('cypari_src', 'ct_constants.pxi') 
 ct_constants += b'DEF PYTHON_MAJOR = %d\n'%sys.version_info.major
-with open(ct_filename) as input:
-    old_file = input.read().encode('ascii')
+if os.path.exists(ct_filename):
+    with open(ct_filename) as input:
+        old_file = input.read().encode('ascii')
+else:
+    old_file = ''
 if old_file != ct_constants:
     with open(ct_filename, 'wb') as output:
         output.write(ct_constants)

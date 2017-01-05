@@ -210,9 +210,7 @@ cdef GEN gtoi(GEN g0) except NULL:
         error = stack_sprintf(
             "unable to convert PARI object %Ps of type %s to an integer",
             g0, type_name(typ(g0)))
-        if not isinstance(error, str):
-            error = error.decode('ascii')
-        raise TypeError(error)
+        raise TypeError(String(error))
     return g
 
 
