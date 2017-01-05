@@ -499,8 +499,8 @@ cdef class gen:
             ...
             PariError: not a function in function call
         """
-        cdef str s = "_." + attr
-        cdef char *t = <bytes>s
+        cdef bytes s = ("_." + attr).encode('ascii')
+        cdef char *t = s
         sig_on()
         return P.new_gen(closure_callgen1(strtofunction(t), self.g))
 
@@ -3963,8 +3963,8 @@ cdef class gen:
                 return P.new_gen(gsubst(self.g, varn(self.g), t0.g))
 
         # Call substvec() using **kwds
-        vstr = kwds.keys()            # Variables as Python strings
-        t0 = objtogen(kwds.values())  # Replacements
+        vstr = [k for k in kwds]               # Variables as Python strings
+        t0 = objtogen([kwds[k] for k in kwds])  # Replacements
 
         sig_on()
         cdef GEN v = cgetg(nkwds+1, t_VEC)  # Variables as PARI polynomials

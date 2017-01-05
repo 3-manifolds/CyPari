@@ -213,7 +213,7 @@ Constructors::
     >>> pari(3).Qfb(7, 2)
     Traceback (most recent call last):
     ...
-    PariError: domain error in Qfb: issquare(disc) = 1
+    cypari_src.gen.PariError: domain error in Qfb: issquare(disc) = 1
 
     >>> pari([1,5,2]).Set()
     [1, 2, 5]
@@ -250,7 +250,7 @@ Basic functions::
     >>> pari('"2"').binary()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in binary (t_STR)
+    cypari_src.gen.PariError: incorrect type in binary (t_STR)
 
     >>> pari(1.4).ceil()
     2
@@ -300,7 +300,7 @@ Basic functions::
     >>> pari('x').component(0)
     Traceback (most recent call last):
     ...
-    PariError: non-existent component: index < 1
+    cypari_src.gen.PariError: non-existent component: index < 1
 
     >>> pari('x+1').conj()
     x + 1
@@ -315,7 +315,7 @@ Basic functions::
     >>> pari('Mod(x,x^3-3)').conj()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in gconj (t_POLMOD)
+    cypari_src.gen.PariError: incorrect type in gconj (t_POLMOD)
 
     >>> pari('Mod(1+x,x^2-2)').conjvec()
     [-0.414213562373095, 2.41421356237310]~
@@ -355,7 +355,7 @@ Basic functions::
     >>> pari('"hello world"').floor()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in gfloor (t_STR)
+    cypari_src.gen.PariError: incorrect type in gfloor (t_STR)
 
     >>> pari(1.75).frac()
     0.750000000000000
@@ -364,7 +364,7 @@ Basic functions::
     >>> pari('sqrt(-2)').frac()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in gfloor (t_COMPLEX)
+    cypari_src.gen.PariError: incorrect type in gfloor (t_COMPLEX)
 
     >>> pari('1+2*I').imag()
     2
@@ -397,7 +397,7 @@ Basic functions::
     >>> pari('I').sign()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in gsigne (t_COMPLEX)
+    cypari_src.gen.PariError: incorrect type in gsigne (t_COMPLEX)
 
     >>> y = pari('y')
     >>> x = pari('9') + y - y
@@ -659,7 +659,7 @@ Transcendental functions::
     >>> pari(-1).gamma()
     Traceback (most recent call last):
     ...
-    PariError: domain error in gamma: argument = non-positive integer
+    cypari_src.gen.PariError: domain error in gamma: argument = non-positive integer
 
     >>> pari(2).gammah()
     1.32934038817914
@@ -994,7 +994,7 @@ p-adic functions::
     >>> y.padicprec(17)
     Traceback (most recent call last):
     ...
-    PariError: inconsistent moduli in padicprec: 11 != 17
+    cypari_src.gen.PariError: inconsistent moduli in padicprec: 11 != 17
     >>> pol = pari('O(3^5)*t^2 + O(3^6)*t + O(3^4)')
     >>> pol.padicprec(3)
     4
@@ -1231,7 +1231,7 @@ Elliptic curves::
     >>> pari('-I').ellj()
     Traceback (most recent call last):
     ...
-    PariError: domain error in modular function: Im(argument) <= 0
+    cypari_src.gen.PariError: domain error in modular function: Im(argument) <= 0
 
 Quadratic class numbers::
 
@@ -1263,11 +1263,11 @@ Quadratic class numbers::
     >>> pari(3).qfbclassno()
     Traceback (most recent call last):
     ...
-    PariError: domain error in classno2: disc % 4 > 1
+    cypari_src.gen.PariError: domain error in classno2: disc % 4 > 1
     >>> pari(4).qfbclassno()
     Traceback (most recent call last):
     ...
-    PariError: domain error in classno2: issquare(disc) = 1
+    cypari_src.gen.PariError: domain error in classno2: issquare(disc) = 1
 
     >>> pari(-4).quadclassunit()
     [1, [], [], 1]
@@ -1288,11 +1288,11 @@ Quadratic class numbers::
     >>> pari(3).quadclassunit()
     Traceback (most recent call last):
     ...
-    PariError: domain error in Buchquad: disc % 4 > 1
+    cypari_src.gen.PariError: domain error in Buchquad: disc % 4 > 1
     >>> pari(4).quadclassunit()
     Traceback (most recent call last):
     ...
-    PariError: domain error in Buchquad: issquare(disc) = 1
+    cypari_src.gen.PariError: domain error in Buchquad: issquare(disc) = 1
 
 General number fields::
 
@@ -1311,6 +1311,9 @@ General number fields::
     >>> G = P.galoisinit()
     >>> G[0] == P
     True
+    >>> import sys
+    >>> if sys.version_info.major > 2: from functools import reduce
+    ...
     >>> prod = lambda v: reduce(lambda x,y: x*y, v)
     >>> len(G[5]) == prod(G[7])
     True
@@ -1513,7 +1516,7 @@ General number fields::
     >>> pari('1.0').nfinit()
     Traceback (most recent call last):
     ...
-    PariError: incorrect type in checknf [please apply nfinit()] (t_REAL)
+    cypari_src.gen.PariError: incorrect type in checknf [please apply nfinit()] (t_REAL)
 
     >>> F = pari('y^3-2').nfinit()
     >>> G = pari('y^3-2').nfinit()
@@ -1582,5 +1585,5 @@ General number fields::
     >>> pari(-12).quadhilbert()   # Not fundamental
     Traceback (most recent call last):
     ...
-    PariError: domain error in quadray: isfundamental(D) = 0
+    cypari_src.gen.PariError: domain error in quadray: isfundamental(D) = 0
 """
