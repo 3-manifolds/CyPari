@@ -62,10 +62,10 @@ EXAMPLES::
 
 Arithmetic operations cause all arguments to be converted to PARI::
 
-    sage: type(pari(1) + 1)
-    <type 'sage.libs.pari.gen.gen'>
-    sage: type(1 + pari(1))
-    <type 'sage.libs.pari.gen.gen'>
+    sage: isinstance(pari(1) + 1, gen)
+    True
+    sage: isinstance(1 + pari(1), gen)
+    True
 
 GUIDE TO REAL PRECISION AND THE PARI LIBRARY
 
@@ -85,7 +85,7 @@ Example with custom precision of 200 bits (60 significant
 decimals)::
 
     sage: R = RealField(200)
-    sage: a = pari(R(1.23)); a   # only 15 significant digits printed
+    sage: a = pari(R(1.23)); a   # only 15 significant digits printed    
     1.23000000000000
     sage: R(a)         # but the number is known to precision of 200 bits
     1.2300000000000000000000000000000000000000000000000000000000
@@ -360,6 +360,11 @@ cpdef long prec_words_to_bits(long prec_in_words):
         sage: [(n, prec_words_to_bits(n)) for n in range(3, 10)]
         [(3, 32), (4, 64), (5, 96), (6, 128), (7, 160), (8, 192), (9, 224)]  # 32-bit
         [(3, 64), (4, 128), (5, 192), (6, 256), (7, 320), (8, 384), (9, 448)] # 64-bit
+
+    >>> import cypari; from cypari.gen import prec_words_to_bits
+    >>> prec_words_to_bits(10)
+    256   # 32-bit
+    512   # 64-bit
     """
     # see user's guide to the pari library, page 10
     return (prec_in_words - 2) * BITS_IN_LONG
@@ -373,6 +378,11 @@ cpdef long default_bitprec():
         sage: from sage.libs.pari.pari_instance import default_bitprec
         sage: default_bitprec()
         64
+
+
+    >>> import cypari; from cypari.gen import default_bitprec
+    >>> default_bitprec()
+    64
     """
     return (prec - 2) * BITS_IN_LONG
 
@@ -1405,8 +1415,8 @@ cdef class PariInstance(PariInstance_base):
         paristack_setsize(s, sizemax)
         sig_off()
         if not silent:
-            msg = "PARI stack size set to %s bytes, maximum size set to %s"%(self.stacksize(), self.stacksizemax())
-            printf(msg)
+            print("PARI stack size set to %s bytes, maximum size set to %s"%(
+                self.stacksize(), self.stacksizemax()))
 
     def pari_version(self):
         return str(PARIVERSION)

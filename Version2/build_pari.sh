@@ -58,4 +58,5 @@ else
     make install-lib-sta
     cp src/language/anal.h ../pari/include/pari
 fi
-
+# Fix non-prototype function declarations
+sed -i -e s/\(\)\;/\(void\)\;/ ../pari/include/pari/paripriv.h

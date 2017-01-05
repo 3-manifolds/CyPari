@@ -47,15 +47,12 @@ cdef extern from "longintrepr.h":
     cdef PyLongObject* _PyLong_New(Py_ssize_t s)
     ctypedef unsigned int digit
     ctypedef struct PyLongObject:
-        Py_ssize_t ob_size
         digit* ob_digit
+    ctypedef struct PyVarObject:
+        Py_ssize_t ob_size
 
     cdef long PyLong_SHIFT
     cdef digit PyLong_MASK
-    cdef int Py_SIZE(void*)
-
-ctypedef struct PyVarObject:
-    Py_ssize_t ob_size
 
 cpdef integer_to_gen(x):
     """
@@ -65,12 +62,12 @@ cpdef integer_to_gen(x):
     EXAMPLES::
 
         sage: from sage.libs.pari.convert import integer_to_gen
-        sage: a = integer_to_gen(int(12345)); a; type(a)
+        sage: a = integer_to_gen(int(12345)); a; isinstance(a, gen)
         12345
-        <type 'sage.libs.pari.gen.gen'>
-        sage: a = integer_to_gen(long(12345)); a; type(a)
-        12345
-        <type 'sage.libs.pari.gen.gen'>
+        True
+        sage: a = integer_to_gen(123456789012345678901234567890); a; isinstance(a, gen)
+        123456789012345678901234567890
+        True
         sage: integer_to_gen(float(12345))
         Traceback (most recent call last):
         ...
@@ -80,15 +77,21 @@ cpdef integer_to_gen(x):
 
         sage: for i in range(10000):
         ....:     x = 3**i
-        ....:     if pari(long(x)) != pari(x):
+        ....:     if int(pari(x)) != x:
         ....:         print(x)
     """
-    if isinstance(x, int):
-        sig_on()
-        return P.new_gen(stoi(PyInt_AS_LONG(x)))
-    elif isinstance(x, long):
-        sig_on()
-        return P.new_gen(PyLong_AsGEN(x))
+    IF PYTHON_MAJOR < 3:
+        if isinstance(x, int):
+            sig_on()
+            return P.new_gen(stoi(PyInt_AS_LONG(x)))
+        elif isinstance(x, long):
+            sig_on()
+            return P.new_gen(PyLong_AsGEN(x))
+    ELSE:
+        if isinstance(x, int):
+            sig_on()
+            return P.new_gen(PyLong_AsGEN(x))
+    
     raise TypeError("integer_to_gen() needs an int or long argument, not {}".format(type(x).__name__))
 
 
@@ -105,12 +108,11 @@ cpdef gen_to_integer(gen x):
     EXAMPLES::
 
         sage: from sage.libs.pari.convert import gen_to_integer
-        sage: a = gen_to_integer(pari("12345")); a; type(a)
+        sage: a = gen_to_integer(pari("12345")); a; isinstance(a, int)
         12345
-        <type 'int'>
-        sage: a = gen_to_integer(pari("10^30")); a; type(a)
-        1000000000000000000000000000000L
-        <type 'long'>
+        True
+        sage: int(gen_to_integer(pari("10^30"))) == 1000000000000000000000000000000
+        True
         sage: gen_to_integer(pari("19/5"))
         3
         sage: gen_to_integer(pari("1 + 0.0*I"))
@@ -140,17 +142,17 @@ cpdef gen_to_integer(gen x):
 
         sage: for i in range(10000):
         ....:     x = 3**i
-        ....:     if long(pari(x)) != long(x):
+        ....:     if int(pari(x)) != int(x):
         ....:         print(x)
-        sage: gen_to_integer(pari("1.0 - 2^64"))
-        -18446744073709551615L
-        sage: gen_to_integer(pari("1 - 2^64"))
-        -18446744073709551615L
+        sage: gen_to_integer(pari("1.0 - 2^64")) == -18446744073709551615
+        True
+        sage: gen_to_integer(pari("1 - 2^64")) == -18446744073709551615
+        True
 
     Check some corner cases::
 
         sage: for s in [1, -1]:
-        ....:     for a in [1, 2^31, 2^32, 2^63, 2^64]:
+        ....:     for a in [1, 2**31, 2**32, 2**63, 2**64]:
         ....:         for b in [-1, 0, 1]:
         ....:             Nstr = str(s * (a + b))
         ....:             N1 = gen_to_integer(pari(Nstr))  # Convert via PARI
@@ -179,7 +181,7 @@ cpdef gen_to_integer(gen x):
             if u <= -<ulong>LONG_MIN:
                 return <long>(-u)
 
-    # Result does not fit in a C long
+        # Result does not fit in a C long or we are in Python 3
     return PyLong_FromGEN(g)
 
 
@@ -205,9 +207,12 @@ cdef GEN gtoi(GEN g0) except NULL:
             sig_error()
         sig_off()
     except RuntimeError:
-        raise TypeError(stack_sprintf(
+        error = stack_sprintf(
             "unable to convert PARI object %Ps of type %s to an integer",
-            g0, type_name(typ(g0))))
+            g0, type_name(typ(g0)))
+        if not isinstance(error, str):
+            error = error.decode('ascii')
+        raise TypeError(error)
     return g
 
 
@@ -216,13 +221,15 @@ cdef GEN PyLong_AsGEN(x):
     cdef const digit* D = L.ob_digit
 
     # Size of the input
-    cdef size_t sizedigits
-    # 64 bit Windows has 32 bit longs but Pari longs are 64 bits
+    cdef Py_ssize_t sizedigits
     IF WIN64:
+        # 64 bit Windows has 32 bit longs but Pari longs are 64 bits
         cdef long long sgn
     ELSE:
         cdef long sgn
-    cdef size_t ob_size = Py_SIZE(L)
+    # IMPORTANT this ob_size must be the same type as PyVarObject->ob_size,
+    # namely Py_ssize_t, since we need to test its sign.
+    cdef Py_ssize_t ob_size = (<PyVarObject*>L).ob_size
     if ob_size == 0:
         return gen_0
     elif ob_size > 0:
@@ -321,14 +328,14 @@ cdef PyLong_FromGEN(GEN g):
         bit = bit % BITS_IN_LONG
 
         w = int_W(g, j)[0]
-        d = w >> bit
+        d = (w >> bit) & PyLong_MASK
 
         # Do we need bits from the next word too?
         if BITS_IN_LONG - bit < PyLong_SHIFT and j+1 < sizewords:
-            w = int_W(g, j+1)[0]
-            d += w << (BITS_IN_LONG - bit)
+            w = int_W(g, j+1)[0] 
+            d += (w << (BITS_IN_LONG - bit)) & PyLong_MASK
 
-        d = d & PyLong_MASK
+        d = d
         D[i] = d
 
         # Keep track of last non-zero digit
@@ -342,3 +349,4 @@ cdef PyLong_FromGEN(GEN g):
         (<PyVarObject*>L).ob_size = -sizedigits_final
 
     return <object>L
+

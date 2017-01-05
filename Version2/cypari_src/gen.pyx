@@ -90,7 +90,7 @@ from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
 
-include "cypari_src/win64"
+include "cypari_src/ct_constants"
 IF WIN64:
     ctypedef long long pari_longword
 ELSE:
@@ -192,8 +192,8 @@ cdef class gen:
 
         TESTS::
 
-            sage: type(pari('1 + 2.0*I').__hash__())
-            <type 'int'>
+            sage: isinstance(pari('1 + 2.0*I').__hash__(), int)
+            True
         """
         cdef long h
         sig_on()
@@ -212,10 +212,10 @@ cdef class gen:
             sage: L = pari("vector(10,i,i^2)").list()
             sage: L
             [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-            sage: type(L)
-            <type 'list'>
-            sage: type(L[0])
-            <type 'sage.libs.pari.gen.gen'>
+            sage: isinstance(L, list)
+            True
+            sage: isinstance(L[0], gen)
+            True
 
         For polynomials, list() behaves as for ordinary Sage polynomials::
 
@@ -600,9 +600,9 @@ cdef class gen:
             sage: K.<a> = NumberField(x^4 - 4*x^2 + 1)
             sage: s = K.pari_nf().nf_get_sign(); s
             [4, 0]
-            sage: type(s); type(s[0])
-            <type 'list'>
-            <type 'int'>
+            sage: isinstance(s, list); isinstace(s[0], int)
+            True
+            True
             sage: CyclotomicField(15).pari_nf().nf_get_sign()
             [0, 4]
         """
@@ -888,8 +888,8 @@ cdef class gen:
             sage: sv = pari('Vecsmall([1,2,3])')
             sage: sv[2]
             3
-            sage: type(sv[2])
-            <type 'int'>
+            sage: isinstance(sv[2], int)
+            True
             sage: tuple(pari(3/5))
             (3, 5)
             sage: tuple(pari('1 + 5*I'))
@@ -1110,8 +1110,8 @@ cdef class gen:
             sage: s[:1]=[1]
             sage: s
             [1, 0]
-            sage: type(s[0])
-            <type 'sage.libs.pari.gen.gen'>
+            sage: isinstance(s[0], gen)
+            True
             sage: s = pari(range(20)) ; s
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
             sage: s[0:10:2] = range(50,55) ; s
@@ -1126,8 +1126,8 @@ cdef class gen:
             sage: v[:] = [20..29]
             sage: v
             [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-            sage: type(v[0])
-            <type 'sage.libs.pari.gen.gen'>
+            sage: isinstance(v[0], gen)
+            True
         """
         cdef int i, j
         cdef gen x = objtogen(y)
@@ -1373,63 +1373,64 @@ cdef class gen:
         else:
             return eval(s)
 
-    def __hex__(gen self):
-        """
-        Return the hexadecimal digits of self in lower case.
-
-        EXAMPLES::
-
-            sage: print(hex(pari(0)))
-            0
-            sage: print(hex(pari(15)))
-            f
-            sage: print(hex(pari(16)))
-            10
-            sage: print(hex(pari(16938402384092843092843098243)))
-            36bb1e3929d1a8fe2802f083
-            sage: print(hex(long(16938402384092843092843098243)))
-            0x36bb1e3929d1a8fe2802f083L
-            sage: print(hex(pari(-16938402384092843092843098243)))
-            -36bb1e3929d1a8fe2802f083
-        """
-        cdef GEN x
-        cdef pari_longword lx
-        cdef GEN xp
-        cdef pari_longword w
-        cdef char *s
-        cdef char *sp
-        cdef char *hexdigits
-        hexdigits = "0123456789abcdef"
-        cdef int i, j
-        cdef int size
-        x = self.g
-        if typ(x) != t_INT:
-            raise TypeError("gen must be of PARI type t_INT")
-        if not signe(x):
-            return "0"
-        lx = lgefint(x)-2  # number of words
-        size = lx*2*sizeof(long)
-        s = <char *>sig_malloc(size+2) # 1 char for sign, 1 char for '\0'
-        sp = s + size+1
-        sp[0] = 0
-        xp = int_LSW(x)
-        for i from 0 <= i < lx:
-            w = xp[0]
-            for j from 0 <= j < 2*sizeof(long):
+    IF PYTHON_MAJOR == 2:
+        def __hex__(gen self):
+            """
+            Return the hexadecimal digits of self in lower case.
+    
+            EXAMPLES::
+    
+                sage: print(hex(pari(0)))
+                0
+                sage: print(hex(pari(15)))
+                f
+                sage: print(hex(pari(16)))
+                10
+                sage: print(hex(pari(16938402384092843092843098243)))
+                36bb1e3929d1a8fe2802f083
+                sage: print(hex(long(16938402384092843092843098243)))
+                0x36bb1e3929d1a8fe2802f083L
+                sage: print(hex(pari(-16938402384092843092843098243)))
+                -36bb1e3929d1a8fe2802f083
+            """
+            cdef GEN x
+            cdef pari_longword lx
+            cdef GEN xp
+            cdef pari_longword w
+            cdef char *s
+            cdef char *sp
+            cdef char *hexdigits
+            hexdigits = "0123456789abcdef"
+            cdef int i, j
+            cdef int size
+            x = self.g
+            if typ(x) != t_INT:
+                raise TypeError("gen must be of PARI type t_INT")
+            if not signe(x):
+                return "0"
+            lx = lgefint(x)-2  # number of words
+            size = lx*2*sizeof(long)
+            s = <char *>sig_malloc(size+2) # 1 char for sign, 1 char for '\0'
+            sp = s + size+1
+            sp[0] = 0
+            xp = int_LSW(x)
+            for i from 0 <= i < lx:
+                w = xp[0]
+                for j from 0 <= j < 2*sizeof(long):
+                    sp = sp-1
+                    sp[0] = hexdigits[w & 15]
+                    w = w>>4
+                    xp = int_nextW(xp)
+                    # remove leading zeros!
+            while sp[0] == c'0':
+                sp = sp+1
+            if signe(x) < 0:
                 sp = sp-1
-                sp[0] = hexdigits[w & 15]
-                w = w>>4
-            xp = int_nextW(xp)
-        # remove leading zeros!
-        while sp[0] == c'0':
-            sp = sp+1
-        if signe(x) < 0:
-            sp = sp-1
-            sp[0] = c'-'
-        k = <object>sp
-        sig_free(s)
-        return k
-
+                sp[0] = c'-'
+                k = <object>sp
+                sig_free(s)
+            return k
+        
     def __int__(gen self):
         """
         Convert ``self`` to a Python integer.
@@ -1442,7 +1443,7 @@ cdef class gen:
             sage: int(pari(0))
             0
             sage: int(pari(10))
-            10
+            1<0
             sage: int(pari(-10))
             -10
             sage: int(pari(123456789012345678901234567890))
@@ -1465,6 +1466,9 @@ cdef class gen:
         """
         return gen_to_integer(self)
 
+    IF PYTHON_MAJOR == 3:
+        __index__ = __int__
+
     def python_list_small(gen self):
         """
         Return a Python list of the PARI gens. This object must be of type
@@ -1476,8 +1480,8 @@ cdef class gen:
             sage: w = v.python_list_small()
             sage: w
             [1, 2, 3, 10, 102, 10]
-            sage: type(w[0])
-            <type 'int'>
+            sage: isinstance(w[0], int)
+            True
         """
         cdef long n
         if typ(self.g) != t_VECSMALL:
@@ -1503,8 +1507,8 @@ cdef class gen:
             sage: w = v.python_list()
             sage: w
             [1, 2, 3, 10, 102, 10]
-            sage: type(w[0])
-            <type 'sage.libs.pari.gen.gen'>
+            sage: isinstance(w[0], gen)
+            True
             sage: pari("[1,2,3]").python_list()
             [1, 2, 3]
 
@@ -3165,10 +3169,10 @@ cdef class gen:
             []
             sage: v = e.ellan(10, python_ints=True); v
             [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
-            sage: type(v)
-            <type 'list'>
-            sage: type(v[0])
-            <type 'int'>
+            sage: isinstance(v, list)
+            True
+            sage: isinstance(v[0], int)
+            True
         """
         sig_on()
         cdef GEN g = anell(self.g, n)
@@ -3208,18 +3212,18 @@ cdef class gen:
             sage: e = pari([0, -1, 1, -10, -20]).ellinit()
             sage: v = e.ellaplist(10); v
             [-2, -1, 1, -2]
-            sage: type(v)
-            <type 'sage.libs.pari.gen.gen'>
+            sage: isinstance(v, gen)
+            True
             sage: v.type()
             't_VEC'
             sage: e.ellan(10)
             [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
             sage: v = e.ellaplist(10, python_ints=True); v
             [-2, -1, 1, -2]
-            sage: type(v)
-            <type 'list'>
-            sage: type(v[0])
-            <type 'int'>
+            sage: isinstance(v, list)
+            True
+            sage: isinstance(v[0], int)
+            True
 
         TESTS::
 
@@ -3227,8 +3231,8 @@ cdef class gen:
             sage: v, type(v)
             ([], <type 'sage.libs.pari.gen.gen'>)
             sage: v = e.ellaplist(1, python_ints=True)
-            sage: v, type(v)
-            ([], <type 'list'>)
+            sage: v, isinstance(v, list)
+            ([], True)
         """
         if python_ints:
             return [int(x) for x in self.ellaplist(n)]

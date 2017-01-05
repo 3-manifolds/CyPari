@@ -19,13 +19,21 @@ import os, sys
 # case because 64 bit Windows has 32 bit longs, which the 64 bit
 # Pari deals with as:
 # #define long long long
-# thereby breaking lots of stuff.s 
-with open(os.path.join('cypari_src', 'win64'), 'wb') as output:
-    if sys.platform == 'win32' and sys.maxsize > 2**32:
-        output.write(bytes('DEF WIN64 = True\n'.encode('ascii')))
-    else:
-        output.write(bytes('DEF WIN64 = False\n'.encode('ascii')))
+# thereby breaking lots of stuff.s
 
+ct_constants = b''
+if sys.platform == 'win32' and sys.maxsize > 2**32:
+    ct_constants += b'DEF WIN64 = True\n'
+else:
+    ct_constants += b'DEF WIN64 = False\n'
+ct_filename = os.path.join('cypari_src', 'ct_constants') 
+ct_constants += b'DEF PYTHON_MAJOR = %d\n'%sys.version_info.major
+with open(ct_filename) as input:
+    old_file = input.read().encode('ascii')
+if old_file != ct_constants:
+    with open(ct_filename, 'wb') as output:
+        output.write(ct_constants)
+    
 compiler_name = None
 for arg in sys.argv:
     if arg.startswith('--compiler='):
