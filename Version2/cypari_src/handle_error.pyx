@@ -62,9 +62,10 @@ class PariError(RuntimeError):
 
         """
         result = self.args[1]
-        if not isinstance(result, str):
-            result = result.decode('ascii')
-        return result
+        IF PYTHON_MAJOR < 3:
+            return result
+        ELSE:
+            return String(result)
 
     def errdata(self):
         """

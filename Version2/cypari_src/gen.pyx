@@ -90,11 +90,22 @@ from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
 
-include "cypari_src/ct_constants"
+include "cypari_src/ct_constants.pxi"
 IF WIN64:
     ctypedef long long pari_longword
 ELSE:
     ctypedef long pari_longword
+
+cdef String(x):
+    """
+    Return a string from either a string or bytes object, using ascii.
+    """
+    if isinstance(x, str):
+        return x
+    elif isinstance(x, bytes):
+        return x.decode('ascii')
+    else:
+        raise ValueError('Neither a str nor a bytes object.')
 
 IF SAGE:
     pass
@@ -157,11 +168,9 @@ cdef class gen:
         sig_unblock()
         sig_off()
 
-        s = c
-        if not isinstance(s, str): # i.e. a bytes object in Python 3
-            s = s.decode('ascii')
+        s = <bytes>c
         pari_free(c)
-        return s
+        return String(s)
 
     def __str__(self):
         """
