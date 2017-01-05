@@ -1,11 +1,18 @@
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
+import sys
 
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
-        #string, num = re.subn('([\n\A]\s*)sage:', '\g<1>>>>', string)
-        #string, num = re.subn('\.\.\.\.:', '...', string)
+        if sys.maxsize > 2**32:
+            string = re.sub(r'[\n\A].*# 32-bit.*', '', string)
+            string = re.sub(r'([\n\A].*?)\s+# 64-bit.*', '\g<1>', string)
+        else:
+            string = re.sub(r'[\n\A].# 64-bit.*', '', string)
+            string = re.sub(r'([\n\A].*?)\s+# 32-bit.*', '\g<1>', string)
+        if sys.version_info.major < 3:
+            string = re.sub('cypari_src.gen.PariError', 'PariError', string)
         return doctest.DocTestParser.parse(self, string, name)
 
 extra_globals = dict([('pari', gen.pari)])    

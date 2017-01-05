@@ -1261,7 +1261,7 @@ cdef class PariInstance(PariInstance_base):
                 return varno
         if v == -1:
             return -1
-        cdef bytes s = bytes(v)
+        cdef bytes s = v.encode('ascii')
         sig_on()
         varno = fetch_user_var(s)
         sig_off()
