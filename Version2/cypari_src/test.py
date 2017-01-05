@@ -1,11 +1,11 @@
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
-    
+
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
-        string, num = re.subn('([\n\A]\s*)sage:', '\g<1>>>>', string)
-        string, num = re.subn('\.\.\.\.:', '...', string)
+        #string, num = re.subn('([\n\A]\s*)sage:', '\g<1>>>>', string)
+        #string, num = re.subn('\.\.\.\.:', '...', string)
         return doctest.DocTestParser.parse(self, string, name)
 
 extra_globals = dict([('pari', gen.pari)])    
@@ -31,10 +31,10 @@ if __name__ == '__main__':
     for module, extra_globals in modules_to_test:
         for test in finder.find(module, extraglobs=extra_globals):
             runner.run(test)
-        result = runner.summarize()
-        print(result)
-        failed += result.failed
-        attempted += result.attempted
+            result = runner.summarize()
+            print(result)
+            failed += result.failed
+            attempted += result.attempted
     print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
 
 

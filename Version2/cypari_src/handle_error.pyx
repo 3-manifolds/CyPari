@@ -61,7 +61,10 @@ class PariError(RuntimeError):
             not a function in function call
 
         """
-        return self.args[1]
+        result = self.args[1]
+        if not isinstance(result, str):
+            result = result.decode('ascii')
+        return result
 
     def errdata(self):
         """
@@ -71,7 +74,7 @@ class PariError(RuntimeError):
         EXAMPLES::
 
             sage: try:
-            ....:     pari(Mod(2,6))^-1
+            ....:     pari('Mod(2,6)^-1')
             ....: except PariError as e:
             ....:     E = e.errdata()
             sage: E
@@ -110,7 +113,7 @@ class PariError(RuntimeError):
             sage: pari('!@#$%^&*()')
             Traceback (most recent call last):
             ...
-            PariError: syntax error, unexpected $undefined
+            cypari_src.gen.PariError: syntax error, unexpected $undefined
         """
         return self.errtext().rstrip(" .:")
 

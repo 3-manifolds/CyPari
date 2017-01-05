@@ -1353,16 +1353,16 @@ General number fields::
     >>> G.galoisisnormal(L[2])
     0
 
-    Xsage: F = QuadraticField(5, 'alpha')
-    Xsage: nf = F._pari_()
-    Xsage: P = F.ideal(F.gen())
-    Xsage: Q = F.ideal(2)
-    Xsage: moduli = pari.matrix(2,2,[P.pari_prime(),4,Q.pari_prime(),4])
-    Xsage: residues = pari.vector(2,[0,1])
-    Xsage: b = F(nf.idealchinese(moduli,residues))
-    Xsage: b.valuation(P) >= 4
+    sage: F = QuadraticField(5, 'alpha')
+    sage: nf = F._pari_()
+    sage: P = F.ideal(F.gen())
+    sage: Q = F.ideal(2)
+    sage: moduli = pari.matrix(2,2,[P.pari_prime(),4,Q.pari_prime(),4])
+    sage: residues = pari.vector(2,[0,1])
+    sage: b = F(nf.idealchinese(moduli,residues))
+    sage: b.valuation(P) >= 4
     True
-    Xsage: (b-1).valuation(Q) >= 2
+    sage: (b-1).valuation(Q) >= 2
     True
     >>> nf = pari('y^2 - 5').nfinit()
     >>> P = nf.idealprimedec(5)[0]
@@ -1376,8 +1376,8 @@ General number fields::
     >>> nf.idealval(b-1, Q) >= 2
     True
 
-    Xsage: F = NumberField(x^3-2, 'alpha')
-    Xsage: nf = F._pari_()
+    sage: F = NumberField(x^3-2, 'alpha')
+    sage: nf = F._pari_()
     >>> nf = pari('x^3 - 2').nfinit()
     >>> x = pari('[2, -2, 2]~')
     >>> y = pari('[4, -4, 4]~')
@@ -1388,9 +1388,9 @@ General number fields::
     >>> nf.idealcoprime(x, y)
     [-1/2, 0, 1/2]~
 
-    Xsage: R.<x> = PolynomialRing(QQ)
-    Xsage: K.<a> = NumberField(x^2 + 1)
-    Xsage: L = K.pari_nf().ideallist(100)
+    sage: R.<x> = PolynomialRing(QQ)
+    sage: K.<a> = NumberField(x^2 + 1)
+    sage: L = K.pari_nf().ideallist(100)
     >>> K = pari('x^2 + 1').nfinit()
     >>> L = K.ideallist(100)
     >>> L[0]   # One ideal of norm 1.
@@ -1398,33 +1398,33 @@ General number fields::
     >>> L[64]  # 4 ideals of norm 65.
     [[65, 8; 0, 1], [65, 47; 0, 1], [65, 18; 0, 1], [65, 57; 0, 1]]
 
-    Xsage: F = NumberField(x^3-2, 'alpha')
-    Xsage: nf = F._pari_()
+    sage: F = NumberField(x^3-2, 'alpha')
+    sage: nf = F._pari_()
     >>> nf = pari('x^3-2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> bid = nf.idealstar(I)
     >>> nf.ideallog(5, bid)
     [25]~
 
-    Xsage: K.<i> = QuadraticField(-1)
-    Xsage: F = pari(K).idealprimedec(5); F
+    sage: K.<i> = QuadraticField(-1)
+    sage: F = pari(K).idealprimedec(5); F
     >>> K = pari('x^2 + 1').nfinit()
     >>> F = K.idealprimedec(5); F
     [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]]]
     >>> F[0].pr_get_p()
     5
 
-    Xsage: x = polygen(ZZ)
-    Xsage: F = NumberField(x^3 - 2, 'alpha')
-    Xsage: nf = F._pari_()
+    sage: x = polygen(ZZ)
+    sage: F = NumberField(x^3 - 2, 'alpha')
+    sage: nf = F._pari_()
     >>> nf = pari('x^3 - 2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> nf.idealstar(I)
     [[[43, 9, 5; 0, 1, 0; 0, 0, 1], [0]], [42, [42]], Mat([[43, [9, 1, 0]~, 1, 1, [-5, 2, -18; -9, -5, 2; 1, -9, -5]], 1]), [[[[[42], [3], [3], [Vecsmall([])], 1, [43, 9, 5; 0, 1, 0; 0, 0, 1]]]], [[], [], [], Vecsmall([])], Vecsmall([0])], Mat(1)]
 
-    Xsage: x = polygen(QQ)
-    Xsage: K.<a> = NumberField(x^3 - 17)
-    Xsage: Kpari = K.pari_nf()
+    sage: x = polygen(QQ)
+    sage: K.<a> = NumberField(x^3 - 17)
+    sage: Kpari = K.pari_nf()
     >>> Kpari = pari('y^3 - 17').nfinit()
     >>> Kpari.getattr('zk')
     [1, 1/3*y^2 - 1/3*y + 1/3, y]
@@ -1442,13 +1442,13 @@ General number fields::
     >>> k.nfeltdiveuc(x, y)
     [2, -2]~
 
-    Xsage: x = polygen(ZZ)
-    Xsage: k.<a> = NumberField(x^2 + 5)
-    Xsage: I = k.ideal(a)
-    Xsage: kp = pari(k)
-    Xsage: kp.nfeltreduce(12, I.pari_hnf())
+    sage: x = polygen(ZZ)
+    sage: k.<a> = NumberField(x^2 + 5)
+    sage: I = k.ideal(a)
+    sage: kp = pari(k)
+    sage: kp.nfeltreduce(12, I.pari_hnf())
     [2, 0]~
-    Xsage: 12 - k(kp.nfeltreduce(12, I.pari_hnf())) in I
+    sage: 12 - k(kp.nfeltreduce(12, I.pari_hnf())) in I
     True
 
     >>> x = pari('x')
@@ -1481,8 +1481,8 @@ General number fields::
     >>> pari(K).nfhilbert(t, t + 2, P)
     1
 
-    Xsage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
-    Xsage: Fp.nfhnf([pari(A),[pari(P) for P in I]])
+    sage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
+    sage: Fp.nfhnf([pari(A),[pari(P) for P in I]])
 
     >>> Fp = pari('a^2-a-1').nfinit()
     >>> a = pari('a')
