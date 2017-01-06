@@ -1927,11 +1927,27 @@ cdef class gen:
             9223372036854775807   # 64-bit
             sage: int(pari(RealField(63)(2^63+2)))
             9223372036854775810L
+
+        >>> int(pari(0))
+        0
+        >>> int(pari(10))
+        10
+        >>> int(pari(-10))
+        -10
+        >>> int(pari("2^31-1"))
+        2147483647
+        >>> int(pari("-2^31"))
+        -2147483648
+        >>> int(pari("Pol(10)"))
+        10
+        >>> int(pari("Mod(2, 7)"))
+        2
         """
         return gen_to_integer(self)
 
-    IF PYTHON_MAJOR == 3:
-        __index__ = __int__
+    IF PYTHON_MAJOR > 2:
+        def __index__(self):
+            return self.__int__()
 
     def python_list_small(gen self):
         """
