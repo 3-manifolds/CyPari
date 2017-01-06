@@ -2,6 +2,10 @@ import doctest, re, getopt, sys
 from . import tests
 from . import gen
 import sys
+if sys.version_info.major == 2:
+    from . import py2tests
+else:
+    from . import py3tests
 
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
