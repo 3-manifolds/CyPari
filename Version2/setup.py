@@ -61,7 +61,8 @@ class Clean(Command):
         os.system('rm -if cypari_src/*.so*')
         os.system('rm -if cypari_src/gen.c')
         os.system('rm -if cypari_src/gen_api.h')
-        
+        os.system('rm -if cypari_src/auto*.pxi')
+
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
         build_ext.__init__(self, dist)
