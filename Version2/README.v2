@@ -29,8 +29,12 @@ usual commands:
 python setup.py build
 python setup.py install
 
-Note that the future module is required for Python 2.
-(pip install future).
+Note that the future module is required for Python 2.  (Install with
+pip install future).  Also, it is necessary to build for Python 2
+before building for Python3.  This is because the scripts in autogen
+are not (yet) compatible with Python 3.  Building with Python 2 will
+install auto_gen.pxi and auto_instance.pxi which can then be used
+to build for Python 3.
 
 Building on Windows expects you to have a working msys2 system with a
 mingw32 toolchain that has been modified as described in the file
