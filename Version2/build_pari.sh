@@ -41,6 +41,7 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     cd ..
     echo Patching paricfg.h for dual architectures
     patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
+    cd pari_src
 else
     if [ $(uname | cut -b -5) = "MINGW" ] ; then
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'

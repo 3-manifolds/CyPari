@@ -251,15 +251,15 @@ cdef GEN PyLong_AsGEN(x):
     bit = bit % PyLong_SHIFT
 
     cdef ulong w = <ulong>(D[dgt]) >> bit
-    if 1*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+1 < sizedigits:
+    if 1*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+1 < <ulong>sizedigits:
         w += <ulong>(D[dgt+1]) << (1*PyLong_SHIFT - bit)
-    if 2*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+2 < sizedigits:
+    if 2*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+2 < <ulong>sizedigits:
         w += <ulong>(D[dgt+2]) << (2*PyLong_SHIFT - bit)
-    if 3*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+3 < sizedigits:
+    if 3*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+3 < <ulong>sizedigits:
         w += <ulong>(D[dgt+3]) << (3*PyLong_SHIFT - bit)
-    if 4*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+4 < sizedigits:
+    if 4*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+4 < <ulong>sizedigits:
         w += <ulong>(D[dgt+4]) << (4*PyLong_SHIFT - bit)
-    if 5*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+5 < sizedigits:
+    if 5*PyLong_SHIFT - bit < BITS_IN_LONG and dgt+5 < <ulong>sizedigits:
         w += <ulong>(D[dgt+5]) << (5*PyLong_SHIFT - bit)
 
     # Effective size in words plus 2 special codewords
