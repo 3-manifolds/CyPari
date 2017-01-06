@@ -930,6 +930,12 @@ cdef class gen:
             [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], 1; [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]], 1]
             sage: F[0,0].pr_get_p()
             5
+
+        >>> K = pari('x^2 + 1').nfinit()
+        >>> F = K.idealfactor(5); F
+        [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], 1; [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]], 1]
+        >>> F[0,0].pr_get_p()
+        5
         """
         sig_on()
         return P.new_gen(pr_get_p(self.g))
@@ -1000,6 +1006,14 @@ cdef class gen:
             sage: g = pari(K).idealfactor(K.ideal(5))[0,0].pr_get_gen(); g; K(g)
             [-2, 1]~
             i - 2
+
+        >>> K = pari('x^2 +  1').nfinit()
+        >>> g = K.idealfactor(2)[0,0].pr_get_gen(); g
+        [1, 1]~
+        >>> g = K.idealfactor(3)[0,0].pr_get_gen(); g
+        [3, 0]~
+        >>> g = K.idealfactor(5)[0,0].pr_get_gen(); g
+        [-2, 1]~
         """
         sig_on()
         return P.new_gen(pr_get_gen(self.g))
@@ -1018,6 +1032,12 @@ cdef class gen:
             sage: J = pari(K).idealstar(K.ideal(4*i + 2))
             sage: J.bid_get_cyc()
             [4, 2]
+
+        >>> i = pari('i')
+        >>> K = pari(i**2 + 1).nfinit()
+        >>> J = K.idealstar(4*i + 2)
+        >>> J.bid_get_cyc()
+        [4, 2]
         """
         sig_on()
         return P.new_gen(bid_get_cyc(self.g))
@@ -1045,6 +1065,17 @@ cdef class gen:
             Traceback (most recent call last):
             ...
             PariError: missing bid generators. Use idealstar(,,2)
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).nfinit()
+        >>> J = K.idealstar(4*i + 2, 2)
+        >>> J.bid_get_gen()
+        [7, [-2, -1]~]
+        >>> J = K.idealstar(3)
+        >>> J.bid_get_gen()
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: missing bid generators. Use idealstar(,,2)
         """
         sig_on()
         return P.new_gen(bid_get_gen(self.g))
@@ -1105,7 +1136,7 @@ cdef class gen:
             3
             sage: isinstance(sv[2], int)
             True
-            sage: tuple(pari(3/5))
+            sage: tuple(pari('3/5'))
             (3, 5)
             sage: tuple(pari('1 + 5*I'))
             (1, 5)
@@ -1117,7 +1148,7 @@ cdef class gen:
             TypeError: PARI object of type 't_INT' cannot be indexed
             sage: m = pari("[[1,2;3,4],5]") ; m[0][1,0]
             3
-            sage: v = pari(range(20))
+            sage: v = pari(list(range(20)))
             sage: v[2:5]
             [2, 3, 4]
             sage: v[:]
@@ -1138,6 +1169,88 @@ cdef class gen:
             [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
             sage: pari([])[::]
             []
+
+        >>> p = pari('1 + 2*x + 3*x^2')
+        >>> p[0]
+        1
+        >>> p[2]
+        3
+        >>> p[100]
+        0
+        >>> p[-1]
+        0
+        >>> q = pari('x^2 + 3*x^3 + O(x^6)')
+        >>> q[3]
+        3
+        >>> q[5]
+        0
+        >>> q[6]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> m = pari('[1,2;3,4]')
+        >>> m[0]
+        [1, 3]~
+        >>> m[1,0]
+        3
+        >>> l = pari('List([1,2,3])')
+        >>> l[1]
+        2
+        >>> s = pari('"hello, world!"')
+        >>> s[0]
+        'h'
+        >>> s[4]
+        'o'
+        >>> s[12]
+        '!'
+        >>> s[13]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> v = pari('[1,2,3]')
+        >>> v[0]
+        1
+        >>> c = pari('Col([1,2,3])')
+        >>> c[1]
+        2
+        >>> sv = pari('Vecsmall([1,2,3])')
+        >>> sv[2]
+        3
+        >>> isinstance(sv[2], int)
+        True
+        >>> tuple(pari('3/5'))
+        (3, 5)
+        >>> tuple(pari('1 + 5*I'))
+        (1, 5)
+        >>> tuple(pari('Qfb(1, 2, 3)'))
+        (1, 2, 3)
+        >>> pari(57)[0]
+        Traceback (most recent call last):
+        ...
+        TypeError: PARI object of type 't_INT' cannot be indexed
+        >>> m = pari("[[1,2;3,4],5]") ; m[0][1,0]
+        3
+        >>> v = pari(list(range(20)))
+        >>> v[2:5]
+        [2, 3, 4]
+        >>> v[:]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[10:]
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[:5]
+        [0, 1, 2, 3, 4]
+        >>> v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[-1]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> v[:-3]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        >>> v[5:]
+        [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> pari([])[::]
+        []
         """
         cdef int pari_type
 
@@ -1343,6 +1456,51 @@ cdef class gen:
             [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
             sage: isinstance(v[0], gen)
             True
+
+        >>> v = pari(list(range(10)))
+        >>> v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[0] = 10
+        >>> w = pari([5,8,-20])
+        >>> v
+        [10, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[1] = w
+        >>> v
+        [10, [5, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> w[0] = -30
+        >>> v
+        [10, [-30, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> t = v[1]; t[1] = 10 ; v
+        [10, [-30, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[1][0] = 54321 ; v
+        [10, [54321, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> w
+        [54321, 10, -20]
+        >>> v = pari([[[[0,1],2],3],4]) ; v[0][0][0][1] = 12 ; v
+        [[[[0, 12], 2], 3], 4]
+        >>> m = pari("[[1,2;3,4],5,6]") ; m[0][1,1] = 11 ; m
+        [[1, 2; 3, 11], 5, 6]
+        >>> s=pari.vector(2,[0,0])
+        >>> s[:1]
+        [0]
+        >>> s[:1]=[1]
+        >>> s
+        [1, 0]
+        >>> isinstance(s[0], gen)
+        True
+        >>> s = pari(list(range(20))) ; s
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> s[0:10:2] = list(range(50,55)) ; s
+        [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> s[10:20:3] = list(range(100,150)) ; s
+        [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 100, 11, 12, 101, 14, 15, 102, 17, 18, 103]
+        >>> v = pari(list(range(10))) ; v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[:] = list(range(20,30))
+        >>> v
+        [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        >>> isinstance(v[0], gen)
+        True
         """
         cdef int i, j
         cdef gen x = objtogen(y)
