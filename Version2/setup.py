@@ -29,7 +29,7 @@ if sys.platform == 'win32' and sys.maxsize > 2**32:
 else:
     ct_constants += b'DEF WIN64 = False\n'
 ct_filename = os.path.join('cypari_src', 'ct_constants.pxi') 
-ct_constants += b'DEF PYTHON_MAJOR = %d\n'%sys.version_info.major
+ct_constants += ('DEF PYTHON_MAJOR = %d\n'%sys.version_info.major).encode('ascii')
 if os.path.exists(ct_filename):
     with open(ct_filename) as input:
         old_file = input.read().encode('ascii')
@@ -116,6 +116,7 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'},
+    install_requires = ['future'],
     cmdclass = {'clean':Clean, 'build_ext':CyPariBuildExt},
     ext_modules = cypari_extensions,
     zip_safe = False,
