@@ -1628,6 +1628,49 @@ cdef class gen:
             True
             sage: pari('O(2)') == 0
             True
+
+        >>> a = pari(5)
+        >>> b = 10
+        >>> a < b
+        True
+        >>> a <= b
+        True
+        >>> a <= 5
+        True
+        >>> a > b
+        False
+        >>> a >= b
+        False
+        >>> a >= pari(10)
+        False
+        >>> a == 5
+        True
+        >>> a is 5
+        False
+        >>> pari(2.5) > None
+        True
+        >>> pari(3) == pari(3)
+        True
+        >>> pari("x^2 + 1") == pari("I-1")
+        False
+        >>> pari("I") == pari("I")
+        True
+        >>> pari("Mod(1,3)") <= pari("Mod(2,3)")
+        Traceback (most recent call last):
+        ...
+        cypar_src.gen.PariError: forbidden comparison t_INTMOD , t_INTMOD
+        >>> pari("[0]") <= pari("0")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: forbidden comparison t_VEC (1 elts) , t_INT
+        >>> pari('1/2') < pari('1/3')
+        False
+        >>> pari(1) < pari('1/2')
+        False
+        >>> pari('O(x)') == 0
+        True
+        >>> pari('O(2)') == 0
+        True
         """
         cdef gen t0, t1
         try:
@@ -1654,69 +1697,117 @@ cdef class gen:
         sig_off()
         return r
 
-    def __cmp__(gen self, gen other):
-        """
-        Compare ``left`` and ``right``.
+    IF PYTHON_MAJOR < 3:
+        def __cmp__(gen self, gen other):
+            """
+            Compare ``left`` and ``right``.
+    
+            This uses PARI's ``cmp_universal()`` routine, which defines
+            a total ordering on the set of all PARI objects (up to the
+            indistinguishability relation given by ``gidentical()``).
+    
+            .. WARNING::
+    
+                This comparison is only mathematically meaningful when
+                comparing 2 integers. In particular, when comparing
+                rationals or reals, this does not correspond to the natural
+                ordering.
+    
+            EXAMPLES::
+    
+                sage: cmp(pari(5), 5)
+                0
+                sage: cmp(pari(5), 10)
+                -1
+                sage: cmp(pari(2.5), None)
+                1
+                sage: cmp(pari(3), pari(3))
+                0
+                sage: cmp(pari('x^2 + 1'), pari('I-1'))
+                1
+                sage: cmp(pari(I), pari(I))
+                0
+    
+            Beware when comparing rationals or reals::
+    
+                sage: cmp(pari(2/3), pari(2/5))
+                -1
+                sage: two = RealField(256)(2)._pari_()
+                sage: cmp(two, pari(1.0))
+                1
+                sage: cmp(two, pari(2.0))
+                1
+                sage: cmp(two, pari(3.0))
+                1
+    
+            Since :trac:`17026`, different elements with the same string
+            representation can be distinguished by ``cmp()``::
+    
+                sage: a = pari(0); a
+                0
+                sage: b = pari("0*ffgen(ffinit(29, 10))"); b
+                0
+                sage: cmp(a, b)
+                -1
+    
+                sage: x = pari("x"); x
+                x
+                sage: y = pari("ffgen(ffinit(3, 5))"); y
+                x
+                sage: cmp(x, y)
+                1
 
-        This uses PARI's ``cmp_universal()`` routine, which defines
-        a total ordering on the set of all PARI objects (up to the
-        indistinguishability relation given by ``gidentical()``).
-
-        .. WARNING::
-
-            This comparison is only mathematically meaningful when
-            comparing 2 integers. In particular, when comparing
-            rationals or reals, this does not correspond to the natural
-            ordering.
-
-        EXAMPLES::
-
-            sage: cmp(pari(5), 5)
+            Doctests for Python 2:
+            >>> cmp(pari(5), 5)
             0
-            sage: cmp(pari(5), 10)
+            >>> cmp(pari(5), 10)
             -1
-            sage: cmp(pari(2.5), None)
+            >>> cmp(pari(2.5), None)
             1
-            sage: cmp(pari(3), pari(3))
+            >>> cmp(pari(3), pari(3))
             0
-            sage: cmp(pari('x^2 + 1'), pari('I-1'))
+            >>> cmp(pari('x^2 + 1'), pari('I-1'))
             1
-            sage: cmp(pari(I), pari(I))
+            >>> cmp(pari('I'), pari('I'))
             0
-
-        Beware when comparing rationals or reals::
-
-            sage: cmp(pari(2/3), pari(2/5))
+            >>> cmp(pari('2/3'), pari('2/5'))
             -1
-            sage: two = RealField(256)(2)._pari_()
-            sage: cmp(two, pari(1.0))
+            >>> old_prec = pari.set_real_precision(256)
+            >>> two = pari('2.0')
+            >>> cmp(two, pari(1.0))
             1
-            sage: cmp(two, pari(2.0))
+            >>> cmp(two, pari(2.0))
             1
-            sage: cmp(two, pari(3.0))
+            >>> cmp(two, pari(3.0))
             1
-
-        Since :trac:`17026`, different elements with the same string
-        representation can be distinguished by ``cmp()``::
-
-            sage: a = pari(0); a
+            >>> _ = pari.set_real_precision(old_prec)
+            >>> a = pari(0); a
             0
-            sage: b = pari("0*ffgen(ffinit(29, 10))"); b
+            >>> b = pari("0*ffgen(ffinit(29, 10))"); b
             0
-            sage: cmp(a, b)
+            >>> cmp(a, b)
             -1
-
-            sage: x = pari("x"); x
+            >>> x = pari("x"); x
             x
-            sage: y = pari("ffgen(ffinit(3, 5))"); y
+            >>> y = pari("ffgen(ffinit(3, 5))"); y
             x
-            sage: cmp(x, y)
+            >>> cmp(x, y)
             1
-        """
-        sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
-        sig_off()
-        return r
+            """
+            sig_on()
+            cdef int r = cmp_universal(self.g, other.g)
+            sig_off()
+            return r
+    ELSE:
+        def cmp_universal(gen self, gen other):
+            """
+            Provide access to Pari's cmp_universal function in Python 3.  In
+            Python 2 cmp_universal is used by the __cmp__ method.
+            """
+            sig_on()
+            cdef int r = cmp_universal(self.g, other.g)
+            sig_off()
+            return r
 
     def __copy__(gen self):
         sig_on()
