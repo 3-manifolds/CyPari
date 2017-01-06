@@ -551,6 +551,17 @@ cdef class gen:
             7.88860905221012 E-31
             sage: int(33) >> pari(2)
             8
+
+        >>> pari(25) >> 3
+        3
+        >>> pari("25/2") >> 2
+        25/8
+        >>> pari("x") >> 3
+        1/8*x
+        >>> pari(1.0) >> 100
+        7.88860905221012 E-31
+        >>> int(33) >> pari(2)
+        8
         """
         cdef gen t0 = objtogen(self)
         sig_on()
@@ -572,6 +583,17 @@ cdef class gen:
             1.26765060022823 E30
             sage: int(33) << pari(2)
             132
+
+        >>> pari(25) << 3
+        200
+        >>> pari("25/32") << 2
+        25/8
+        >>> pari("x") << 3
+        8*x
+        >>> pari(1.0) << 100
+        1.26765060022823 E30
+        >>> int(33) << pari(2)
+        132
         """
         cdef gen t0 = objtogen(self)
         sig_on()
@@ -601,6 +623,21 @@ cdef class gen:
             Traceback (most recent call last):
             ...
             PariError: not a function in function call
+
+        >>> K = pari("nfinit(x^2 - x - 1)")
+        >>> K.getattr("pol")
+        x^2 - x - 1
+        >>> K.getattr("disc")
+        5
+
+        >>> K.getattr("reg")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: _.reg: incorrect type in reg (t_VEC)
+        >>> K.getattr("zzz")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: not a function in function call
         """
         cdef bytes s = ("_." + attr).encode('ascii')
         cdef char *t = s
@@ -621,6 +658,15 @@ cdef class gen:
             Traceback (most recent call last):
             ...
             TypeError: Not an INTMOD or POLMOD in mod()
+
+        >>> pari('Mod(4,5)').mod()
+        5
+        >>> pari("Mod(x, x*y)").mod()
+        y*x
+        >>> pari("[Mod(4,5)]").mod()
+        Traceback (most recent call last):
+        ...
+        TypeError: Not an INTMOD or POLMOD in mod()
         """
         if typ(self.g) != t_INTMOD and typ(self.g) != t_POLMOD:
             raise TypeError("Not an INTMOD or POLMOD in mod()")
@@ -648,6 +694,13 @@ cdef class gen:
             sage: bnr.nf_get_pol()
             x^4 - 4*x^2 + 1
 
+        >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
+        >>> K.nf_get_pol()
+        x^4 - 4*x^2 + 1
+        >>> bnr = pari("K = bnfinit(x^4 - 4*x^2 + 1); bnrinit(K, 2*x)")
+        >>> bnr.nf_get_pol()
+        x^4 - 4*x^2 + 1
+
         For relative number fields, this returns the relative
         polynomial. However, beware that ``pari(L)`` returns an absolute
         number field::
@@ -658,6 +711,12 @@ cdef class gen:
             sage: L.pari_rnf().nf_get_pol()   # Relative
             x^2 - 5
 
+        >>> y = pari.varhigher(pari('y'), pari('x'))
+        >>> L = K.rnfinit(K.rnfequation(y**2 - 5, 0), 0)
+        >>> L.nf_get_pol()
+        y^8 - 28*y^6 + 208*y^4 - 408*y^2 + 36
+
+
         TESTS::
 
             sage: x = polygen(QQ)
@@ -667,6 +726,13 @@ cdef class gen:
             sage: K.pari_bnf().nf_get_pol()
             y^4 - 4*y^2 + 1
 
+        >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
+        >>> K.nf_get_pol()
+        x^4 - 4*x^2 + 1
+        >>> K = pari('x^4 - 4*x^2 + 1').bnfinit()
+        >>> K.nf_get_pol()
+        x^4 - 4*x^2 + 1
+
         An error is raised for invalid input::
 
             sage: pari("[0]").nf_get_pol()
@@ -674,6 +740,10 @@ cdef class gen:
             ...
             PariError: incorrect type in pol (t_VEC)
 
+        >>> pari("[0]").nf_get_pol()
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: incorrect type in pol (t_VEC)
         """
         sig_on()
         return P.new_gen(member_pol(self.g))
@@ -692,6 +762,10 @@ cdef class gen:
             sage: K.<a> = NumberField(x^4 - 4*x^2 + 1)
             sage: pari(K).nf_get_diff()
             [12, 0, 0, 0; 0, 12, 8, 0; 0, 0, 4, 0; 0, 0, 0, 4]
+
+        >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
+        >>> K.nf_get_diff()
+        [12, 0, 0, 0; 0, 12, 8, 0; 0, 0, 4, 0; 0, 0, 0, 4]
         """
         sig_on()
         return P.new_gen(member_diff(self.g))
@@ -712,11 +786,18 @@ cdef class gen:
             sage: K.<a> = NumberField(x^4 - 4*x^2 + 1)
             sage: s = K.pari_nf().nf_get_sign(); s
             [4, 0]
-            sage: isinstance(s, list); isinstace(s[0], int)
+            sage: isinstance(s, list); isinstance(s[0], int)
             True
             True
             sage: CyclotomicField(15).pari_nf().nf_get_sign()
             [0, 4]
+
+        >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
+        >>> s = K.nf_get_sign(); s
+        [4, 0]
+        >>> isinstance(s, list); isinstance(s[0], int)
+        True
+        True
         """
         cdef long r1
         cdef long r2
@@ -743,6 +824,10 @@ cdef class gen:
             sage: K.<a> = NumberField(x^4 - 4*x^2 + 1)
             sage: pari(K).nf_get_zk()
             [1, y, y^3 - 4*y, y^2 - 2]
+
+        >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
+        >>> K.nf_get_zk()
+        [1, x, x^3 - 4*x, x^2 - 2]
         """
         sig_on()
         return P.new_gen(member_zk(self.g))
@@ -756,6 +841,10 @@ cdef class gen:
             sage: K.<a> = QuadraticField(-65)
             sage: K.pari_bnf().bnf_get_no()
             8
+
+        >>> K = pari('x^2 + 65').bnfinit()
+        >>> K.bnf_get_no()
+        8
         """
         sig_on()
         return P.new_gen(bnf_get_no(self.g))
@@ -772,6 +861,10 @@ cdef class gen:
             sage: K.<a> = QuadraticField(-65)
             sage: K.pari_bnf().bnf_get_cyc()
             [4, 2]
+
+        >>> K = pari('x^2 + 65').bnfinit()
+        >>> K.bnf_get_cyc()
+        [4, 2]
         """
         sig_on()
         return P.new_gen(bnf_get_cyc(self.g))
@@ -790,6 +883,12 @@ cdef class gen:
             [[3, 2; 0, 1], [2, 1; 0, 1]]
             sage: [K.ideal(J) for J in G]
             [Fractional ideal (3, a + 2), Fractional ideal (2, a + 1)]
+
+        >>> K  = pari('x^2 + 65').bnfinit()
+        >>> G = K.bnf_get_gen(); G
+        [[3, 2; 0, 1], [2, 1; 0, 1]]
+        >>> K.idealstar(G[0])[2]
+        Mat([[3, [-1, 1]~, 1, 1, [1, -65; 1, 1]], 1])
         """
         sig_on()
         return P.new_gen(bnf_get_gen(self.g))
@@ -805,6 +904,10 @@ cdef class gen:
             sage: K.<a> = NumberField(x^4 - 4*x^2 + 1)
             sage: K.pari_bnf().bnf_get_reg()
             2.66089858019037...
+
+        >>> K = pari('x^4 - 4*x^2 + 1').bnfinit()
+        >>> K.bnf_get_reg()
+        2.66089858019037
         """
         sig_on()
         return P.new_gen(bnf_get_reg(self.g))

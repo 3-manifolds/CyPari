@@ -214,7 +214,7 @@ class PariArgumentString(PariArgumentObject):
         return "str"
     def convert_code(self):
         if self.default is None:
-            s  = "        {name} = str({name})\n"
+            s  = "        {name} = str({name}).encode('ascii')\n"
             s += "        cdef char* {tmp} = <bytes?>{name}\n"
         else:
             s  = "        cdef char* {tmp}\n"
