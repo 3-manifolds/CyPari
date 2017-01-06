@@ -45,12 +45,20 @@ Now it takes much less than a second::
     sage: pari.allocatemem(200000, silent=False)
     PARI stack size set to 200000 bytes, maximum size set to ...
 
-    #sage: x = polygen(ZpFM(3,10))
-    #sage: pari(pol).poldisc()
+    sage: x = polygen(ZpFM(3,10))
+    sage: pari(pol).poldisc()
 
     sage: pol = pari('(x-1)^50 + x + O(3^10)')
     sage: pol.poldisc()
     2*3 + 3^4 + 2*3^6 + 3^7 + 2*3^8 + 2*3^9 + O(3^10)
+
+>>> pari.allocatemem(200000, silent=False)
+PARI stack size set to 200000 bytes, maximum size set to ...
+
+>>> pol = pari('(x-1)^50 + x + O(3^10)')
+>>> pol.poldisc()
+2*3 + 3^4 + 2*3^6 + 3^7 + 2*3^8 + 2*3^9 + O(3^10)
+
 """
 
 #*****************************************************************************
@@ -158,6 +166,13 @@ cdef class gen:
             [1, 2; 3, 4]
             sage: pari('Str(hello)')
             "hello"
+
+        >>> pari('vector(5,i,i)')
+        [1, 2, 3, 4, 5]
+        >>> pari('[1,2;3,4]')
+        [1, 2; 3, 4]
+        >>> pari('Str(hello)')
+        "hello"
         """
         cdef char *c
         sig_on()
@@ -189,10 +204,18 @@ cdef class gen:
             [1, 2; 3, 4]
             sage: print(pari('Str(hello)'))
             hello
+
+        >>> print(pari('vector(5,i,i)'))
+        [1, 2, 3, 4, 5]
+        >>> print(pari('[1,2;3,4]'))
+        [1, 2; 3, 4]
+        >>> print(pari('Str(hello)'))
+        hello
+
         """
         # Use __repr__ except for strings
         if typ(self.g) == t_STR:
-            return GSTR(self.g)
+            return String(GSTR(self.g))
         return repr(self)
 
     def __hash__(self):
@@ -203,6 +226,9 @@ cdef class gen:
 
             sage: isinstance(pari('1 + 2.0*I').__hash__(), int)
             True
+
+        >>> isinstance(pari('1 + 2.0*I').__hash__(), int)
+        True
         """
         cdef long h
         sig_on()
@@ -226,10 +252,21 @@ cdef class gen:
             sage: isinstance(L[0], gen)
             True
 
+        >>> L = pari("vector(10,i,i^2)").list()
+        >>> L
+        [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+        >>> isinstance(L, list)
+        True
+        >>> isinstance(L[0], gen)
+        True
+
         For polynomials, list() behaves as for ordinary Sage polynomials::
 
             sage: pol = pari("x^3 + 5/3*x"); pol.list()
             [0, 5/3, 0, 1]
+
+        >>> pol = pari("x^3 + 5/3*x"); pol.list()
+        [0, 5/3, 0, 1]
 
         For power series or Laurent series, we get all coefficients starting
         from the lowest degree term.  This includes trailing zeros::
@@ -246,6 +283,11 @@ cdef class gen:
             sage: pari(s).list()
             [1, 0]
 
+        >>> pari('x^2 + O(x^8)').list()
+        [1, 0, 0, 0, 0, 0]
+        >>> pari('x^-2 + O(x^0)').list()
+        [1, 0]
+
         For matrices, we get a list of columns::
 
             sage: M = matrix(ZZ,3,2,[1,4,2,5,3,6]); M
@@ -255,10 +297,16 @@ cdef class gen:
             sage: pari(M).list()
             [[1, 2, 3]~, [4, 5, 6]~]
 
+        >>> pari('[1, 4; 2, 5; 3, 6]').list()
+        [[1, 2, 3]~, [4, 5, 6]~]
+
         For "scalar" types, we get a 1-element list containing ``self``::
 
             sage: pari("42").list()
             [42]
+
+        >>> pari("42").list()
+        [42]
         """
         if typ(self.g) == t_POL:
             return list(self.Vecrev())
@@ -274,6 +322,16 @@ cdef class gen:
             sage: f = pari('"hello world"')
             sage: loads(dumps(f)) == f
             True
+
+        >>> from pickle import loads, dumps
+        ... 
+        >>> f = pari('x^3 - 3')
+        >>> loads(dumps(f)) == f
+        True
+        >>> f = pari('"hello world"')
+        >>> loads(dumps(f)) == f
+        True
+
         """
         s = repr(self)
         return (objtogen, (s,))
@@ -292,6 +350,15 @@ cdef class gen:
             3.00000000000000 E20
             sage: int(-2) + pari(3)
             1
+
+        >>> pari(15) + pari(6)
+        21
+        >>> pari("x^3+x^2+x+1") + pari("x^2")
+        x^3 + 2*x^2 + x + 1
+        >>> 2e+20 + pari("1e20")
+        3.00000000000000 E20
+        >>> int(-2) + pari(3)
+        1
         """
         cdef gen t0, t1
         try:
@@ -316,6 +383,15 @@ cdef class gen:
             1.00000000000000 E20
             sage: int(-2) - pari(3)
             -5
+
+        >>> pari(15) - pari(6)
+        9
+        >>> pari("x^3+x^2+x+1") - pari("x^2")
+        x^3 + x + 1
+        >>> 2e+20 - pari("1e20")
+        1.00000000000000 E20
+        >>> int(-2) - pari(3)
+        -5
         """
         cdef gen t0, t1
         try:
@@ -370,6 +446,13 @@ cdef class gen:
             sage: n = pari('x^3')
             sage: n._add_one()
             x^3 + 1
+
+        >>> n = pari(5)
+        >>> n._add_one()
+        6
+        >>> n = pari('x^3')
+        >>> n._add_one()
+        x^3 + 1
         """
         sig_on()
         return P.new_gen(gaddsg(1, self.g))
@@ -388,6 +471,15 @@ cdef class gen:
             1
             sage: int(-2) % pari(3)
             1
+
+        >>> pari(15) % pari(6)
+        3
+        >>> pari("x^3+x^2+x+1") % pari("x^2")
+        x + 1
+        >>> pari(-2) % int(3)
+        1
+        >>> int(-2) % pari(3)
+        1
         """
         cdef gen t0, t1
         try:
@@ -415,6 +507,17 @@ cdef class gen:
             1/32
             sage: pari(2) ^ int(-5)
             1/32
+
+        >>> pari(5) ** pari(3)
+        125
+        >>> pari("x-1") ** 3
+        x^3 - 3*x^2 + 3*x - 1
+        >>> pow(pari(5), pari(28), int(29))
+        Mod(1, 29)
+        >>> int(2) ** pari(-5)
+        1/32
+        >>> pari(2) ** int(-5)
+        1/32
         """
         cdef gen t0, t1
         try:
