@@ -5239,6 +5239,12 @@ cdef class gen:
             [(1 + O(5^20))*x + (1 + O(5^20)), 2; (1 + O(5^20))*x + (4 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + O(5^20)), 2]
             sage: pari(pol).factorpadic(5,3)
             [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
+
+        >>> pol = pari('x^2 - 1')**2
+        >>> pol.factorpadic(5)
+        [(1 + O(5^20))*x + (1 + O(5^20)), 2; (1 + O(5^20))*x + (4 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + O(5^20)), 2]
+        >>> pol.factorpadic(5,3)
+        [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
         """
         cdef gen t0 = objtogen(p)
         sig_on()
@@ -5284,6 +5290,9 @@ cdef class gen:
 
             sage: pari('matrix(19,8)').ncols()
             8
+
+        >>> pari('matrix(19,8)').ncols()
+        8
         """
         cdef long n
         sig_on()
@@ -5299,6 +5308,9 @@ cdef class gen:
 
             sage: pari('matrix(19,8)').nrows()
             19
+
+        >>> pari('matrix(19,8)').nrows()
+        19
         """
         cdef long n
         sig_on()
@@ -5326,6 +5338,13 @@ cdef class gen:
             [1; 2; 3]
             sage: pari('[1,2,3]~').mattranspose()
             Mat([1, 2, 3])
+
+        >>> pari('[1,2,3; 4,5,6; 7,8,9]').mattranspose()
+        [1, 4, 7; 2, 5, 8; 3, 6, 9]
+        >>> pari('[1,2,3]').mattranspose()
+        [1; 2; 3]
+        >>> pari('[1,2,3]~').mattranspose()
+        Mat([1, 2, 3])
         """
         sig_on()
         return P.new_gen(gtrans(self.g)).Mat()
@@ -5353,6 +5372,14 @@ cdef class gen:
             [1, 2, 4, 3, 4, 4, 0, 6, 5, 4, 12, 4, 4, 8, 0, 3, 8, 6, 12, 12]
             sage: M.qfrep(20, flag=2)
             Vecsmall([1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4])
+
+        >>> M = pari("[5,1,1;1,3,1;1,1,1]")
+        >>> M.qfrep(20)
+        [1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4]
+        >>> M.qfrep(20, flag=1)
+        [1, 2, 4, 3, 4, 4, 0, 6, 5, 4, 12, 4, 4, 8, 0, 3, 8, 6, 12, 12]
+        >>> M.qfrep(20, flag=2)
+        Vecsmall([1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4])
         """
         # PARI 2.7 always returns a t_VECSMALL, but for backwards
         # compatibility, we keep returning a t_VEC (unless flag & 2)
@@ -5364,7 +5391,7 @@ cdef class gen:
             r = vecsmall_to_vec(r)
         return P.new_gen(r)
 
-    def matkerint(self, long flag=0):
+    def matkerint(self, flag=0):
         """
         Return the integer kernel of a matrix.
 
@@ -5377,15 +5404,12 @@ cdef class gen:
             [-1/2; 1]
             sage: pari('[2,1;2,1]').matkerint()
             [1; -2]
-            sage: pari('[2,1;2,1]').matkerint(1)
-            doctest:...: DeprecationWarning: The flag argument to matkerint() is deprecated by PARI
-            See http://trac.sagemath.org/18203 for details.
-            [1; -2]
+
+        >>> pari('[2,1;2,1]').matker()
+        [-1/2; 1]
+        >>> pari('[2,1;2,1]').matkerint()
+        [1; -2]
         """
-        if flag:
-            # Keep this deprecation warning as long as PARI supports
-            # this deprecated flag
-            deprecation(18203, "The flag argument to matkerint() is deprecated by PARI")
         sig_on()
         return P.new_gen(matkerint0(self.g, flag))
 
@@ -5442,6 +5466,25 @@ cdef class gen:
             doctest:...: DeprecationWarning: factor(..., lim=0) is deprecated, use an explicit limit instead
             See http://trac.sagemath.org/20205 for details.
             [257, 1; 1601, 1; 25601, 1; 76001, 1; 133842787352016..., 1]
+
+        >>> pari('x^10-1').factor()
+        [x - 1, 1; x + 1, 1; x^4 - x^3 + x^2 - x + 1, 1; x^4 + x^3 + x^2 + x + 1, 1]
+        >>> pari('2^100-1').factor()
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> pari('2^100-1').factor(proof=True)
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> pari('2^100-1').factor(proof=False)
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> (pari('10^50').nextprime()*pari('10^60').nextprime()*pari('10^4').nextprime()).factor(10**5)
+        [10007, 1; 100000000000000000000000000000000000000000000000151000000000700000000000000000000000000000000000000000000001057, 1]
+        >>> pari('x^11 + 1').factor(limit=17)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: incorrect type in boundfact (t_POL)
+        >>> pari('x^3 - y^3').factor()
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: sorry, factor for general polynomials is not yet implemented
         """
         cdef GEN g
         if limit == 0:
@@ -5483,6 +5526,15 @@ cdef class gen:
             3
             sage: pari(2^100).nextprime()
             1267650600228229401496703205653
+
+        >>> pari(1).nextprime()
+        2
+        >>> pari(2).nextprime()
+        2
+        >>> pari(2).nextprime(add_one = 1)
+        3
+        >>> pari('2^100').nextprime()
+        1267650600228229401496703205653
         """
         sig_on()
         if add_one:
@@ -5524,6 +5576,22 @@ cdef class gen:
             PariError: I already exists with incompatible valence
             sage: f.subst("x", "I")
             0
+
+        >>> f = pari('x^3 + 17*x + 3')
+        >>> f.change_variable_name("y")
+        y^3 + 17*y + 3
+        >>> f = pari('1 + 2*y + O(y^10)')
+        >>> f.change_variable_name("q")
+        1 + 2*q + O(q^10)
+        >>> f.change_variable_name("y") is f
+        True
+        >>> f = pari('x^2 + 1')
+        >>> f.change_variable_name("I")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: I already exists with incompatible valence
+        >>> f.subst("x", "I")
+        0
         """
         cdef long n = P.get_var(var)
         if varn(self.g) == n:
@@ -5571,6 +5639,23 @@ cdef class gen:
             a^2 + 5
             sage: Lpari.bnf_get_cyc()  # We still have a bnf after substituting
             [2]
+
+        >>> K = pari('y^2 + 5').nfinit()
+        >>> K.nf_get_pol()
+        y^2 + 5
+        >>> L = K.nf_subst('a')
+        >>> L.nf_get_pol()
+        a^2 + 5
+        >>> K = pari('y^2 + 5').bnfinit()
+        >>> K.nf_get_pol()
+        y^2 + 5
+        >>> K.bnf_get_cyc()
+        [2]
+        >>> L = K.nf_subst('a')
+        >>> L.nf_get_pol()
+        a^2 + 5
+        >>> L.bnf_get_cyc()
+        [2]
         """
         cdef gen t0 = objtogen(z)
         sig_on()
@@ -5593,6 +5678,13 @@ cdef class gen:
             't_POL'
             sage: pari('oo').type()
             't_INFINITY'
+
+        >>> pari(7).type()
+        't_INT'
+        >>> pari('x').type()
+        't_POL'
+        >>> pari('oo').type()
+        't_INFINITY'
         """
         # The following original code leaks memory:
         #        return str(type_name(typ(self.g)))
@@ -5715,6 +5807,22 @@ cdef class gen:
 
             sage: E.ellwp(1, flag=1)
             [13.9658695257485, 50.5619300880073]
+
+        >>> E = pari([0,-1,1,-10,-20]).ellinit()
+        >>> E.ellwp(1)
+        13.9658695257485
+        >>> E.ellwp(pari('1+I'))
+        -1.11510682565555 + 2.33419052307470*I
+        >>> E.ellwp('1+I')
+        -1.11510682565555 + 2.33419052307470*I
+        >>> E.ellwp()
+        z^-2 + 31/15*z^2 + 2501/756*z^4 + 961/675*z^6 + 77531/41580*z^8 + 1202285717/928746000*z^10 + 2403461/2806650*z^12 + 30211462703/43418875500*z^14 + 3539374016033/7723451736000*z^16 + 413306031683977/1289540602350000*z^18 + O(z^20)
+        >>> E.ellwp(n=4)
+        z^-2 + 31/15*z^2 + O(z^4)
+        >>> pari('[1.2692, 0.63 + 1.45*I]').ellwp(1)
+        13.9656146936689 + 0.000644829272810...*I
+        >>> E.ellwp(1, flag=1)
+        [13.9658695257485, 50.5619300880073]
         """
         cdef gen t0 = objtogen(z)
         cdef GEN g0 = t0.g
@@ -5794,6 +5902,21 @@ cdef class gen:
             4
             sage: pari('9234.1').sizedigit()
             5
+
+        >>> x = pari('10^100')
+        >>> x.Str().length()
+        101
+        >>> x.sizedigit()
+        101
+        >>> x = pari('1.234')
+        >>> x
+        1.23400000000000
+        >>> x.sizedigit()
+        1
+        >>> pari('7234.1').sizedigit()
+        4
+        >>> pari('9234.1').sizedigit()
+        5
         """
         deprecation(18203, "sizedigit() is deprecated in PARI")
         return sizedigit(x.g)
@@ -5817,6 +5940,11 @@ cdef class gen:
             [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
             sage: [pari(2*n).bernfrac() for n in range(9)]
             [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
+
+        >>> pari(8).bernvec()
+        [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
+        >>> [pari(2*n).bernfrac() for n in range(9)]
+        [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
         """
         deprecation(15767, 'bernvec() is deprecated, use repeated calls to bernfrac() instead')
         sig_on()
@@ -5934,6 +6062,48 @@ cpdef gen objtogen(s):
         Traceback (most recent call last):
         ...
         ValueError: Cannot convert None to pari
+
+    >>> pari([2,3,5])
+    [2, 3, 5]
+    >>> pari('x^2-3')
+    x^2 - 3
+    >>> a = pari(1); a, a.type()
+    (1, 't_INT')
+    >>> a = pari('1/2'); a, a.type()
+    (1/2, 't_FRAC')
+    >>> a = pari('1/2'); a, a.type()
+    (1/2, 't_FRAC')
+    >>> a = pari(1.2); a, a.type(), a.precision()
+    (1.20000000000000, 't_REAL', 4) # 32-bit
+    (1.20000000000000, 't_REAL', 3) # 64-bit
+    >>> a = pari('1.2'); a, a.type(), a.precision()
+    (1.20000000000000, 't_REAL', 4)  # 32-bit
+    (1.20000000000000, 't_REAL', 3)  # 64-bit
+    >>> pari.set_real_precision(35)  # precision in decimal digits
+    15
+    >>> a = pari('1.2'); a, a.type(), a.precision()
+    (1.2000000000000000000000000000000000, 't_REAL', 6)  # 32-bit
+    (1.2000000000000000000000000000000000, 't_REAL', 4)  # 64-bit
+    >>> pari.set_real_precision(15)
+    35
+    >>> pari(int(-5))
+    -5
+    >>> pari(2**150)
+    1427247692705959881058285969449495136382746624
+    >>> pari(float(pari.pi()))
+    3.14159265358979
+    >>> pari(complex(pari('exp(Pi*I/4)')))
+    0.707106781186548 + 0.707106781186548*I
+    >>> pari(False)
+    0
+    >>> pari(True)
+    1
+    >>> pari("dummy = 0; kill(dummy)") is None
+    True
+    >>> pari(None)
+    Traceback (most recent call last):
+    ...
+    ValueError: Cannot convert None to pari
     """
     cdef GEN g
     cdef Py_ssize_t length, i
