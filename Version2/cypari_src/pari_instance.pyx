@@ -439,13 +439,13 @@ cdef void sage_putchar(char c):
     cdef char s[2]
     s[0] = c
     s[1] = 0
-    sys.stdout.write(s)
+    sys.stdout.write(String(s))
     # Let PARI think the last character was a newline,
     # so it doesn't print one when an error occurs.
     pari_set_last_newline(1)
     
 cdef void sage_puts(const char* s):
-    sys.stdout.write(s)
+    sys.stdout.write(String(s))
     pari_set_last_newline(1)
 
 cdef void sage_flush():
