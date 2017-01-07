@@ -1918,7 +1918,7 @@ cdef class gen:
             2147483647
             sage: int(pari(-2^31))
             -2147483648
-            sage: int(pari("Pol(10)"))
+            sage: int(pari(Pol(10)))
             10
             sage: int(pari("Mod(2, 7)"))
             2
@@ -1962,6 +1962,13 @@ cdef class gen:
             [1, 2, 3, 10, 102, 10]
             sage: isinstance(w[0], int)
             True
+
+        >>> v=pari([1,2,3,10,102,10]).Vecsmall()
+        >>> w = v.python_list_small()
+        >>> w
+        [1, 2, 3, 10, 102, 10]
+        >>> isinstance(w[0], int)
+        True
         """
         cdef long n
         if typ(self.g) != t_VECSMALL:
@@ -1994,6 +2001,17 @@ cdef class gen:
 
             sage: pari("[1,2,3]~").python_list()
             [1, 2, 3]
+
+        >>> v = pari([1,2,3,10,102,10])
+        >>> w = v.python_list()
+        >>> w
+        [1, 2, 3, 10, 102, 10]
+        >>> isinstance(w[0], gen)
+        True
+        >>> pari("[1,2,3]").python_list()
+        [1, 2, 3]
+        >>> pari("[1,2,3]~").python_list()
+        [1, 2, 3]
         """
         cdef long n
         cdef gen t
@@ -2152,36 +2170,56 @@ cdef class gen:
         
     sage = _eval_ = python
 
-    def __long__(gen self):
-        """
-        Convert ``self`` to a Python ``long``.
+    IF PYTHON_MAJOR < 3:
+        def __long__(gen self):
+            """
+            Convert ``self`` to a Python ``long``.
+    
+            EXAMPLES::
+    
+                sage: long(pari(0))
+                0L
+                sage: long(pari(10))
+                10L
+                sage: long(pari(-10))
+                -10L
+                sage: long(pari(123456789012345678901234567890))
+                123456789012345678901234567890L
+                sage: long(pari(-123456789012345678901234567890))
+                -123456789012345678901234567890L
+                sage: long(pari(2^31-1))
+                2147483647L
+                sage: long(pari(-2^31))
+                -2147483648L
+                sage: long(pari("Pol(10)"))
+                10L
+                sage: long(pari("Mod(2, 7)"))
+                2L
 
-        EXAMPLES::
-
-            sage: long(pari(0))
+            >>> long(pari(0))
             0L
-            sage: long(pari(10))
+            >>> long(pari(10))
             10L
-            sage: long(pari(-10))
+            >>> long(pari(-10))
             -10L
-            sage: long(pari(123456789012345678901234567890))
+            >>> long(pari(123456789012345678901234567890))
             123456789012345678901234567890L
-            sage: long(pari(-123456789012345678901234567890))
+            >>> long(pari(-123456789012345678901234567890))
             -123456789012345678901234567890L
-            sage: long(pari(2^31-1))
+            >>> long(pari("2^31-1"))
             2147483647L
-            sage: long(pari(-2^31))
+            >>> long(pari("-2^31"))
             -2147483648L
-            sage: long(pari("Pol(10)"))
+            >>> long(pari("Pol(10)"))
             10L
-            sage: long(pari("Mod(2, 7)"))
+            >>> long(pari("Mod(2, 7)"))
             2L
-        """
-        x = gen_to_integer(self)
-        if isinstance(x, long):
-            return x
-        else:
-            return long(x)
+            """
+            x = gen_to_integer(self)
+            if isinstance(x, long):
+                return x
+            else:
+                return long(x)
 
     def __float__(gen self):
         """
@@ -2215,6 +2253,18 @@ cdef class gen:
             Traceback (most recent call last):
             ...
             PariError: incorrect type in greal/gimag (t_INTMOD)
+
+        >>> g = pari('(-1.0)^(1/5)'); g
+        0.809016994374947 + 0.587785252292473*I
+        >>> g.__complex__()
+        (0.8090169943749475+0.5877852522924731j)
+        >>> complex(g)
+        (0.8090169943749475+0.5877852522924731j)
+        >>> g = pari('Mod(3, 5)')
+        >>> complex(g)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: incorrect type in greal/gimag (t_INTMOD)
         """
         cdef double re, im
         sig_on()
@@ -2236,6 +2286,16 @@ cdef class gen:
             sage: a = pari('Mod(0,3)')
             sage: a.__nonzero__()
             False
+
+        >>> pari('1').__nonzero__()
+        True
+        >>> pari('x').__nonzero__()
+        True
+        >>> bool(pari(0))
+        False
+        >>> a = pari('Mod(0,3)')
+        >>> a.__nonzero__()
+        False
         """
         return not gequal0(self.g)
 
@@ -2257,7 +2317,7 @@ cdef class gen:
             sage: a.gequal(c)
             False
 
-        WARNING: this relation is not transitive::
+            WARNING: this relation is not transitive::
 
             sage: a = pari('[0]'); b = pari(0); c = pari('[0,0]')
             sage: a.gequal(b)
@@ -2266,6 +2326,25 @@ cdef class gen:
             True
             sage: a.gequal(c)
             False
+
+        >>> a = pari(1); b = pari(1.0); c = pari('"some_string"')
+        >>> a.gequal(a)
+        True
+        >>> b.gequal(b)
+        True
+        >>> c.gequal(c)
+        True
+        >>> a.gequal(b)
+        True
+        >>> a.gequal(c)
+        False
+        >>> a = pari('[0]'); b = pari(0); c = pari('[0,0]')
+        >>> a.gequal(b)
+        True
+        >>> b.gequal(c)
+        True
+        >>> a.gequal(c)
+        False
         """
         cdef gen t0 = objtogen(b)
         sig_on()
@@ -2289,6 +2368,15 @@ cdef class gen:
             True
             sage: pari(GF(3^20,'t')(0)).gequal0()
             True
+
+        >>> pari(0).gequal0()
+        True
+        >>> pari(1).gequal0()
+        False
+        >>> pari(1e-100).gequal0()
+        False
+        >>> pari("0.0 + 0.0*I").gequal0()
+        True
         """
         sig_on()
         cdef int ret = gequal0(a.g)
@@ -2316,6 +2404,22 @@ cdef class gen:
             True
             sage: c.gequal_long(-3)
             False
+
+        >>> a = pari(1); b = pari(2.0); c = pari('3*matid(3)')
+        >>> a.gequal_long(1)
+        True
+        >>> a.gequal_long(-1)
+        False
+        >>> a.gequal_long(0)
+        False
+        >>> b.gequal_long(2)
+        True
+        >>> b.gequal_long(-2)
+        False
+        >>> c.gequal_long(3)
+        True
+        >>> c.gequal_long(-3)
+        False
         """
         sig_on()
         cdef int ret = gequalsg(b, a.g)
@@ -2357,6 +2461,21 @@ cdef class gen:
             sage: n = pari(2^31-1)
             sage: n.isprime(1)
             (True, [2, 3, 1; 3, 5, 1; 7, 3, 1; 11, 3, 1; 31, 2, 1; 151, 3, 1; 331, 3, 1])
+
+        >>> pari(9).isprime()
+        False
+        >>> pari(17).isprime()
+        True
+        >>> n = pari(561)    # smallest Carmichael number
+        >>> n.isprime()      # not just a pseudo-primality test!
+        False
+        >>> n.isprime(1)
+        False
+        >>> n.isprime(2)
+        False
+        >>> n = pari('2^31-1')
+        >>> n.isprime(1)
+        (True, [2, 3, 1; 3, 5, 1; 7, 3, 1; 11, 3, 1; 31, 2, 1; 151, 3, 1; 331, 3, 1])
         """
         cdef GEN x
         sig_on()
@@ -2401,6 +2520,14 @@ cdef class gen:
             sage: n = pari(561)     # smallest Carmichael number
             sage: n.ispseudoprime(2)
             False
+
+        >>> pari(9).ispseudoprime()
+        False
+        >>> pari(17).ispseudoprime()
+        True
+        >>> n = pari(561)     # smallest Carmichael number
+        >>> n.ispseudoprime(2)
+        False
         """
         sig_on()
         cdef long t = ispseudoprime(self.g, flag)
@@ -2438,6 +2565,17 @@ cdef class gen:
             (1, 17)
             sage: pari(2).ispower()
             (1, 2)
+
+        >>> pari(9).ispower()
+        (2, 3)
+        >>> pari(17).ispower()
+        (1, 17)
+        >>> pari(17).ispower(2)
+        (False, None)
+        >>> pari(17).ispower(1)
+        (1, 17)
+        >>> pari(2).ispower()
+        (1, 2)
         """
         cdef int n
         cdef GEN x
@@ -2493,6 +2631,15 @@ cdef class gen:
             (0, 18)
             sage: pari(3^12345).isprimepower()
             (12345, 3)
+
+        >>> pari(9).isprimepower()
+        (2, 3)
+        >>> pari(17).isprimepower()
+        (1, 17)
+        >>> pari(18).isprimepower()
+        (0, 18)
+        >>> pari('3^12345').isprimepower()
+        (12345, 3)
         """
         cdef GEN x
         cdef long n
