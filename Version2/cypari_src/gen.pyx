@@ -4579,6 +4579,11 @@ cdef class gen:
             sage: p = nf.idealprimedec(5)[0]
             sage: nf.nfeltval('50 - 25*x', p)
             3
+
+        >>> nf = pari('x^2 + 1').nfinit()
+        >>> p = nf.idealprimedec(5)[0]
+        >>> nf.nfeltval('50 - 25*x', p)
+        3
         """
         cdef gen t0 = objtogen(x)
         cdef gen t1 = objtogen(p)
@@ -4637,6 +4642,21 @@ cdef class gen:
             [1, 1/10000000019*x]
             sage: pari(f).nfbasis(fa=[2,p])              # Equivalent with the above
             [1, 1/10000000019*x]
+
+        >>> pari('x^3 - 17').nfbasis()
+        [1, x, 1/3*x^2 - 1/3*x + 1/3]
+        >>> p = pari('10^10').nextprime(); q = (p+1).nextprime()
+        >>> f = (pari('x^2') + p**2)*q
+        >>> f.nfbasis(1)
+        [1, 1/10000000019*x]
+        >>> f.nfbasis()
+        [1, 1/10000000019*x]
+        >>> f.nfbasis(fa=10**6)
+        [1, 1/10000000019*x]
+        >>> pari(f).nfbasis(fa="[2,2; %s,2]"%p)
+        [1, 1/10000000019*x]
+        >>> pari(f).nfbasis(fa=[2,p])
+        [1, 1/10000000019*x]
         """
         cdef gen t0
         cdef GEN g0
@@ -4671,6 +4691,15 @@ cdef class gen:
 
             sage: pari([-2,0,0,1]).Polrev().nfbasis_d()
             ([1, x, x^2], -108)
+
+        >>> F = pari('y^3-2').nfinit()
+        >>> F[0].nfbasis_d()
+        ([1, y, y^2], -108)
+        >>> G = pari('y^5-11').nfinit()
+        >>> G[0].nfbasis_d()
+        ([1, y, y^2, y^3, y^4], 45753125)
+        >>> pari([-2,0,0,1]).Polrev().nfbasis_d()
+        ([1, x, x^2], -108)
         """
         cdef gen t0
         cdef GEN g0
@@ -4715,6 +4744,16 @@ cdef class gen:
             -5/3*y^2 + 5/3*y - 1/6
             sage: Kpari.getattr('zk') * pari("[3/2, -5, 0]~")
             -5/3*y^2 + 5/3*y - 1/6
+
+        >>> K = pari('y^3 - 17').nfinit()
+        >>> K.getattr('zk')
+        [1, 1/3*y^2 - 1/3*y + 1/3, y]
+        >>> K.nfbasistoalg_lift(42)
+        42
+        >>> K.nfbasistoalg_lift("[3/2, -5, 0]~")
+        -5/3*y^2 + 5/3*y - 1/6
+        >>> K.getattr('zk') * pari("[3/2, -5, 0]~")
+        -5/3*y^2 + 5/3*y - 1/6
         """
         cdef gen t0 = objtogen(x)
         sig_on()
@@ -4742,6 +4781,10 @@ cdef class gen:
             sage: K._nf_rnfeq(x^2 + 2)
             [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> K._nf_rnfeq('x^2 + 2')
+        [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
+
         """
         cdef gen t0 = objtogen(relpol)
         sig_on()
@@ -4768,6 +4811,9 @@ cdef class gen:
             sage: nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
             ([2, -x^3 + 9*x], 1/2)
 
+        >>> nf = pari('nfinit(y^2 - 2)')
+        >>> nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
+        ([2, -x^3 + 9*x], 1/2)
         """
         cdef GEN zknf, czknf
         cdef gen t0 = objtogen(rnfeq)
@@ -4804,6 +4850,10 @@ cdef class gen:
             sage: nf._nfeltup('y', zk, czk)
             -1/2*x^3 + 9/2*x
 
+        >>> nf = pari('nfinit(y^2 - 2)')
+        >>> zk, czk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
+        >>> nf._nfeltup('y', zk, czk)
+        -1/2*x^3 + 9/2*x
         """
         cdef gen t0 = objtogen(x)
         cdef gen t1 = objtogen(zk)
@@ -4951,6 +5001,93 @@ cdef class gen:
             [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], []], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
             sage: nf(y='x')
             [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], []], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+
+        >>> f = pari('x^2 + 1')
+        >>> f.type()
+        't_POL'
+        >>> f.eval('I')
+        0
+        >>> f.eval(x=2)
+        5
+        >>> (1/f).eval(x=1)
+        1/2
+        >>> f(3) == f.eval(3)
+        True
+        >>> f = pari('1 + x + x^3 + O(x^7)')
+        >>> f(2*pari('y')**2)
+        1 + 2*y^2 + 8*y^6 + O(y^14)
+        >>> pari('1 + O(x^3)').eval(0)
+        1
+        >>> pari('1/x').eval(0)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: impossible inverse in gdiv: 0
+        >>> pari('1/x + O(x^2)').eval(0)
+        Traceback (most recent call last):
+        ...
+        ZeroDivisionError: substituting 0 in Laurent series with negative valuation
+        >>> pari('1/x + O(x^2)').eval(pari('O(x^3)'))
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: impossible inverse in gdiv: O(x^3)
+        >>> pari('O(x^0)').eval(0)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: domain error in polcoeff: t_SER = O(x^0)
+        >>> f = pari('y^2 + x^3')
+        >>> f(1)    # Dangerous, depends on PARI variable ordering
+        y^2 + 1
+        >>> f(x=1)  # Safe
+        y^2 + 1
+        >>> f(y=1)
+        x^3 + 1
+        >>> f(1, 2)
+        Traceback (most recent call last):
+        ...
+        TypeError: evaluating PARI t_POL takes exactly 1 argument (2 given)
+        >>> f(y='x', x='2*y')
+        x^2 + 8*y^3
+        >>> f()
+        x^3 + y^2
+        >>> f.eval(z=37)
+        x^3 + y^2
+        >>> pari(42).eval(t=0)
+        42
+        >>> T = pari('n -> n + 2')
+        >>> T.type()
+        't_CLOSURE'
+        >>> T.eval(3)
+        5
+        >>> T = pari('() -> 42')
+        >>> T()
+        42
+        >>> pr = pari('s -> print(s)')
+        >>> pr.eval('"hello world"')
+        hello world
+        >>> f = pari('myfunc(x,y) = x*y')
+        >>> f.eval(5, 6)
+        30
+        >>> f = pari("(x, y, z=1.0) -> [x, y, z]")
+        >>> f(1, 2, 3)
+        [1, 2, 3]
+        >>> f(1, 2)
+        [1, 2, 1.00000000000000]
+        >>> f(1)
+        [1, 0, 1.00000000000000]
+        >>> f()
+        [0, 0, 1.00000000000000]
+        >>> f = pari("(v[..])->length(v)")
+        >>> f('a', f)
+        2
+        >>> g = pari("(x,y,z[..])->[x,y,z]")
+        >>> g(), g(1), g(1,2), g(1,2,3), g(1,2,3,4)
+        ([0, 0, []], [1, 0, []], [1, 2, []], [1, 2, [3]], [1, 2, [3, 4]])
+        >>> nf = pari("x^2 + 1").nfinit()
+        >>> nf
+        [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+        >>> nf(x='y')
+        [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+
         """
         cdef long t = typ(self.g)
         cdef gen t0
@@ -5040,11 +5177,11 @@ cdef class gen:
             sage: T(0)
             Traceback (most recent call last):
             ...
-            PariError: _/_: impossible inverse in gdiv: 0
+            cypari_src.gen.PariError: _/_: impossible inverse in gdiv: 0
             sage: pari('() -> 42')(1,2,3)
             Traceback (most recent call last):
             ...
-            PariError: too many parameters in user-defined function call
+            cypari_src.gen.PariError: too many parameters in user-defined function call
             sage: pari('n -> n')(n=2)
             Traceback (most recent call last):
             ...
@@ -5057,6 +5194,36 @@ cdef class gen:
             Traceback (most recent call last):
             ...
             TypeError: cannot evaluate PARI t_INT using unnamed arguments
+
+        >>> x = pari(3).ffinit(1)
+        >>> f = x**2 + x + 1
+        >>> f.type()
+        't_POL'
+        >>> f(2)
+        Mod(1, 3)
+        >>> T = pari('n -> 1/n')
+        >>> T.type()
+        't_CLOSURE'
+        >>> T(0)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: _/_: impossible inverse in gdiv: 0
+        >>> pari('() -> 42')(1,2,3)
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: too many parameters in user-defined function call
+        >>> pari('n -> n')(n=2)
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot evaluate a PARI closure using keyword arguments
+        >>> pari('x + y')(4, y=1)
+        Traceback (most recent call last):
+        ...
+        TypeError: mixing unnamed and keyword arguments not allowed when evaluating a PARI object
+        >>> pari("12345")(4)
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot evaluate PARI t_INT using unnamed arguments
         """
         return self.eval(*args, **kwds)
 
