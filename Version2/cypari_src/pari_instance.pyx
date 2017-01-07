@@ -198,6 +198,29 @@ Check that ``default()`` works properly::
     sage: pari.default("debug", 0)
     sage: pari('2^67+1').factor()
     [3, 1; 7327657, 1; 6713103182899, 1]
+
+    sage: pari('print("test")')
+    test
+
+>>> pari.default("debug")
+0
+>>> pari.default("debug", "3")
+>>> pari('2^67+1').factor()
+IFAC: cracking composite
+        49191317529892137643
+IFAC: factor 6713103182899
+        is prime
+IFAC: factor 7327657
+        is prime
+IFAC: prime 7327657
+        appears with exponent = 1
+IFAC: prime 6713103182899
+        appears with exponent = 1
+IFAC: found 2 large prime (power) factors.
+[3, 1; 7327657, 1; 6713103182899, 1]
+>>> pari.default("debug", "0")
+>>> pari('2^67+1').factor()
+[3, 1; 7327657, 1; 6713103182899, 1]
 """
 
 #*****************************************************************************
@@ -290,6 +313,11 @@ def prec_bits_to_dec(unsigned long prec_in_bits):
         (192, 57),
         (224, 67),
         (256, 77)]
+
+    >>> prec_bits_to_dec(53)
+    15
+    >>> [(32*n, prec_bits_to_dec(32*n)) for n in range(1, 9)]
+    [(32, 9), (64, 19), (96, 28), (128, 38), (160, 48), (192, 57), (224, 67), (256, 77)]
     """
     cdef double log_2 = 0.301029995663981
     return int(prec_in_bits*log_2)
@@ -314,6 +342,11 @@ def prec_dec_to_bits(unsigned long prec_in_dec):
         (70, 232),
         (80, 265),
         (90, 298)]
+
+    sage: prec_dec_to_bits(15)
+    49
+    sage: [(n, prec_dec_to_bits(n)) for n in range(10, 100, 10)]
+    [(10, 33), (20, 66), (30, 99), (40, 132), (50, 166), (60, 199), (70, 232), (80, 265), (90, 298)]
     """
     cdef double log_10 = 3.32192809488736
     return int(prec_in_dec*log_10)
@@ -337,6 +370,13 @@ cpdef long prec_bits_to_words(unsigned long prec_in_bits):
         sage: [(32*n, prec_bits_to_words(32*n)) for n in range(1, 9)]
         [(32, 3), (64, 4), (96, 5), (128, 6), (160, 7), (192, 8), (224, 9), (256, 10)] # 32-bit
         [(32, 3), (64, 3), (96, 4), (128, 4), (160, 5), (192, 5), (224, 6), (256, 6)] # 64-bit
+
+    >>> prec_bits_to_words(70)
+    5   # 32-bit
+    4   # 64-bit
+    >>> [(32*n, prec_bits_to_words(32*n)) for n in range(1, 9)]
+    [(32, 3), (64, 4), (96, 5), (128, 6), (160, 7), (192, 8), (224, 9), (256, 10)] # 32-bit
+    [(32, 3), (64, 3), (96, 4), (128, 4), (160, 5), (192, 5), (224, 6), (256, 6)] # 64-bit
     """
     if not prec_in_bits:
         return prec
@@ -365,6 +405,9 @@ cpdef long prec_words_to_bits(long prec_in_words):
     >>> prec_words_to_bits(10)
     256   # 32-bit
     512   # 64-bit
+    >>> [(n, prec_words_to_bits(n)) for n in range(3, 10)]
+    [(3, 32), (4, 64), (5, 96), (6, 128), (7, 160), (8, 192), (9, 224)]  # 32-bit
+    [(3, 64), (4, 128), (5, 192), (6, 256), (7, 320), (8, 384), (9, 448)] # 64-bit
     """
     # see user's guide to the pari library, page 10
     return (prec_in_words - 2) * BITS_IN_LONG
@@ -401,6 +444,13 @@ def prec_dec_to_words(long prec_in_dec):
         sage: [(n, prec_dec_to_words(n)) for n in range(10, 90, 10)]
         [(10, 4), (20, 5), (30, 6), (40, 7), (50, 8), (60, 9), (70, 10), (80, 11)] # 32-bit
         [(10, 3), (20, 4), (30, 4), (40, 5), (50, 5), (60, 6), (70, 6), (80, 7)] # 64-bit
+
+    >>> prec_dec_to_words(38)
+    6   # 32-bit
+    4   # 64-bit
+    >>> [(n, prec_dec_to_words(n)) for n in range(10, 90, 10)]
+    [(10, 4), (20, 5), (30, 6), (40, 7), (50, 8), (60, 9), (70, 10), (80, 11)] # 32-bit
+    [(10, 3), (20, 4), (30, 4), (40, 5), (50, 5), (60, 6), (70, 6), (80, 7)] # 64-bit
     """
     return prec_bits_to_words(prec_dec_to_bits(prec_in_dec))
 
@@ -419,6 +469,13 @@ def prec_words_to_dec(long prec_in_words):
         sage: [(n, prec_words_to_dec(n)) for n in range(3, 10)]
         [(3, 9), (4, 19), (5, 28), (6, 38), (7, 48), (8, 57), (9, 67)] # 32-bit
         [(3, 19), (4, 38), (5, 57), (6, 77), (7, 96), (8, 115), (9, 134)] # 64-bit
+
+    >>> prec_words_to_dec(5)
+    28   # 32-bit
+    57   # 64-bit
+    >>> [(n, prec_words_to_dec(n)) for n in range(3, 10)]
+    [(3, 9), (4, 19), (5, 28), (6, 38), (7, 48), (8, 57), (9, 67)] # 32-bit
+    [(3, 19), (4, 38), (5, 57), (6, 77), (7, 96), (8, 115), (9, 134)] # 64-bit
     """
     return prec_bits_to_dec(prec_words_to_bits(prec_in_words))
 
@@ -911,6 +968,13 @@ cdef class PariInstance(PariInstance_base):
             1.20000000000000000000000000000000000000000000000000000000000
             sage: pari.set_real_precision(15)
             60
+
+        >>> pari.set_real_precision(60)
+        15
+        >>> pari('1.2')
+        1.20000000000000000000000000000000000000000000000000000000000
+        >>> pari.set_real_precision(15)
+        60
         """
         prev = self._real_precision
         cdef bytes strn = bytes(str(n).encode())
@@ -935,6 +999,9 @@ cdef class PariInstance(PariInstance_base):
 
             sage: pari.get_real_precision()
             15
+ 
+        >>> pari.get_real_precision()
+        15
         """
         return self._real_precision
 
@@ -1028,6 +1095,15 @@ cdef class PariInstance(PariInstance_base):
             0.E-15
             sage: pari.double_to_gen(-sqrt(RDF(2)))
             -1.41421356237310
+
+        >>> pari.double_to_gen(1)
+        1.00000000000000
+        >>> pari.double_to_gen(1e30)
+        1.00000000000000 E30
+        >>> pari.double_to_gen(0)
+        0.E-15
+        >>> pari.double_to_gen(-sqrt(RDF(2)))
+        -1.41421356237310
         """
         # Pari has an odd concept where it attempts to track the accuracy
         # of floating-point 0; a floating-point zero might be 0.0e-20
@@ -1123,6 +1199,9 @@ cdef class PariInstance(PariInstance_base):
 
             sage: pari("[[1,2],3]")[0][1] ## indirect doctest
             2
+
+        >>> pari("[[1,2],3]")[0][1]
+        2
         """
         cdef gen p = gen.__new__(gen)
         p.g = g
@@ -1155,6 +1234,17 @@ cdef class PariInstance(PariInstance_base):
             (1/2, 't_FRAC')
 
         See :func:`pari` for more examples.
+
+        >>> pari([2,3,5])
+        [2, 3, 5]
+        >>> pari('x^2-3')
+        x^2 - 3
+        >>> a = pari(1); a, a.type()
+        (1, 't_INT')
+        >>> a = pari('1/2'); a, a.type()
+        (1/2, 't_FRAC')
+        >>> a = pari('1/2'); a, a.type()
+        (1/2, 't_FRAC')
         """
         return objtogen(s)
 
@@ -1164,6 +1254,9 @@ cdef class PariInstance(PariInstance_base):
 
             sage: pari.zero()
             0
+
+        >>> pari.zero()
+        0
         """
         return self.PARI_ZERO
 
@@ -1173,6 +1266,9 @@ cdef class PariInstance(PariInstance_base):
 
             sage: pari.one()
             1
+
+        >>> pari.one()
+        1
         """
         return self.PARI_ONE
 
@@ -1247,6 +1343,19 @@ cdef class PariInstance(PariInstance_base):
             sage: K.galois_group(type='pari')
             Galois group PARI group [2, -1, 1, "S2"] of degree 2 of the Number Field in a with defining polynomial theta^2 + 1
 
+        >>> pari("[1,0]").Pol()
+        x
+        >>> pari("[2,0]").Pol('x')
+        2*x
+        >>> pari("[Pi,0]").Pol('!@#$%^&')
+        3.14159265358979*!@#$%^&
+        >>> xx = pari.varhigher("xx")
+        >>> pari("[x,0]").Pol(xx)
+        x*xx
+        >>> pari("[x,0]").Pol("xx")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: incorrect priority in gtopoly: variable x <= xx
         """
         if v is None:
             return -1
@@ -1290,6 +1399,10 @@ cdef class PariInstance(PariInstance_base):
             sage: pari.allocatemem(2^18, silent=True)
             sage: pari.stacksize()
             262144
+
+        >>> pari.allocatemem(2**18, silent=True)
+        >>> pari.stacksize()
+        262144
         """
         return pari_mainstack.size
 
@@ -1311,6 +1424,10 @@ cdef class PariInstance(PariInstance_base):
             sage: pari.allocatemem(2^18, 2^26, silent=True)
             sage: pari.stacksizemax()
             67108864
+
+        >>> pari.allocatemem(2**18, 2**26, silent=True)
+        >>> pari.stacksizemax()
+        67108864
         """
         return pari_mainstack.vsize
 
@@ -1395,6 +1512,16 @@ cdef class PariInstance(PariInstance_base):
             Traceback (most recent call last):
             ...
             ValueError: the maximum size (10000000) should be at least the stack size (1000000)
+
+        >>> pari.allocatemem(1, 2**26)
+        PARI stack size set to 1024 bytes, maximum size set to 67108864
+        >>> a = pari(2)**100000000
+        >>> pari.stacksize()
+        16777216
+        >>> pari.allocatemem(10**7, 10**6)
+        Traceback (most recent call last):
+        ...
+        ValueError: the maximum size (10000000) should be at least the stack size (1000000)
         """
         if s == 0:
             s = pari_mainstack.size * 2
@@ -1436,6 +1563,12 @@ cdef class PariInstance(PariInstance_base):
             Traceback (most recent call last):
             ...
             ValueError: Cannot compute primes beyond 436273290
+
+        >>> pari.init_primes(200000)
+        >>> pari.init_primes(2**30)
+        Traceback (most recent call last):
+        ...
+        ValueError: Cannot compute primes beyond 436273290
         """
         # Hardcoded bound in PARI sources
         if M > 436273290:
@@ -1503,6 +1636,33 @@ cdef class PariInstance(PariInstance_base):
             []
             sage: pari.primes(3,2)
             []
+
+        >>> pari.primes(3)
+        [2, 3, 5]
+        >>> pari.primes(10)
+        [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+        >>> pari.primes(20)
+        [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71]
+        >>> len(pari.primes(1000))
+        1000
+        >>> pari.primes(11,29)
+        [11, 13, 17, 19, 23, 29]
+        >>> pari.primes((11,29))
+        [11, 13, 17, 19, 23, 29]
+        >>> pari.primes(end=29)
+        [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+        >>> pari.primes(10**30, 10**30 + 100)
+        [1000000000000000000000000000057, 1000000000000000000000000000099]
+        >>> pari.primes(0)
+        []
+        >>> pari.primes(-1)
+        []
+        >>> pari.primes(end=1)
+        []
+        >>> pari.primes(end=-1)
+        []
+        >>> pari.primes(3,2)
+        []
         """
         cdef gen t0, t1
         if end is None:
@@ -1541,6 +1701,13 @@ cdef class PariInstance(PariInstance_base):
             64*z^7 - 112*z^5 + 56*z^3 - 7*z
             sage: pari.polchebyshev(0)
             1
+
+        >>> pari.polchebyshev(7)
+        64*x^7 - 112*x^5 + 56*x^3 - 7*x
+        >>> pari.polchebyshev(7, 'z')
+        64*z^7 - 112*z^5 + 56*z^3 - 7*z
+        >>> pari.polchebyshev(0)
+        1
         """
         sig_on()
         return self.new_gen(polchebyshev1(n, self.get_var(v)))
@@ -1563,6 +1730,15 @@ cdef class PariInstance(PariInstance_base):
             120
             sage: pari.factorial(25)
             15511210043330985984000000
+
+        >>> pari.factorial(0)
+        1
+        >>> pari.factorial(1)
+        1
+        >>> pari.factorial(5)
+        120
+        >>> pari.factorial(25)
+        15511210043330985984000000
         """
         sig_on()
         return self.new_gen(mpfact(n))
@@ -1584,6 +1760,15 @@ cdef class PariInstance(PariInstance_base):
             [x - 1]
             sage: pari.polsubcyclo(8, 3)
             []
+
+        >>> pari.polsubcyclo(8, 4)
+        [x^4 + 1]
+        >>> pari.polsubcyclo(8, 2, 'z')
+        [z^2 + 2, z^2 - 2, z^2 + 1]
+        >>> pari.polsubcyclo(8, 1)
+        [x - 1]
+        >>> pari.polsubcyclo(8, 3)
+        []
         """
         cdef gen plist
         sig_on()
@@ -1624,6 +1809,16 @@ cdef class PariInstance(PariInstance_base):
             Traceback (most recent call last):
             ...
             PariError: incorrect type in setrand (t_POL)
+
+        >>> pari.setrand(50)
+        >>> a = pari.getrand()
+        >>> pari.setrand(a)
+        >>> a == pari.getrand()
+        True
+        >>> pari.setrand("foobar")
+        Traceback (most recent call last):
+        ...
+        cypari_src.gen.PariError: incorrect type in setrand (t_POL)
         """
         cdef gen t0 = self(seed)
         sig_on()
@@ -1645,6 +1840,15 @@ cdef class PariInstance(PariInstance_base):
             Traceback (most recent call last):
             ...
             IndexError: length of entries (=3) must equal n (=2)
+
+        >>> pari.vector(5, [1, 2, 5, 4, 3])
+        [1, 2, 5, 4, 3]
+        >>> pari.vector(2, [pari('x'), 1])
+        [x, 1]
+        >>> pari.vector(2, [pari('x'), 1, 5])
+        Traceback (most recent call last):
+        ...
+        IndexError: length of entries (=3) must equal n (=2)
         """
         cdef gen v = self._empty_vector(n)
         if entries is not None:
@@ -1699,6 +1903,10 @@ cdef class PariInstance(PariInstance_base):
             sage: x = polygen(QQ)
             sage: pari.genus2red([-5*x^5, x^3 - 2*x^2 - 2*x + 1])
             [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
+
+
+        >>> pari.genus2red('[-5*x^5, x^3 - 2*x^2 - 2*x + 1]')
+        [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
         """
         cdef gen t0 = objtogen(P)
         sig_on()
@@ -1723,6 +1931,20 @@ cdef class PariInstance(PariInstance_base):
             24
             sage: L
             List([24, 42])
+
+        >>> pari.List(list(range(5)))
+        List([0, 1, 2, 3, 4])
+        >>> L = pari.List()
+        >>> L
+        List([])
+        >>> L.listput(42, 1)
+        42
+        >>> L
+        List([42])
+        >>> L.listinsert(24, 1)
+        24
+        >>> L
+        List([24, 42])
         """
         if x is None:
             sig_on()
