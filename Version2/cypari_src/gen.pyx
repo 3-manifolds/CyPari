@@ -2677,6 +2677,12 @@ cdef class gen:
             sage: p = pari(2^1500 + 1465)         # next_prime(2^1500)
             sage: (p^11).ispseudoprimepower()[0]  # very fast
             11
+
+        >>> pari('3^12345').ispseudoprimepower()
+        (12345, 3)
+        >>> p = pari('2^1500 + 1465')         # next_prime(2^1500)
+        >>> (p**11).ispseudoprimepower()[0]  # very fast
+        11
         """
         cdef GEN x
         cdef long n
@@ -2697,6 +2703,9 @@ cdef class gen:
 
             sage: pari([1, -5/3, 8.0]).vecmax()
             8.00000000000000
+
+        sage: pari('[1, -5/3, 8.0]').vecmax()
+        8.00000000000000
         """
         sig_on()
         return P.new_gen(vecmax(x.g))
@@ -2709,6 +2718,9 @@ cdef class gen:
 
             sage: pari([1, -5/3, 8.0]).vecmin()
             -5/3
+
+        >>> pari('[1, -5/3, 8.0]').vecmin()
+        -5/3
         """
         sig_on()
         return P.new_gen(vecmin(x.g))
@@ -2754,6 +2766,27 @@ cdef class gen:
             sage: pari([1,2,3,4]).Col(-6)
             [0, 0, 1, 2, 3, 4]~
 
+        >>> pari(1.5).Col()
+        [1.50000000000000]~
+        >>> pari([1,2,3,4]).Col()
+        [1, 2, 3, 4]~
+        >>> pari('[1,2; 3,4]').Col()
+        [[1, 2], [3, 4]]~
+        >>> pari('"Sage"').Col()
+        ["S", "a", "g", "e"]~
+        >>> pari('x + 3*x^3').Col()
+        [3, 0, 1, 0]~
+        >>> pari('x + 3*x^3 + O(x^5)').Col()
+        [1, 0, 3, 0]~
+        >>> pari([1,2,3,4]).Col(2)
+        [1, 2, 3, 4]~
+        >>> pari([1,2,3,4]).Col(-2)
+        [1, 2, 3, 4]~
+        >>> pari([1,2,3,4]).Col(6)
+        [1, 2, 3, 4, 0, 0]~
+        >>> pari([1,2,3,4]).Col(-6)
+        [0, 0, 1, 2, 3, 4]~
+
         See also :meth:`Vec` (create a row vector) for more examples
         and :meth:`Colrev` (create a column in reversed order).
         """
@@ -2797,6 +2830,23 @@ cdef class gen:
             [0, 0, 4, 3, 2, 1]~
             sage: pari([1,2,3,4]).Colrev(-6)
             [4, 3, 2, 1, 0, 0]~
+
+        >>> pari(1.5).Colrev()
+        [1.50000000000000]~
+        >>> pari([1,2,3,4]).Colrev()
+        [4, 3, 2, 1]~
+        >>> pari('[1,2; 3,4]').Colrev()
+        [[3, 4], [1, 2]]~
+        >>> pari('x + 3*x^3').Colrev()
+        [0, 1, 0, 3]~
+        >>> pari([1,2,3,4]).Colrev(2)
+        [4, 3, 2, 1]~
+        >>> pari([1,2,3,4]).Colrev(-2)
+        [4, 3, 2, 1]~
+        >>> pari([1,2,3,4]).Colrev(6)
+        [0, 0, 4, 3, 2, 1]~
+        >>> pari([1,2,3,4]).Colrev(-6)
+        [4, 3, 2, 1, 0, 0]~
         """
         sig_on()
         # Create a non-reversed column vector
@@ -2872,6 +2922,22 @@ cdef class gen:
             sage: pari('1/x').Ser(precision=1)
             x^-1 + O(x^0)
 
+            sage: pari(2).Ser()
+            2 + O(x^16)
+            sage: pari(Mod(0, 7)).Ser()
+            Mod(0, 7)*x^15 + O(x^16)
+
+        >>> x = pari([1, 2, 3, 4, 5])
+        >>> x.Ser()
+        1 + 2*x + 3*x^2 + 4*x^3 + 5*x^4 + O(x^16)
+        >>> f = x.Ser('v'); print(f)
+        1 + 2*v + 3*v^2 + 4*v^3 + 5*v^4 + O(v^16)
+        >>> pari(1)/f
+        1 - 2*v + v^2 + 6*v^5 - 17*v^6 + 16*v^7 - 5*v^8 + 36*v^10 - 132*v^11 + 181*v^12 - 110*v^13 + 25*v^14 + 216*v^15 + O(v^16)
+        >>> pari('x^5').Ser(precision=20)
+        x^5 + O(x^25)
+        >>> pari('1/x').Ser(precision=1)
+        x^-1 + O(x^0)
         """
         if precision < 0:
             precision = P.get_series_precision()
@@ -2915,6 +2981,18 @@ cdef class gen:
             "x"
             sage: x.Str().type()
             't_STR'
+
+        >>> pari([1,2,['abc',1]]).Str()
+        "[1, 2, [abc, 1]]"
+        >>> pari([1,1, 1.54]).Str()
+        "[1, 1, 1.54000000000000]"
+        >>> pari(1).Str()       # 1 is automatically converted to string rep
+        "1"
+        >>> x = pari('x')       # PARI variable "x"
+        >>> x.Str()             # is converted to string rep.
+        "x"
+        >>> x.Str().type()
+        't_STR'
         """
         cdef char* c
         sig_on()
@@ -2954,6 +3032,10 @@ cdef class gen:
             sage: a = pari('"$HOME"')
             sage: a.Strexpand() != a
             True
+
+        >>> a = pari('"$HOME"')
+        >>> a.Strexpand() != a
+        True
         """
         if typ(x.g) != t_VEC:
             x = P.vector(1, [x])
@@ -2985,6 +3067,16 @@ cdef class gen:
             sage: v=pari(['1 + 1/x + 1/(y+1)','x-1'])
             sage: v.Strtex()
             "\\frac{ \\left(y\n + 2\\right) \\*x\n + \\left(y\n + 1\\right) }{ \\left(y\n + 1\\right) \\*x}x\n - 1"
+
+        >>> v=pari('x^2')
+        >>> v.Strtex()
+        "x^2"
+        >>> v=pari(['1/x^2','x'])
+        >>> v.Strtex()
+        "\\frac{1}{x^2}x"
+        >>> v=pari(['1 + 1/x + 1/(y+1)','x-1'])
+        >>> v.Strtex()
+        "\\frac{ \\left(y\n + 2\\right) \\*x\n + \\left(y\n + 1\\right) }{ \\left(y\n + 1\\right) \\*x}x\n - 1"
         """
         if typ(x.g) != t_VEC:
             x = P.vector(1, [x])
@@ -3047,6 +3139,35 @@ cdef class gen:
 
         See also :meth:`Col` (create a column vector) and :meth:`Vecrev`
         (create a vector in reversed order).
+
+        >>> pari(1).Vec()
+        [1]
+        >>> pari('x^3').Vec()
+        [1, 0, 0, 0]
+        >>> pari('x^3 + 3*x - 2').Vec()
+        [1, 0, 3, -2]
+        >>> pari([1,2,3]).Vec()
+        [1, 2, 3]
+        >>> pari('[1, 2; 3, 4]').Vec()
+        [[1, 3]~, [2, 4]~]
+        >>> pari('"Sage"').Vec()
+        ["S", "a", "g", "e"]
+        >>> pari('2*x^2 + 3*x^3 + O(x^5)').Vec()
+        [2, 3, 0]
+        >>> pari('2*x^-2 + 3*x^3 + O(x^5)').Vec()
+        [2, 0, 0, 0, 0, 3, 0]
+        >>> pari('1 + x + 3*x^3 + O(x^5)').Vec()
+        [1, 1, 0, 3, 0]
+        >>> pari('1 + x + 3*x^3').Vec()
+        [3, 0, 1, 1]
+        >>> pari([1,2,3,4]).Vec(2)
+        [1, 2, 3, 4]
+        >>> pari([1,2,3,4]).Vec(-2)
+        [1, 2, 3, 4]
+        >>> pari([1,2,3,4]).Vec(6)
+        [1, 2, 3, 4, 0, 0]
+        >>> pari([1,2,3,4]).Vec(-6)
+        [0, 0, 1, 2, 3, 4]
         """
         sig_on()
         return P.new_gen(_Vec_append(gtovec(x.g), gen_0, n))
@@ -3094,6 +3215,29 @@ cdef class gen:
             [0, 0, 4, 3, 2, 1]
             sage: pari([1,2,3,4]).Vecrev(-6)
             [4, 3, 2, 1, 0, 0]
+
+        >>> pari(1).Vecrev()
+        [1]
+        >>> pari('x^3').Vecrev()
+        [0, 0, 0, 1]
+        >>> pari('x^3 + 3*x - 2').Vecrev()
+        [-2, 3, 0, 1]
+        >>> pari([1, 2, 3]).Vecrev()
+        [3, 2, 1]
+        >>> pari('Col([1, 2, 3])').Vecrev()
+        [3, 2, 1]
+        >>> pari('[1, 2; 3, 4]').Vecrev()
+        [[2, 4]~, [1, 3]~]
+        >>> pari('"Sage"').Vecrev()
+        ["e", "g", "a", "S"]
+        >>> pari([1,2,3,4]).Vecrev(2)
+        [4, 3, 2, 1]
+        >>> pari([1,2,3,4]).Vecrev(-2)
+        [4, 3, 2, 1]
+        >>> pari([1,2,3,4]).Vecrev(6)
+        [0, 0, 4, 3, 2, 1]
+        >>> pari([1,2,3,4]).Vecrev(-6)
+        [4, 3, 2, 1, 0, 0]
         """
         sig_on()
         return P.new_gen(_Vec_append(gtovecrev(x.g), gen_0, -n))
@@ -3134,6 +3278,23 @@ cdef class gen:
             Vecsmall([1, 2, 3, 0, 0, 0])
             sage: pari([1,2,3]).Vecsmall(-6)
             Vecsmall([0, 0, 0, 1, 2, 3])
+
+        >>> pari([1,2,3]).Vecsmall()
+        Vecsmall([1, 2, 3])
+        >>> pari('"Sage"').Vecsmall()
+        Vecsmall([83, 97, 103, 101])
+        >>> pari(1234).Vecsmall()
+        Vecsmall([1234])
+        >>> pari('x^2 + 2*x + 3').Vecsmall()
+        Vecsmall([1, 2, 3])
+        >>> pari([1,2,3]).Vecsmall(2)
+        Vecsmall([1, 2, 3])
+        >>> pari([1,2,3]).Vecsmall(-2)
+        Vecsmall([1, 2, 3])
+        >>> pari([1,2,3]).Vecsmall(6)
+        Vecsmall([1, 2, 3, 0, 0, 0])
+        >>> pari([1,2,3]).Vecsmall(-6)
+        Vecsmall([0, 0, 0, 1, 2, 3])
         """
         sig_on()
         return P.new_gen(_Vec_append(gtovecsmall(x.g), <GEN>0, n))
@@ -3174,6 +3335,22 @@ cdef class gen:
             False
             sage: [pari(-3).bittest(n) for n in range(10)]
             [True, False, True, True, True, True, True, True, True, True]
+
+        >>> x = pari(6)
+        >>> x.bittest(0)
+        False
+        >>> x.bittest(1)
+        True
+        >>> x.bittest(2)
+        True
+        >>> x.bittest(3)
+        False
+        >>> pari(-3).bittest(0)
+        True
+        >>> pari(-3).bittest(1)
+        False
+        >>> [pari(-3).bittest(n) for n in range(10)]
+        [True, False, True, True, True, True, True, True, True, True]
         """
         sig_on()
         cdef long b = bittest(x.g, n)
@@ -3203,6 +3380,14 @@ cdef class gen:
             11
             sage: y.padicprime().type()
             't_INT'
+
+        >>> x = pari('11^-10 + 5*11^-7 + 11^-6 + O(11^5)')
+        >>> x.type()
+        't_PADIC'
+        >>> x.padicprime()
+        11
+        >>> x.padicprime().type()
+        't_INT'
         """
         sig_on()
         return P.new_gen(gel(x.g, 2))
@@ -3271,6 +3456,19 @@ cdef class gen:
             (2*x^2 - 2)/x
             sage: pari('(2.4*x^2 - 1.7)/x').truncate()
             2.40000000000000*x
+
+        >>> pari('1.5').round()
+        2
+        >>> pari('1.5').round(True)
+        (2, -1)
+        >>> pari('1.5 + 2.1*I').round()
+        2 + 2*I
+        >>> pari('1.0001').round(True)
+        (1, -14)
+        >>> pari('(2.4*x^2 - 1.7)/x').round()
+        (2*x^2 - 2)/x
+        >>> pari('(2.4*x^2 - 1.7)/x').truncate()
+        2.40000000000000*x
         """
         cdef int n
         cdef long e
@@ -3313,6 +3511,25 @@ cdef class gen:
             66
             sage: pari('[x, I]').sizeword()
             20
+
+        >>> pari('0').sizeword()
+        2
+        >>> pari('1').sizeword()
+        3
+        >>> pari('1000000').sizeword()
+        3
+        >>> pari('10^100').sizeword()
+        13      # 32-bit
+        8       # 64-bit
+        >>> pari(1.0).sizeword()
+        4       # 32-bit
+        3       # 64-bit
+        >>> pari('x').sizeword()
+        9
+        >>> pari('x^20').sizeword()
+        66
+        >>> pari('[x, I]').sizeword()
+        20
         """
         return gsizeword(x.g)
 
@@ -3333,6 +3550,10 @@ cdef class gen:
             sage: pari('1').sizebyte()
             12           # 32-bit
             24           # 64-bit
+
+        >>> pari('1').sizebyte()
+        12           # 32-bit
+        24           # 64-bit
         """
         return gsizebyte(x.g)
 
@@ -3390,6 +3611,25 @@ cdef class gen:
             1/362880*x^9 - 1/5040*x^7 + 1/120*x^5 - 1/6*x^3 + x
             sage: pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
             x + O(x^10)
+
+        >>> pari('(x^2+1)/x').round()
+        (x^2 + 1)/x
+        >>> pari('(x^2+1)/x').truncate()
+        x
+        >>> pari('1.043').truncate()
+        1
+        >>> pari('1.043').truncate(True)
+        (1, -5)
+        >>> pari('1.6').truncate()
+        1
+        >>> pari('1.6').round()
+        2
+        >>> pari('1/3 + 2 + 3^2 + O(3^3)').truncate()
+        34/3
+        >>> pari('sin(x+O(x^10))').truncate()
+        1/362880*x^9 - 1/5040*x^7 + 1/120*x^5 - 1/6*x^3 + x
+        >>> pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
+        x + O(x^10)
         """
         cdef long e
         cdef gen y
@@ -3417,6 +3657,17 @@ cdef class gen:
             10
             sage: pari('x')._valp()   # random
             -35184372088832
+
+        >>> pari('1/x^2 + O(x^10)')._valp()
+        -2
+        >>> pari('O(x^10)')._valp()
+        10
+        >>> pari('(1145234796 + O(3^10))/771966234')._valp()
+        -2
+        >>> pari('O(2^10)')._valp()
+        10
+        >>> pari('x')._valp()   # random
+        -35184372088832
         """
         # This is a simple macro, so we don't need sig_on()
         return valp(x.g)
@@ -3434,6 +3685,11 @@ cdef class gen:
             43867/798
             sage: [pari(n).bernfrac() for n in range(10)]
             [1, -1/2, 1/6, 0, -1/30, 0, 1/42, 0, -1/30, 0]
+
+        >>> pari(18).bernfrac()
+        43867/798
+        >>> [pari(n).bernfrac() for n in range(10)]
+        [1, -1/2, 1/6, 0, -1/30, 0, 1/42, 0, -1/30, 0]
         """
         return P.bernfrac(x)
 
@@ -3449,6 +3705,14 @@ cdef class gen:
             54.9711779448622
             sage: pari(18).bernreal(precision=192).sage()
             54.9711779448621553884711779448621553884711779448621553885
+
+        >>> pari(18).bernreal()
+        54.9711779448622
+        >>> old_prec = pari.set_real_precision(192)
+        >>> pari(18).bernreal(precision=192)
+        54.97117794486215538847117794486215538847117794486215538...
+        >>> pari.set_real_precision(old_prec)
+        192
         """
         return P.bernreal(x, precision)
 
@@ -3490,6 +3754,13 @@ cdef class gen:
             doctest:...: DeprecationWarning: The flag argument to besselk() is deprecated and not used anymore
             See http://trac.sagemath.org/20219 for details.
             3.74224603319728 E-132 + 2.49071062641525 E-134*I
+
+        >>> pari('2+I').besselk(3)
+        0.0455907718407551 + 0.0289192946582081*I
+        >>> pari('2+I').besselk(-3)
+        -4.34870874986752 - 5.38744882697109*I
+        >>> pari('2+I').besselk(300)
+        3.74224603319728 E-132 + 2.49071062641525 E-134*I
         """
         if flag is not None:
             deprecation(20219, 'The flag argument to besselk() is deprecated and not used anymore')
@@ -3553,6 +3824,15 @@ cdef class gen:
             0.523778453502411
             sage: pari(10).polylog(3,2)
             -0.400459056163451
+
+        >>> pari(10).polylog(3)
+        5.64181141475134 - 8.32820207698027*I
+        >>> pari(10).polylog(3,0)
+        5.64181141475134 - 8.32820207698027*I
+        >>> pari(10).polylog(3,1)
+        0.523778453502411
+        >>> pari(10).polylog(3,2)
+        -0.400459056163451
         """
         sig_on()
         return P.new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
@@ -3608,6 +3888,19 @@ cdef class gen:
             1.00000000000000 - 2.71050543121376 E-20*I  # 64-bit
             sage: (s*z)^5
             2.00000000000000 + 0.E-19*I
+
+        >>> s, z = pari(2).sqrtn(5)
+        >>> z
+        0.309016994374947 + 0.951056516295154*I
+        >>> s
+        1.14869835499704
+        >>> s**5
+        2.00000000000000
+        >>> z**5
+        1.00000000000000 - 2.710505431 E-20*I       # 32-bit
+        1.00000000000000 - 2.71050543121376 E-20*I  # 64-bit
+        >>> (s*z)**5
+        2.00000000000000 + 0.E-19*I
         """
         cdef GEN zetan
         cdef gen t0 = objtogen(n)
@@ -3640,6 +3933,11 @@ cdef class gen:
             a + 1
             sage: b.fforder()
             8
+ 
+        >>> a = pari("ffgen(ffinit(3, 2))")
+        >>> b = a.ffprimroot()
+        >>> b.fforder()
+        8
         """
         sig_on()
         return P.new_gen(ffprimroot(self.g, NULL))
@@ -3654,6 +3952,11 @@ cdef class gen:
             2584
             sage: [pari(n).fibonacci() for n in range(10)]
             [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+
+        >>> pari(18).fibonacci()
+        2584
+        >>> [pari(n).fibonacci() for n in range(10)]
+        [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
         """
         return P.fibonacci(self)
 
@@ -3686,6 +3989,11 @@ cdef class gen:
             True
             sage: pari(20).issquarefree()
             False
+
+        >>> pari(10).issquarefree()
+        True
+        >>> pari(20).issquarefree()
+        False
         """
         sig_on()
         cdef long t = issquarefree(self.g)
@@ -3700,6 +4008,9 @@ cdef class gen:
 
             sage: pari(10).sumdiv()
             18
+
+        >>> pari(10).sumdiv()
+        18
         """
         sig_on()
         return P.new_gen(sumdiv(n.g))
@@ -3712,6 +4023,9 @@ cdef class gen:
 
             sage: pari(10).sumdivk(2)
             130
+
+        >>> pari(10).sumdivk(2)
+        130
         """
         sig_on()
         return P.new_gen(sumdivk(n.g, k))
@@ -3734,6 +4048,10 @@ cdef class gen:
             sage: pari(4).Zn_issquare(30.factor())
             True
 
+        >>> pari(3).Zn_issquare(4)
+        False
+        >>> pari(4).Zn_issquare(pari(30).factor())
+        True
         """
         cdef gen t0 = objtogen(n)
         sig_on()
@@ -3761,6 +4079,12 @@ cdef class gen:
             sage: pari(4).Zn_sqrt(30.factor())
             22
 
+        >>> pari(3).Zn_sqrt(4)
+        Traceback (most recent call last):
+        ...
+        ValueError: 3 is not a square modulo 4
+        >>> pari(4).Zn_sqrt(pari(30).factor())
+        22
         """
         cdef gen t0 = objtogen(n)
         cdef GEN s
@@ -3800,6 +4124,20 @@ cdef class gen:
             True
             sage: isinstance(v[0], int)
             True
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.ellan(3)
+        [1, -2, -1]
+        >>> e.ellan(20)
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2, 1, -2, 4, 4, -1, -4, -2, 4, 0, 2]
+        >>> e.ellan(-1)
+        []
+        >>> v = e.ellan(10, python_ints=True); v
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        >>> isinstance(v, list)
+        True
+        >>> isinstance(v[0], int)
+        True
         """
         sig_on()
         cdef GEN g = anell(self.g, n)
@@ -3860,6 +4198,28 @@ cdef class gen:
             sage: v = e.ellaplist(1, python_ints=True)
             sage: v, isinstance(v, list)
             ([], True)
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> v = e.ellaplist(10); v
+        [-2, -1, 1, -2]
+        >>> isinstance(v, gen)
+        True
+        >>> v.type()
+        't_VEC'
+        >>> e.ellan(10)
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        >>> v = e.ellaplist(10, python_ints=True); v
+        [-2, -1, 1, -2]
+        >>> isinstance(v, list)
+        True
+        >>> isinstance(v[0], int)
+        True
+        >>> v = e.ellaplist(1)
+        >>> v, isinstance(v, gen)
+        ([], True)
+        >>> v = e.ellaplist(1, python_ints=True)
+        >>> v, isinstance(v, list)
+        ([], True)
         """
         if python_ints:
             return [int(x) for x in self.ellaplist(n)]
@@ -3901,6 +4261,18 @@ cdef class gen:
             True
             sage: e.ellisoncurve([0])
             True
+
+        >>> e = pari([0,1,1,-2,0]).ellinit()
+        >>> e.ellisoncurve([1,0])
+        True
+        >>> e.ellisoncurve([1,1])
+        False
+        >>> e.ellisoncurve([1,0.00000000000000001])
+        False
+        >>> e.ellisoncurve([1,0.000000000000000001])
+        True
+        >>> e.ellisoncurve([0])
+        True
         """
         cdef gen t0 = objtogen(x)
         sig_on()
@@ -3936,6 +4308,15 @@ cdef class gen:
             [1, -1, 0, -1]
             sage: e.ellchangecurve(ch)[:5]
             [1, -1, 0, 4, 3]
+
+        >>> e = pari([1,2,3,4,5]).ellinit()
+        >>> F, ch = e.ellminimalmodel()
+        >>> F[:5]
+        [1, -1, 0, 4, 3]
+        >>> ch
+        [1, -1, 0, -1]
+        >>> e.ellchangecurve(ch)[:5]
+        [1, -1, 0, 4, 3]
         """
         cdef GEN x, y
         cdef gen model, change
@@ -3974,6 +4355,10 @@ cdef class gen:
             sage: e = pari([1,0,1,-19,26]).ellinit()
             sage: e.elltors()
             [12, [6, 2], [[1, 2], [3, -2]]]
+
+        >>> e = pari([1,0,1,-19,26]).ellinit()
+        >>> e.elltors()
+        [12, [6, 2], [[1, 2], [3, -2]]]
         """
         if flag is not None:
             deprecation(20219, 'The flag argument to elltors() is deprecated and not used anymore')
@@ -3989,6 +4374,10 @@ cdef class gen:
             sage: e = pari([0, -1, 1, -10, -20]).ellinit()
             sage: e.omega()
             [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.omega()
+        [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
         """
         sig_on()
         return P.new_gen(ellR_omega(self.g, prec_bits_to_words(precision)))
@@ -4004,6 +4393,12 @@ cdef class gen:
             -161051
             sage: _.factor()
             [-1, 1; 11, 5]
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.disc()
+        -161051
+        >>> _.factor()
+        [-1, 1; 11, 5]
         """
         sig_on()
         return P.new_gen(member_disc(self.g))
@@ -4019,6 +4414,12 @@ cdef class gen:
             -122023936/161051
             sage: _.factor()
             [-1, 1; 2, 12; 11, -5; 31, 3]
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.j()
+        -122023936/161051
+        >>> _.factor()
+        [-1, 1; 2, 12; 11, -5; 31, 3]
         """
         sig_on()
         return P.new_gen(member_j(self.g))
@@ -4047,6 +4448,14 @@ cdef class gen:
             sage: f_abs(x_rel)
             Mod(0, x^2 + 2)
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq(pari('x^2 + 2'))
+        >>> f_abs = rnfeq[0]; f_abs
+        x^4 + 6*x^2 + 1
+        >>> x_rel = rnfeq._eltabstorel(pari('x')); x_rel
+        Mod(x + Mod(-y, y^2 + 1), x^2 + 2)
+        >>> f_abs(x_rel)
+        Mod(0, x^2 + 2)
         """
         cdef gen t0 = objtogen(x)
         sig_on()
@@ -4072,6 +4481,10 @@ cdef class gen:
             sage: rnfeq._eltabstorel_lift(x)
             x + Mod(-y, y^2 + 1)
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq(pari('x^2 + 2'))
+        >>> rnfeq._eltabstorel_lift(pari('x'))
+        x + Mod(-y, y^2 + 1)
         """
         cdef gen t0 = objtogen(x)
         sig_on()
@@ -4099,6 +4512,12 @@ cdef class gen:
             sage: rnfeq._eltreltoabs('y')
             1/2*x^3 + 5/2*x
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq(pari('x^2 + 2'))
+        >>> rnfeq._eltreltoabs(pari('x'))
+        1/2*x^3 + 7/2*x
+        >>> rnfeq._eltreltoabs(pari('y'))
+        1/2*x^3 + 5/2*x
         """
         cdef gen t0 = objtogen(x)
         sig_on()
@@ -4137,6 +4556,13 @@ cdef class gen:
             [x^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
 
         .. _galoissubfields: http://pari.math.u-bordeaux.fr/dochtml/html.stable/Functions_related_to_general_number_fields.html#galoissubfields
+
+        >>> G = pari('x^6 + 108').galoisinit()
+        >>> G.galoissubfields(flag=1)
+        [x, x^2 + 972, x^3 + 54, x^3 + 864, x^3 - 54, x^6 + 108]
+        >>> G = pari('x^4 + 1').galoisinit()
+        >>> G.galoissubfields(flag=2, v='z')[3]
+        [x^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
         """
         sig_on()
         return P.new_gen(galoissubfields(self.g, flag, P.get_var(v)))
