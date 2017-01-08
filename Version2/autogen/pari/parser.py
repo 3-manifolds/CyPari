@@ -16,7 +16,7 @@ import os, re
 
 from autogen.pari.args import pari_arg_types
 from autogen.pari.ret import pari_ret_types
-
+from autogen import PARIDIR
 
 def sage_src_pari():
     """
@@ -43,8 +43,7 @@ def pari_share():
         sage: pari_share()
         '.../local/share/pari'
     """
-    SAGE_LOCAL = 'build/pari'
-    return os.path.join(SAGE_LOCAL, "share", "pari")
+    return os.path.join('build', PARIDIR, "share", "pari")
 
 paren_re = re.compile(r"[(](.*)[)]")
 argname_re = re.compile(r"[ {]*([A-Za-z_][A-Za-z0-9_]*)")

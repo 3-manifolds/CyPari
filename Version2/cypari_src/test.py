@@ -29,14 +29,7 @@ modules_to_test = [
 ]
 
 
-if __name__ == '__main__':
-    try:
-        optlist, args = getopt.getopt(sys.argv[1:], 'v', ['verbose'])
-        opts = [o[0] for o in optlist]
-        verbose = '-v' in opts
-    except getopt.GetoptError:
-        verbose = False
-    
+def runtests(verbose=False):
     finder = doctest.DocTestFinder(parser=DocTestParser())
     failed, attempted = 0, 0
     for module, extra_globals in modules_to_test:
@@ -50,6 +43,13 @@ if __name__ == '__main__':
         attempted += result.attempted
     print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
 
-
+if __name__ == '__main__':
+    try:
+        optlist, args = getopt.getopt(sys.argv[1:], 'v', ['verbose'])
+        opts = [o[0] for o in optlist]
+        verbose = '-v' in opts
+    except getopt.GetoptError:
+        verbose = False
+    runtests(verboxe)
 
 

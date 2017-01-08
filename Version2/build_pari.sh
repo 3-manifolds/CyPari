@@ -15,30 +15,36 @@ cd build
 tar xzf ../pari-2.9.1.tar.gz
 mv pari-2.9.1 pari_src
 cd pari_src
-PREFIX=../pari
-LIBDIR=../pari/lib
+if [ "$#" -eq 1 ] ; then
+    PREFIX=../$1
+    LIBDIR=../$1/lib
+else
+    PREFIX=../pari
+    LIBDIR=../pari/lib
+fi
 
 export DESTDIR=
 
 echo "Building Pari libary..."
 if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
-    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+    ./Configure --prefix=../pari32 --libdir=../pari32/lib --without-gmp
     cd Odarwin-i386
     make install-lib-sta
     make install-include
     cd ..
-    cp src/language/anal.h ../pari/include/pari
-    mv ../pari ../pari-i386
+    cp src/language/anal.h ../pari32/include/pari
     export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
-    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp --host=x86_64-darwin
+    ./Configure --prefix=../pari64 --libdir=../pari64/lib --without-gmp --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
     make install-lib-sta
     cd ..
-    lipo ../pari-i386/lib/libpari.a ../pari/lib/libpari.a -create -output ../pari/lib/libpari.a
-    cp src/language/anal.h ../pari/include/pari
+    mkdir ../pari ../pari/lib
+    lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ../pari/lib/libpari.a
     cd ..
+    cp -r ../pari64/include/ ../pari
+    cp src/language/anal.h ../pari/include/pari
     echo Patching paricfg.h for dual architectures
     patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
     cd pari_src
@@ -57,7 +63,7 @@ else
     
     make install
     make install-lib-sta
-    cp src/language/anal.h ../pari/include/pari
+    cp src/language/anal.h $PREFIX/include/pari
 fi
 # Fix non-prototype function declarations
-sed -i -e s/\(\)\;/\(void\)\;/ ../pari/include/pari/paripriv.h
+sed -i -e s/\(\)\;/\(void\)\;/ $PREFIX/include/pari/paripriv.h
