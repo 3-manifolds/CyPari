@@ -42,9 +42,11 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     cd ..
     mkdir ../pari ../pari/lib
     lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ../pari/lib/libpari.a
-    cd ..
-    cp -r ../pari64/include/ ../pari
+    echo current directory: `pwd`
+    echo `ls -l ..` `ls -l ../pari64`
+    cp -r ../pari64/include ../pari
     cp src/language/anal.h ../pari/include/pari
+    cd ..
     echo Patching paricfg.h for dual architectures
     patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
     cd pari_src
