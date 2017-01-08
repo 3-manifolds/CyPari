@@ -3666,8 +3666,6 @@ cdef class gen:
         -2
         >>> pari('O(2^10)')._valp()
         10
-        >>> pari('x')._valp()   # random
-        -35184372088832
         """
         # This is a simple macro, so we don't need sig_on()
         return valp(x.g)
