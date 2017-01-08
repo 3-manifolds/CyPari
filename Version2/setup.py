@@ -27,7 +27,7 @@ if sys.platform == 'win32':
     BASH = r'C:\msys64\usr\bin\bash'
 else:
     BASHPATH = os.environ['PATH']
-    BASH = 'bash'
+    BASH = '/bin/bash'
 
 if sys.maxsize > 2**32:
     PARIDIR = 'pari64'
@@ -88,9 +88,10 @@ class CyPariBuildExt(build_ext):
             if sys.platform == 'win32':
                 cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; ./build_pari.sh %s'%(BASHPATH, PARIDIR)
             elif sys.platform == 'darwin':
-                cmd = r'export PATH="%s" ; ./build_pari.sh'%BASHPATH
+                cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
-                cmd = r'export PATH="%s" ; ./build_pari.sh %s'%(BASHPATH, PARIDIR)
+                cmd = r'export PATH="%s" ; bash build_pari.sh %s'%(BASHPATH, PARIDIR)
+            print([BASH, '-c', cmd])
             if subprocess.call([BASH, '-c', cmd]):
                 sys.exit("***Failed to build PARI library***")
 
