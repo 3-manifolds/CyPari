@@ -22,7 +22,7 @@ if sys.platform == 'win32':
     else:
         # use mingw32
         WINPATH=r'C:\msys64\mingw32\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'
-        BASHPATH='/c/msys64/mingw64/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'
+        BASHPATH='/c/msys64/mingw32/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
     BASH = r'C:\msys64\usr\bin\bash'
 else:
@@ -89,7 +89,7 @@ class CyPariBuildExt(build_ext):
         if not os.path.exists(os.path.join('build', PARIDIR)):
             # This is meant to work even  in a Windows Command Prompt
             if sys.platform == 'win32':
-                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; ./build_pari.sh %s'%(BASHPATH, PARIDIR)
+                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s'%(BASHPATH, PARIDIR)
             elif sys.platform == 'darwin':
                 cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
