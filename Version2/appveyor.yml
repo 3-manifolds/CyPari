@@ -9,8 +9,6 @@ environment:
     # For Python versions available on Appveyor, see
     # http://www.appveyor.com/docs/installed-software#python
     # A build job will be started for each definition below.
-    # It is important to build with Python 27 first, since autogen
-    # does not work in Python 3.
     
     - PYTHON: "C:\\Python27"
     - PYTHON: "C:\\Python27-x64"

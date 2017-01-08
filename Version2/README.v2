@@ -42,11 +42,11 @@ are not (yet) compatible with Python 3.  Building with Python 2 will
 install auto_gen.pxi and auto_instance.pxi which can then be used
 to build for Python 3.
 
-Building on Windows expects you to have a working msys2 system with a
-mingw32 toolchain that has been modified as described in the file
-Windows/README.Windows.
+For building on Windows we expect you to have a working msys2 system
+with a mingw32 toolchain that has been modified as described in the
+file Windows/README.Windows.
 
 Currently we support 32 and 64 bit Python 2.7 on linux, macOS and
-Windows.  On linux and mcsOS we support 32 and 64 bit Python 3.5.  On
-Windows we support 32 and 64 bit Python 3.4, since mingw cannot handle
-the C runtime VCRUNTIME140.dll used to build Python 3.5.
+Windows.  On linux and macOS we support 32 and 64 bit Python 3.5 or
+3.6.  On Windows we support 64 bit Python 3.4, due to limitations of
+mingw.
