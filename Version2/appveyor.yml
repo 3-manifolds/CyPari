@@ -23,7 +23,7 @@ install:
   
   # Install python packages
   - "%PYTHON2_32%\\python.exe -m pip install --upgrade pip setuptools"
-  # "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
+  - "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
   # "%PYTHON3_32%\\python.exe -m pip install --upgrade pip setuptools"
   # "%PYTHON3_32%\\python.exe -m pip install Cython six wheel"
   # "%PYTHON2_64%\\python.exe -m pip install --upgrade pip setuptools"
