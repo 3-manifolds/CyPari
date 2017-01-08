@@ -31,8 +31,6 @@ install:
   - "%PYTHON3_64%\\python.exe -m pip install --upgrade pip setuptools"
   - "%PYTHON3_64%\\python.exe -m pip install Cython six wheel"
 
-build:
-  
   # Set up the 32-bit MinGW compilers
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
   - set MSYSTEM=MINGW32
@@ -56,6 +54,9 @@ build:
   # Build the 64-bit CyPari's. 
   - "%PYTHON2_64%\\python.exe setup.py build -c mingw32"
   - "%PYTHON3_64%\\python.exe setup.py build -c mingw32"
+
+build:
+  none
 
 test_script:
   # Put your test command here.
