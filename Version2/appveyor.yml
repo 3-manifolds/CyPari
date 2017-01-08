@@ -10,9 +10,9 @@ environment:
     # http://www.appveyor.com/docs/installed-software#python
 
     - PYTHON2_32: "C:\\Python27"
-    - PYTHON3_32: "C:\\Python34"
-    - PYTHON2_64: "C:\\Python27-x64"
-    - PYTHON3_64: "C:\\Python34-x64"
+    # PYTHON3_32: "C:\\Python34"
+    # PYTHON2_64: "C:\\Python27-x64"
+    # PYTHON3_64: "C:\\Python34-x64"
     #- PYTHON: "C:\\Python35"
     #- PYTHON: "C:\\Python36"
 
@@ -23,13 +23,13 @@ install:
   
   # Install python packages
   - "%PYTHON2_32%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
-  - "%PYTHON2_64%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON2_64%\\python.exe -m pip install Cython six wheel"
-  - "%PYTHON3_32%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON3_32%\\python.exe -m pip install Cython six wheel"
-  - "%PYTHON3_64%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON3_64%\\python.exe -m pip install Cython six wheel"
+  # "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
+  # "%PYTHON3_32%\\python.exe -m pip install --upgrade pip setuptools"
+  # "%PYTHON3_32%\\python.exe -m pip install Cython six wheel"
+  # "%PYTHON2_64%\\python.exe -m pip install --upgrade pip setuptools"
+  # "%PYTHON2_64%\\python.exe -m pip install Cython six wheel"
+  # "%PYTHON3_64%\\python.exe -m pip install --upgrade pip setuptools"
+  # "%PYTHON3_64%\\python.exe -m pip install Cython six wheel"
 
   # Set up the 32-bit MinGW compilers
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
@@ -39,21 +39,21 @@ install:
   - cd ..\..
   # Build the 32-bit CyPari's. 
   - "%PYTHON2_32%\\python.exe setup.py build -c mingw32"
-  - "%PYTHON3_32%\\python.exe setup.py build -c mingw32"
+  # "%PYTHON3_32%\\python.exe setup.py build -c mingw32"
 
   # Remove the 32-bit build
-  - "bash rm -rf build\\pari"
+  # "bash rm -rf build\\pari"
   
   # Set up the 64-bit MinGW compilers
-  - set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin;%PATH%;
-  - set MSYSTEM=MINGW64
-  - cd Version2\Windows\toolchain
-  - "bash install_files_64.sh"
-  - cd ..\..
+  # set PATH=C:\msys64\mingw64\bin;C:\msys64\usr\bin;%PATH%;
+  # set MSYSTEM=MINGW64
+  # cd Version2\Windows\toolchain
+  # "bash install_files_64.sh"
+  # cd ..\..
 
   # Build the 64-bit CyPari's. 
-  - "%PYTHON2_64%\\python.exe setup.py build -c mingw32"
-  - "%PYTHON3_64%\\python.exe setup.py build -c mingw32"
+  # "%PYTHON2_64%\\python.exe setup.py build -c mingw32"
+  # "%PYTHON3_64%\\python.exe setup.py build -c mingw32"
 
 build:
   none
@@ -62,20 +62,20 @@ test_script:
   # Put your test command here.
   - cd build\\lib.win32-2.7
   - "%PYTHON2_32%\\python.exe -m cypari.test"
-  - cd ..\\lib.win-amd64-2.7
-  - "%PYTHON2_64%\\python.exe -m cypari.test"
-  - cd ..\\lib.win32-3.4
-  - "%PYTHON3_32%\\python.exe -m cypari.test"
-  - cd ..\\lib.win-amd64-3.4
-  - "%PYTHON3_64%\\python.exe -m cypari.test"
+  # cd ..\\lib.win32-3.4
+  # "%PYTHON3_32%\\python.exe -m cypari.test"
+  # cd ..\\lib.win-amd64-2.7
+  # "%PYTHON2_64%\\python.exe -m cypari.test"
+  # cd ..\\lib.win-amd64-3.4
+  # "%PYTHON3_64%\\python.exe -m cypari.test"
   - cd ..\\..
   
 after_test:
   # This step builds your wheels.
   - "%PYTHON2_32%\\python.exe setup.py bdist_wheel"
-  - "%PYTHON3_32%\\python.exe setup.py bdist_wheel"
-  - "%PYTHON2_64%\\python.exe setup.py bdist_wheel"
-  - "%PYTHON3_64%\\python.exe setup.py bdist_wheel"
+  # "%PYTHON3_32%\\python.exe setup.py bdist_wheel"
+  # "%PYTHON2_64%\\python.exe setup.py bdist_wheel"
+  # "%PYTHON3_64%\\python.exe setup.py bdist_wheel"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
