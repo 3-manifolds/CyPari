@@ -29,10 +29,13 @@ else:
     BASHPATH = os.environ['PATH']
     BASH = '/bin/bash'
 
-if sys.maxsize > 2**32:
-    PARIDIR = 'pari64'
+if sys.platform != 'darwin':
+    if sys.maxsize > 2**32:
+        PARIDIR = 'pari64'
+    else:
+        PARIDIR = 'pari32'
 else:
-    PARIDIR = 'pari32'
+    PARIDIR = 'pari'
     
 from setuptools import setup, Command
 from distutils.extension import Extension
