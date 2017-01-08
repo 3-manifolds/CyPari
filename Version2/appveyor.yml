@@ -21,19 +21,24 @@ install:
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python version you want to use on PATH.
   
+  # Install python packages
+  - "%PYTHON2_32%\\python.exe -m pip install --upgrade pip setuptools"
+  - "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
+  - "%PYTHON2_64%\\python.exe -m pip install --upgrade pip setuptools"
+  - "%PYTHON2_64%\\python.exe -m pip install Cython six wheel"
+  - "%PYTHON3_32%\\python.exe -m pip install --upgrade pip setuptools"
+  - "%PYTHON3_32%\\python.exe -m pip install Cython six wheel"
+  - "%PYTHON3_64%\\python.exe -m pip install --upgrade pip setuptools"
+  - "%PYTHON3_64%\\python.exe -m pip install Cython six wheel"
+
+build:
+  
   # Set up the 32-bit MinGW compilers
   - set PATH=C:\msys64\mingw32\bin;C:\msys64\usr\bin;%PATH%;
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
   - cd ..\..
-
-  # Install 32-python packages
-  - "%PYTHON2_32%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON2_32%\\python.exe -m pip install Cython six wheel"
-  - "%PYTHON3_32%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON3_32%\\python.exe -m pip install Cython six wheel"
-
   # Build the 32-bit CyPari's. 
   - "%PYTHON2_32%\\python.exe setup.py build -c mingw32"
   - "%PYTHON3_32%\\python.exe setup.py build -c mingw32"
@@ -48,18 +53,10 @@ install:
   - "bash install_files_64.sh"
   - cd ..\..
 
-  # Install 64-bit Python packages
-  - "%PYTHON2_64%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON2_64%\\python.exe -m pip install Cython six wheel"
-  - "%PYTHON3_64%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON3_64%\\python.exe -m pip install Cython six wheel"
-
   # Build the 64-bit CyPari's. 
   - "%PYTHON2_64%\\python.exe setup.py build -c mingw32"
   - "%PYTHON3_64%\\python.exe setup.py build -c mingw32"
 
-build: none
-  
 test_script:
   # Put your test command here.
   - cd build\\lib.win32-2.7
