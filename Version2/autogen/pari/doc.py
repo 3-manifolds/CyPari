@@ -6,8 +6,10 @@ Handle PARI documentation for Sage
 from __future__ import unicode_literals
 import re
 import subprocess
+import os
 from six import unichr
-
+from autogen import PARIDIR
+GPHELP = os.path.join('.', 'build', PARIDIR, 'bin', 'gphelp')
 
 leading_ws = re.compile("^( +)", re.MULTILINE)
 trailing_ws = re.compile("( +)$", re.MULTILINE)
@@ -260,7 +262,7 @@ def get_raw_doc(function):
         ...
         RuntimeError: no help found for 'abcde'
     """
-    doc = subprocess.check_output(["perl", "./build/pari/bin/gphelp", "-raw", function])
+    doc = subprocess.check_output(["perl", GPHELP, "-raw", function])
     if doc.endswith(b"""' not found !\n"""):
         raise RuntimeError("no help found for '{}'".format(function))
     return doc

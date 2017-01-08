@@ -25,9 +25,15 @@ access global data in another shared library.
 
 On linux or macOS the module should build and/or install with the
 usual commands:
+    python setup.py build
+    python setup.py install
 
-python setup.py build
-python setup.py install
+To run doctests use:
+    python setup.py test
+All tests should pass on all platforms.
+
+To clean up the build area (but not remove Pari) use:
+    python setup.py clean
 
 Note that the future module is required for Python 2.  (Install with
 pip install future).  Also, it is necessary to build for Python 2
@@ -38,21 +44,9 @@ to build for Python 3.
 
 Building on Windows expects you to have a working msys2 system with a
 mingw32 toolchain that has been modified as described in the file
-Windows/README.Windows.  The flag -cmingw32 works for either 32 or 64
-bit compilers, provided that the paths have been setup correctly.  Use
-the scripts in the Windows directory to do this.  The commands are:
+Windows/README.Windows.
 
-python setup.py build -cmingw32
-python setup.py install
-
-Doctests can be run with:
-
-python -m cypari.test
-
-and all tests should pass on all three platforms.  The doctests
-test the signal handling as well as the Pari computations.
-
-Currently we support 32 and 64 bit Python 2.7 on linux, macOS and Windows.
-On linux and mcsOS we support 32 and 64 bit Python 3.5.  On Windows
-we support 32 and 64 bit Python 3.4, since 3.5 mingw cannot handle the
-C runtime VCRUNTIME140.dll used to build Python 3.5.
+Currently we support 32 and 64 bit Python 2.7 on linux, macOS and
+Windows.  On linux and mcsOS we support 32 and 64 bit Python 3.5.  On
+Windows we support 32 and 64 bit Python 3.4, since mingw cannot handle
+the C runtime VCRUNTIME140.dll used to build Python 3.5.
