@@ -17,7 +17,7 @@
  as %(asm_options) %m.s %A }  }
 
 *cpp:
-%{posix:-D_POSIX_SOURCE} %{mthreads:-D_MT} %{municode:-DUNICODE} %{pthread:-D_REENTRANT} %{!no-pthread:-U_REENTRANT} -D__MSVCRT_VERSION__=0x1000
+%{posix:-D_POSIX_SOURCE} %{mthreads:-D_MT} %{municode:-DUNICODE} %{pthread:-D_REENTRANT} %{!no-pthread:-U_REENTRANT} -D__MSVCRT_VERSION__=0x01000
 
 *cpp_options:
 %(cpp_unique_options) %1 %{m*} %{std*&ansi&trigraphs} %{W*&pedantic*} %{w} %{f*} %{g*:%{!g0:%{g*} %{!fno-working-directory:-fworking-directory}}} %{O*} %{undef} %{save-temps*:-fpch-preprocess}
@@ -35,10 +35,10 @@ cc1 -E %{traditional|traditional-cpp:-traditional-cpp}
 %(cc1_cpu) 
 
 *cc1_options:
-%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}} %{!iplugindir*:%{fplugin*:%:find-plugindir()}} %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{aux-info*} %{fcompare-debug-second:%:compare-debug-auxbase-opt(%b)}  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}}  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi&trigraphs} %{v:-version} %{pg:-p} %{p} %{f*} %{undef} %{Qn:-fno-ident} %{Qy:} %{-help:--help} %{-target-help:--target-help} %{-version:--version} %{-help=*:--help=%*} %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}} %{fsyntax-only:-o %j} %{-param*} %{coverage:-fprofile-arcs -ftest-coverage} -DMS_WIN64
+%{pg:%{fomit-frame-pointer:%e-pg and -fomit-frame-pointer are incompatible}} %{!iplugindir*:%{fplugin*:%:find-plugindir()}} %1 %{!Q:-quiet} %{!dumpbase:-dumpbase %B} %{d*} %{m*} %{aux-info*} %{fcompare-debug-second:%:compare-debug-auxbase-opt(%b)}  %{!fcompare-debug-second:%{c|S:%{o*:-auxbase-strip %*}%{!o*:-auxbase %b}}}%{!c:%{!S:-auxbase %b}}  %{g*} %{O*} %{W*&pedantic*} %{w} %{std*&ansi&trigraphs} %{v:-version} %{pg:-p} %{p} %{f*} %{undef} %{Qn:-fno-ident} %{Qy:} %{-help:--help} %{-target-help:--target-help} %{-version:--version} %{-help=*:--help=%*} %{!fsyntax-only:%{S:%W{o*}%{!o*:-o %b.s}}} %{fsyntax-only:-o %j} %{-param*} %{coverage:-fprofile-arcs -ftest-coverage} -mincoming-stack-boundary=2
 
 *cc1plus:
--DMS_WIN64 -D__MSVCRT_VERSION__=0x1000
+-mincoming-stack-boundary=2 -D__MSVCRT_VERSION__=0x01000
 
 *link_gcc_c_sequence:
 %G %L %G %{shared|mdll: msvcr100.dll.res%s} %{!shared: %{!mdll: msvcr100.exe.res%s}}
@@ -50,7 +50,7 @@ cc1 -E %{traditional|traditional-cpp:-traditional-cpp}
 %{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}    %{!shared:%:if-exists(default-manifest.o%s)}   %{fvtable-verify=none:%s;     fvtable-verify=preinit:vtv_end.o%s;     fvtable-verify=std:vtv_end.o%s}   crtend.o%s
 
 *link:
-%{!m32:-m i386pep} %{m32:-m i386pe} %{mwindows:--subsystem windows}   %{mconsole:--subsystem console}   %{shared: %{mdll: %eshared and mdll are not compatible}}   %{shared: --shared} %{mdll:--dll}   %{static:-Bstatic} %{!static:-Bdynamic}   %{shared|mdll: %{!m32:-e DllMainCRTStartup} %{m32:-e _DllMainCRTStartup@12} --enable-auto-image-base}   %(shared_libgcc_undefs)
+%{m64:-m i386pep} %{!m64:-m i386pe} %{mwindows:--subsystem windows}   %{mconsole:--subsystem console}   %{shared: %{mdll: %eshared and mdll are not compatible}}   %{shared: --shared} %{mdll:--dll}   %{static:-Bstatic} %{!static:-Bdynamic}   %{shared|mdll: %{m64:-e DllMainCRTStartup} %{!m64:-e _DllMainCRTStartup@12} --enable-auto-image-base}   %(shared_libgcc_undefs)
 
 *lib:
 %{pg:-lgmon} %{pthread:-lpthread} %{!no-pthread: } %{mwindows:-lgdi32 -lcomdlg32} %{fvtable-verify=preinit:-lvtv -lpsapi;         fvtable-verify=std:-lvtv -lpsapi} -ladvapi32 -lshell32 -luser32 -lkernel32 -liconv
@@ -71,10 +71,10 @@ cc1 -E %{traditional|traditional-cpp:-traditional-cpp}
 5.3.0
 
 *multilib:
-. !m64 !m32;.:../lib m64 !m32;.:../lib32 !m64 m32;
+. !m64 !m32;.:../lib64 m64 !m32;.:../lib !m64 m32;
 
 *multilib_defaults:
-m64
+m32
 
 *multilib_extra:
 
