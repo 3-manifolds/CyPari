@@ -134,7 +134,7 @@ link_args = []
 compile_args = []
 if sys.platform == 'win32':
     if sys.version_info.major == 3:
-        link_args = ['-specs=specs100', '-lPython3']
+        link_args = ['-specs=specs100']
     else:
         link_args = ['-specs=specs90']
     link_args += ['-Wl,--subsystem,windows']
