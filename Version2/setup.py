@@ -88,6 +88,12 @@ if sys.platform == 'win32':
         r'C:\Python34\python.exe',
         r'C:\Python34-x64\python.exe',
         ]
+elif sys.platform == 'darwin':
+    pythons = [
+        'python',
+        'python3.5',
+        'python3.6',
+        ]
 else:
     print('Command "release" is not supported for %s.'%sys.platform)
 
@@ -196,7 +202,7 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'},
-    install_requires = ['future'],
+    install_requires = ['six', 'future'],
     cmdclass = {
         'build_ext': CyPariBuildExt,
         'clean': CyPariClean,
