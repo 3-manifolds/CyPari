@@ -7,7 +7,7 @@ component
 of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python.
 """
-import os, sys, sysconfig, subprocess
+import os, sys, sysconfig, subprocess, shutil
 
 if sys.platform == 'win32':
     # Build with mingw by default.
@@ -49,7 +49,7 @@ pari_include_dir = os.path.join('build', PARIDIR, 'include')
 pari_library_dir = os.path.join('build', PARIDIR, 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
     
-class Clean(Command):
+class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
         pass 
@@ -64,7 +64,7 @@ class Clean(Command):
         os.system('rm -if cypari_src/gen_api.h')
         #os.system('rm -if cypari_src/auto*.pxi')
 
-class Test(Command):
+class CyPariTest(Command):
     user_options = []
     def initialize_options(self):
         pass 
@@ -79,7 +79,45 @@ class Test(Command):
         )
         sys.path.insert(0, build_lib_dir)
         from cypari.test import runtests
-        runtests()
+        sys.exit(runtests())
+
+if sys.platform == 'win32':
+    pythons = [
+        r'C:\Python27\python.exe',
+        r'C:\Python27-x64\python.exe',
+        r'C:\Python34\python.exe',
+        r'C:\Python34-x64\python.exe',
+        ]
+else:
+    print('Command "release" is not supported for %s.'%sys.platform)
+
+class CyPariRelease(Command):
+    user_options = []
+    def initialize_options(self):
+        pass 
+    def finalize_options(self):
+        pass
+    def run(self):
+        if os.path.exists('build'):
+            shutil.rmtree('build')
+        if os.path.exists('dist'):
+            shutil.rmtree('dist')
+        for python in pythons:
+            try:
+                subprocess.check_call([python, 'setup.py', 'build'])
+            except subprocess.CalledProcessError:
+                print('Build failed for %s.'%python)
+                sys.exit(1)
+            try:
+                subprocess.check_call([python, 'setup.py', 'test'])
+            except subprocess.CalledProcessError:
+                print('Test failed for %s.'%python)
+                sys.exit(1)
+            try:
+                subprocess.check_call([python, 'setup.py', 'bdist_wheel'])
+            except subprocess.CalledProcessError:
+                print('Error building wheel for %s.'%python)
+        print('Wheels are in the dist directory')
 
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
@@ -159,7 +197,12 @@ setup(
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'},
     install_requires = ['future'],
-    cmdclass = {'clean':Clean, 'test':Test, 'build_ext':CyPariBuildExt},
+    cmdclass = {
+        'build_ext': CyPariBuildExt,
+        'clean': CyPariClean,
+        'test': CyPariTest,
+        'release': CyPariRelease
+    },
     ext_modules = [pari_gen],
     zip_safe = False,
     long_description = long_description,

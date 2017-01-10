@@ -42,6 +42,7 @@ def runtests(verbose=False):
         failed += result.failed
         attempted += result.attempted
     print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
+    return failed
 
 if __name__ == '__main__':
     try:
@@ -50,6 +51,6 @@ if __name__ == '__main__':
         verbose = '-v' in opts
     except getopt.GetoptError:
         verbose = False
-    runtests(verboxe)
-
+    failed = runtests(verbose)
+    sys.exit(failed)
 
