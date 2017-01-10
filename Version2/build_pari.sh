@@ -5,16 +5,19 @@
 #
 
 set -e
-if [ ! -d "build" ] ; then
-    mkdir build ;
+if [ ! -d "build/pari_src" ] ; then
+    echo "Untarring Pari..."
+    if [ ! -d "build" ] ; then
+	mkdir build ;
+    fi
+    cd build
+    tar xzf ../pari-2.9.1.tar.gz
+    mv pari-2.9.1 pari_src
+    cd pari_src
 else
-    rm -rf build/pari_src
+    cd build/pari_src
 fi
-echo "Untarring Pari..."
-cd build
-tar xzf ../pari-2.9.1.tar.gz
-mv pari-2.9.1 pari_src
-cd pari_src
+
 if [ "$#" -eq 1 ] ; then
     PREFIX=../$1
     LIBDIR=../$1/lib
