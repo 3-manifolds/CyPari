@@ -1,0 +1,11 @@
+include build_pari.sh
+include README.rst
+include cypari_src/*.h
+include cypari_src/*.c
+recursive-include pari_src *
+prune pari_src/Olinux-x86_64 
+prune pari_src/Olinux-i386
+prune pari_src/Odarwin-x86_64
+prune pari_src/Odarwin-i386
+prune pari_src/Omingw-x86_64
+prune pari_src/Omingw-i386
