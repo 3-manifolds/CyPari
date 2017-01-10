@@ -50,6 +50,6 @@ if __name__ == '__main__':
         verbose = '-v' in opts
     except getopt.GetoptError:
         verbose = False
-    runtests(verboxe)
+    runtests(verbose)
 
 
