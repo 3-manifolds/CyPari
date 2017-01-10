@@ -146,8 +146,11 @@ class CyPariRelease(Command):
                 subprocess.check_call([python, 'setup.py', 'bdist_wheel'])
             except subprocess.CalledProcessError:
                 print('Error building wheel for %s.'%python)
+        sdist_cmd = ['python', 'setup.py', 'sdist']
+        if sys.platform != 'win32':
+            sdist_cmd += ['--owner=root', '--group=root']
         try:
-            subprocess.check_call(['python', 'setup.py', 'sdist'])
+            subprocess.check_call(sdist_cmd)
         except subprocess.CalledProcessError:
             print('Error building sdist archive for %s.'%python)
 
