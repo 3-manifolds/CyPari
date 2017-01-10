@@ -8,7 +8,7 @@ of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python (except on Windows,
 where 3.4 is currently the only supported version of Python 3).
 """
-import os, sys, sysconfig, subprocess, shutil
+import os, sys, sysconfig, subprocess, shutil, site
 from glob import glob
 from setuptools import setup, Command
 from distutils.extension import Extension
@@ -104,6 +104,13 @@ if sys.platform == 'win32':
 elif sys.platform == 'darwin':
     pythons = [
         'python2.7',
+        'python3.5',
+        'python3.6',
+        ]
+elif site.__file__.startswith('/opt/python/cp'):
+    pythons = [
+        'python2.7',
+        'python3.4',
         'python3.5',
         'python3.6',
         ]
