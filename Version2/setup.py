@@ -104,6 +104,7 @@ if sys.platform == 'win32':
 elif sys.platform == 'darwin':
     pythons = [
         'python2.7',
+        'python3.4',
         'python3.5',
         'python3.6',
         ]
