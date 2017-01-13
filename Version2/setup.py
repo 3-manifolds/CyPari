@@ -8,7 +8,7 @@ of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
 Sage and can be used with any recent version of Python (except on Windows,
 where 3.4 is currently the only supported version of Python 3).
 """
-import os, sys, sysconfig, subprocess, shutil, site
+import os, sys, re, sysconfig, subprocess, shutil, site
 from glob import glob
 from setuptools import setup, Command
 from distutils.extension import Extension
@@ -154,7 +154,19 @@ class CyPariRelease(Command):
             subprocess.check_call(sdist_cmd)
         except subprocess.CalledProcessError:
             print('Error building sdist archive for %s.'%python)
-
+        if sys.platform.startswith('linux'):
+            cleanup = re.compile('linux_x86_64\.|linux_i686\.')
+            # build wheels tagged as manylinux1
+            for wheelname in [name for name in os.listdir('dist') if name.endswith('.whl')]:
+                distpath = os.path.join('dist', wheelname)
+                subprocess.check_call(['auditwheel', 'addtag', '-w', 'dist', distpath])
+                os.remove(distpath)
+            # remove the old linux tag so pypi will accept the wheel
+            for wheelname in [name for name in os.listdir('dist') if name.endswith('.whl')]:
+                newname = cleanup.sub('', wheelname)
+                os.rename(os.path.join('dist', wheelname),
+                          os.path.join('dist', newname))
+                
 class CyPariBuildExt(build_ext):
     def __init__(self, dist):
         build_ext.__init__(self, dist)
