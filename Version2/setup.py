@@ -18,10 +18,6 @@ from Cython.Build import cythonize
 
 # Load the version number.
 exec(open('cypari_src/version.py').read())
-# if 'sdist' in sys.argv:
-#     version += '-py{version_info.major}{version_info.minor}-{platform}'.format(
-#         version_info=sys.version_info,
-#         platform=sysconfig.get_platform())
 
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32':
@@ -122,11 +118,15 @@ else:
     ]
 
 class CyPariRelease(Command):
-    user_options = []
+    # The -rX option modifies the wheel name by adding rcX to the version string.
+    # This is for uploading to testpypi, which will not allow uploading two
+    # wheels with the same name.
+    user_options = [('rctag=', 'r', 'index for rc tag to be appended to version (e.g. -r2 -> rc2)')]
     def initialize_options(self):
-        pass 
+        self.rctag = None
     def finalize_options(self):
-        pass
+        if self.rctag:
+            self.rctag = 'rc%s'%self.rctag
     def run(self):
         if os.path.exists('build'):
             shutil.rmtree('build')
@@ -136,40 +136,47 @@ class CyPariRelease(Command):
             try:
                 subprocess.check_call([python, 'setup.py', 'build'])
             except subprocess.CalledProcessError:
-                print('Build failed for %s.'%python)
+                raise RuntimeError('Build failed for %s.'%python)
                 sys.exit(1)
             try:
                 subprocess.check_call([python, 'setup.py', 'test'])
             except subprocess.CalledProcessError:
-                print('Test failed for %s.'%python)
+                raise RuntimeError('Test failed for %s.'%python)
                 sys.exit(1)
             try:
                 subprocess.check_call([python, 'setup.py', 'bdist_wheel'])
             except subprocess.CalledProcessError:
-                print('Error building wheel for %s.'%python)
-        sdist_cmd = ['python', 'setup.py', 'sdist']
-        if sys.platform != 'win32':
-            sdist_cmd += ['--owner=root', '--group=root']
-        try:
-            subprocess.check_call(sdist_cmd)
-        except subprocess.CalledProcessError:
-            print('Error building sdist archive for %s.'%python)
+                raise RuntimeError('Error building wheel for %s.'%python)
         if sys.platform.startswith('linux'):
-            cleanup = re.compile('linux_x86_64\.|linux_i686\.')
+            # auditwheel generates names with more tags than allowed by pypi
+            extra_tag = re.compile('linux_x86_64\.|linux_i686\.')
             # build wheels tagged as manylinux1
             for wheelname in [name for name in os.listdir('dist') if name.endswith('.whl')]:
-                distpath = os.path.join('dist', wheelname)
-                subprocess.check_call(['auditwheel', 'addtag', '-w', 'dist', distpath])
-                os.remove(distpath)
-            # remove the old linux tag so pypi will accept the wheel
-            for wheelname in [name for name in os.listdir('dist') if name.endswith('.whl')]:
-                newname = cleanup.sub('', wheelname)
-                os.rename(os.path.join('dist', wheelname),
-                          os.path.join('dist', newname))
-                
+                original_path = os.path.join('dist', wheelname)
+                subprocess.check_call(['auditwheel', 'addtag', '-w', 'dist', original_path])
+                os.remove(original_path)
+        else:
+            extra_tag = None
+        version = re.compile('-([^-]*)-')
+        for wheel_name in [name for name in os.listdir('dist') if name.endswith('.whl')]:
+            new_name = wheel_name
+            if extra_tag:
+                new_name = extra_tag.sub('', new_name, 1)
+            if self.rctag:
+                new_name = version.sub('-\g<1>%s-'%self.rctag, new_name, 1)
+            os.rename(os.path.join('dist', wheel_name), os.path.join('dist', new_name))
+        try:
+            subprocess.check_call(['python', 'setup.py', 'sdist'])
+        except subprocess.CalledProcessError:
+            raise RuntimeError('Error building sdist archive for %s.'%python)
+        sdist_version = re.compile('-([^-]*)(.tar.gz)|-([^-]*)(.zip)')
+        for archive_name in [name for name in os.listdir('dist')
+                             if name.endswith('tar.gz') or name.endswith('.zip')]:
+            if self.rctag:
+                new_name = sdist_version.sub('-\g<1>%s\g<2>'%self.rctag, archive_name, 1)
+                os.rename(os.path.join('dist', archive_name), os.path.join('dist', new_name))
+
 class CyPariBuildExt(build_ext):
-    def __init__(self, dist):
-        build_ext.__init__(self, dist)
         
     def run(self):
         building_sdist = False
