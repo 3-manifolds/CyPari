@@ -72,6 +72,11 @@ class CyPariClean(Command):
                      glob('cypari_src/*.pyc') +
                      ['cypari_src/gen.c', 'cypari_src/gen_api.h']
         )
+        for file in junkfiles:
+            try:
+                os.remove(file)
+            except OSError:
+                pass
 
 class CyPariTest(Command):
     user_options = []
