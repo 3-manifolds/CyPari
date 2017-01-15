@@ -157,13 +157,13 @@ class CyPariRelease(Command):
                 os.remove(original_path)
         else:
             extra_tag = None
-        version = re.compile('-([^-]*)-')
+        version_tag = re.compile('-([^-]*)-')
         for wheel_name in [name for name in os.listdir('dist') if name.endswith('.whl')]:
             new_name = wheel_name
             if extra_tag:
                 new_name = extra_tag.sub('', new_name, 1)
             if self.rctag:
-                new_name = version.sub('-\g<1>%s-'%self.rctag, new_name, 1)
+                new_name = version_tag.sub('-\g<1>%s-'%self.rctag, new_name, 1)
             os.rename(os.path.join('dist', wheel_name), os.path.join('dist', new_name))
         try:
             subprocess.check_call(['python', 'setup.py', 'sdist'])
