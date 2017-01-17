@@ -251,7 +251,10 @@ link_args = []
 compile_args = []
 if sys.platform == 'win32':
     if sys.version_info.major == 3:
-        link_args = ['-specs=specs100']
+        if sys.maxsize > 2**32:
+            link_args = ['-L/c/Windows/System32', '-specs=specs100']
+        else:
+            link_args = ['-L/c/Windows/SysWOW64', '-specs=specs100']
     else:
         link_args = ['-specs=specs90']
     link_args += ['-Wl,--subsystem,windows']
