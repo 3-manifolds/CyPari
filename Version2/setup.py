@@ -251,7 +251,7 @@ link_args = []
 compile_args = []
 if sys.platform == 'win32':
     if sys.version_info.major > 2:
-        link_args = ['/c/Windows/System32/Python34.dll', '-specs=specs100']
+        link_args = [r'C:\Windows\System32\Python34.dll', '-specs=specs100']
     else:
         link_args = ['-specs=specs90']
     link_args += ['-Wl,--subsystem,windows']
