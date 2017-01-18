@@ -16,4 +16,9 @@ Version2/cypari/gen.h
 Version2/cypari/cysignals/signals.c
 Version2/cypari/cysignals/signals.h
 Version2/cypari/cysignals/signals_api.h
+Version2/cypari_src/auto_gen.pxi
+Version2/cypari_src/auto_instance.pxi
+Version2/cypari_src/ct_constants.pxi
+Version2/cypari_src/gen_api.h
+MANIFEST
 pythonenv

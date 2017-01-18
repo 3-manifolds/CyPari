@@ -95,40 +95,23 @@ class CyPariTest(Command):
         from cypari.test import runtests
         sys.exit(runtests())
 
-if sys.platform == 'win32':
-    pythons = [
-        r'C:\Python27\python.exe',
-        r'C:\Python27-x64\python.exe',
-        r'C:\Python34\python.exe',
-        r'C:\Python34-x64\python.exe',
-        ]
-elif sys.platform == 'darwin':
-    pythons = [
-        'python2.7',
-        'python3.4',
-        'python3.5',
-        'python3.6',
-        ]
-elif site.__file__.startswith('/opt/python/cp'):
-    pythons = [
-        'python2.7',
-        'python3.4',
-        'python3.5',
-        'python3.6',
-        ]
-else:
-    pythons = [
-        'python2.7',
-        'python3.5'
-    ]
-
+def check_call(args):
+    try:
+        subprocess.check_call(args)
+    except subprocess.CalledProcessError:
+        executable = args[0]
+        command = [a for a in args if not a.startswith('-')][-1]
+        raise RuntimeError(command + ' failed for ' + executable)
+        
 class CyPariRelease(Command):
     # The -rX option modifies the wheel name by adding rcX to the version string.
     # This is for uploading to testpypi, which will not allow uploading two
     # wheels with the same name.
-    user_options = [('rctag=', 'r', 'index for rc tag to be appended to version (e.g. -r2 -> rc2)')]
+    user_options = [('rctag=', 'r', 'index for rc tag to be appended to version (e.g. -r2 -> rc2)'), 
+                    ('install', 'i', 'install the release into each Python')]
     def initialize_options(self):
         self.rctag = None
+        self.install = False
     def finalize_options(self):
         if self.rctag:
             self.rctag = 'rc%s'%self.rctag
@@ -137,49 +120,37 @@ class CyPariRelease(Command):
             shutil.rmtree('build')
         if os.path.exists('dist'):
             shutil.rmtree('dist')
+
+        pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
         for python in pythons:
-            try:
-                subprocess.check_call([python, 'setup.py', 'build'])
-            except subprocess.CalledProcessError:
-                raise RuntimeError('Build failed for %s.'%python)
-                sys.exit(1)
-            try:
-                subprocess.check_call([python, 'setup.py', 'test'])
-            except subprocess.CalledProcessError:
-                raise RuntimeError('Test failed for %s.'%python)
-                sys.exit(1)
-            try:
-                subprocess.check_call([python, 'setup.py', 'bdist_wheel'])
-            except subprocess.CalledProcessError:
-                raise RuntimeError('Error building wheel for %s.'%python)
+            check_call([python, 'setup.py', 'build'])
+            check_call([python, 'setup.py', 'test'])
+            if sys.platform.startswith('linux'):
+                plat = get_platform().replace('linux', 'manylinux1')
+                plat = plat.replace('-', '_')
+                check_call([python, 'setup.py', 'bdist_wheel', '-p', plat])
+                check_call([python, 'setup.py', 'bdist_egg'])
+            else:
+                check_call([python, 'setup.py', 'bdist_wheel'])
+
+            if self.install:
+                check_call([python, 'setup.py', 'install'])
+
+        # Build sdist using the *first* specified Python
+        check_call([pythons[0], 'setup.py', 'sdist'])
+
+        version_tag = re.compile('-([^-]*)(-|.tar.gz|.zip)')
+        if self.rctag:
+            for name in os.listdir('dist'):
+                new_name = version_tag.sub('-\g<1>%s\g<2>'%self.rctag, name, 1)
+                print('%s --> %s' % (name, new_name))
+                os.rename(os.path.join('dist', name), os.path.join('dist', new_name))
+
+        # Double-check the Linux wheels
         if sys.platform.startswith('linux'):
-            # auditwheel generates names with more tags than allowed by pypi
-            extra_tag = re.compile('linux_x86_64\.|linux_i686\.')
-            # build wheels tagged as manylinux1
-            for wheelname in [name for name in os.listdir('dist') if name.endswith('.whl')]:
-                original_path = os.path.join('dist', wheelname)
-                subprocess.check_call(['auditwheel', 'addtag', '-w', 'dist', original_path])
-                os.remove(original_path)
-        else:
-            extra_tag = None
-        version_tag = re.compile('-([^-]*)-')
-        for wheel_name in [name for name in os.listdir('dist') if name.endswith('.whl')]:
-            new_name = wheel_name
-            if extra_tag:
-                new_name = extra_tag.sub('', new_name, 1)
-            if self.rctag:
-                new_name = version_tag.sub('-\g<1>%s-'%self.rctag, new_name, 1)
-            os.rename(os.path.join('dist', wheel_name), os.path.join('dist', new_name))
-        try:
-            subprocess.check_call(['python', 'setup.py', 'sdist'])
-        except subprocess.CalledProcessError:
-            raise RuntimeError('Error building sdist archive for %s.'%python)
-        sdist_version = re.compile('-([^-]*)(.tar.gz)|-([^-]*)(.zip)')
-        for archive_name in [name for name in os.listdir('dist')
-                             if name.endswith('tar.gz') or name.endswith('.zip')]:
-            if self.rctag:
-                new_name = sdist_version.sub('-\g<1>%s\g<2>'%self.rctag, archive_name, 1)
-                os.rename(os.path.join('dist', archive_name), os.path.join('dist', new_name))
+            for name in os.listdir('dist'):
+                if name.endswith('.whl'):
+                    subprocess.check_call(['auditwheel', 'repair', os.path.join('dist', name)])
 
 class CyPariBuildExt(build_ext):
         
@@ -302,6 +273,6 @@ setup(
         'Programming Language :: Python',
         'Topic :: Scientific/Engineering :: Mathematics',
         ],
-    keywords = 'Pari, Sage, SnapPy',
+    keywords = 'Pari, SageMath, SnapPy',
 )
 
