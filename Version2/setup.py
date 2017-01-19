@@ -105,17 +105,11 @@ def check_call(args):
         raise RuntimeError(command + ' failed for ' + executable)
         
 class CyPariRelease(Command):
-    # The -rX option modifies the wheel name by adding rcX to the version string.
-    # This is for uploading to testpypi, which will not allow uploading two
-    # wheels with the same name.
-    user_options = [('rctag=', 'r', 'index for rc tag to be appended to version (e.g. -r2 -> rc2)'), 
-                    ('install', 'i', 'install the release into each Python')]
+    user_options = [('install', 'i', 'install the release into each Python')]
     def initialize_options(self):
-        self.rctag = None
         self.install = False
     def finalize_options(self):
-        if self.rctag:
-            self.rctag = 'rc%s'%self.rctag
+        pass
     def run(self):
         if os.path.exists('build'):
             shutil.rmtree('build')
@@ -139,13 +133,6 @@ class CyPariRelease(Command):
 
         # Build sdist using the *first* specified Python
         check_call([pythons[0], 'setup.py', 'sdist'])
-
-        version_tag = re.compile('-([^-]*)(-|.tar.gz|.zip)')
-        if self.rctag:
-            for name in os.listdir('dist'):
-                new_name = version_tag.sub('-\g<1>%s\g<2>'%self.rctag, name, 1)
-                print('%s --> %s' % (name, new_name))
-                os.rename(os.path.join('dist', name), os.path.join('dist', new_name))
 
         # Double-check the Linux wheels
         if sys.platform.startswith('linux'):
