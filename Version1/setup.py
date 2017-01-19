@@ -47,6 +47,8 @@ except ImportError:
 
 if sys.platform == 'win32':
     extra_link_args = ['-static-libgcc', '-specs=specs90']
+elif sys.platform.startswith('linux'):
+    extra_link_args = ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 else:
     extra_link_args = []
 
