@@ -14,6 +14,7 @@ from setuptools import setup, Command
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
+from distutils.util import get_platform
 from Cython.Build import cythonize
 
 # Load the version number.
