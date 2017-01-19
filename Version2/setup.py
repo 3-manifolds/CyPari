@@ -236,6 +236,9 @@ if sys.platform == 'win32':
         compile_args.append('-DMS_WIN64')
 link_args += [pari_static_library]
 
+if sys.platform.startswith('linux'):
+    link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
+
 include_dirs = []
 include_dirs=[pari_include_dir]
 pari_gen = Extension('cypari.gen',
