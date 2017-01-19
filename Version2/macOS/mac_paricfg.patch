@@ -1,35 +1,20 @@
---- pari/include/pari/paricfg.h.orig	2017-01-02 12:13:38.000000000 -0600
-+++ pari/include/pari/paricfg.h	2017-01-02 12:17:15.000000000 -0600
-@@ -8,22 +8,30 @@
- #define SHELL_Q '\''
- 
- #define PARIVERSION "GP/PARI CALCULATOR Version 2.9.1 (released)"
-+#if defined(__x86_64__)
- #define PARIINFO "amd64 running darwin (x86-64 kernel) 64-bit version"
-+#else
-+#define PARIINFO "i386 running darwin (ix86 kernel) 32-bit version"
-+#endif
- #define PARI_VERSION_CODE 133377
- #define PARI_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
- #define PARI_VERSION_SHIFT 8
- #define PARI_VCSVERSION ""
- #define PARI_MT_ENGINE "single"
--
-+#if defined(__x86_64__)
- #define PARI_DOUBLE_FORMAT -
-+#else
-+#define PARI_DOUBLE_FORMAT 1
-+#endif
- #define GCC_VERSION "Apple LLVM version 8.0.0 (clang-800.0.42.1)"
- #define ASMINLINE
- 
- /*  Location of GNU gzip program (enables reading of .Z and .gz files). */
- #define GNUZCAT
- #define ZCAT "/usr/bin/gzip -dc"
--
-+#if defined(__x86_64__)
- #define LONG_IS_64BIT
-+#endif
- #define HAS_EXP2
- #define HAS_LOG2
- #define HAS_ISATTY
+10a11
+> #if defined(__x86_64__)
+11a13,15
+> #else
+> #define PARIINFO "i386 running darwin (ix86 kernel) 32-bit version"
+> #endif
+17c21
+< 
+---
+> #if defined(__x86_64__)
+18a23,25
+> #else
+> #define PARI_DOUBLE_FORMAT 1
+> #endif
+25c32
+< 
+---
+> #if defined(__x86_64__)
+26a34
+> #endif
