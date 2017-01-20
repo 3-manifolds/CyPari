@@ -4,8 +4,8 @@ The package *cypari* is a Python wrapper for the `PARI library
 number theory computations.  It is derived from the `corresponding
 component
 <http://doc.sagemath.org/html/en/reference/libs/sage/libs/pari/index.html>`_
-of `Sage <http://www.sagemath.org>`_, but is independent of the rest of
-Sage and can be used with any recent version of Python (except on Windows,
+of `SageMath <http://www.sagemath.org>`_, but is independent of the rest of
+SageMath and can be used with any recent version of Python (except on Windows,
 where 3.4 is currently the only supported version of Python 3).
 """
 import os, sys, re, sysconfig, subprocess, shutil, site
@@ -15,7 +15,6 @@ from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
-from Cython.Build import cythonize
 
 # Load the version number.
 exec(open('cypari_src/version.py').read())
@@ -195,8 +194,15 @@ class CyPariBuildExt(build_ext):
         if old_constants != ct_constants:
             with open(ct_filename, 'wb') as output:
                 output.write(ct_constants)
-                
-        cythonize([os.path.join('cypari_src', 'gen.pyx')])
+
+        # If have Cython, check that .c files are up to date
+        try: 
+            from Cython.Build import cythonize
+            cythonize([os.path.join('cypari_src', 'gen.pyx')])
+        except ImportError:
+            if not os.path.exists(os.path.join('cypari_src', 'gen.c')):
+                sys.exit("***Cython needed to create cypari_src/gen.c***")
+
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
