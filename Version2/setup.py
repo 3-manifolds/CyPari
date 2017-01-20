@@ -70,7 +70,8 @@ class CyPariClean(Command):
                 pass
         junkfiles = (glob('cypari_src/*.so*') +
                      glob('cypari_src/*.pyc') +
-                     ['cypari_src/gen.c', 'cypari_src/gen_api.h']
+                     glob('cypari_src/gen*.c') +
+                     ['cypari_src/gen_api.h']
         )
         for file in junkfiles:
             try:
@@ -102,7 +103,13 @@ def check_call(args):
         executable = args[0]
         command = [a for a in args if not a.startswith('-')][-1]
         raise RuntimeError(command + ' failed for ' + executable)
-        
+
+def python_major(python):
+    proc = subprocess.Popen([python, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate()
+    # Python 2 writes to stderr, but Python 3 writes to stdout
+    return (output + errors).split()[1].split('.')[0]
+    
 class CyPariRelease(Command):
     user_options = [('install', 'i', 'install the release into each Python')]
     def initialize_options(self):
@@ -116,6 +123,7 @@ class CyPariRelease(Command):
             shutil.rmtree('dist')
 
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
+        print('releasing for: %s'%(', '.join(pythons)))
         for python in pythons:
             check_call([python, 'setup.py', 'build'])
             check_call([python, 'setup.py', 'test'])
@@ -129,6 +137,10 @@ class CyPariRelease(Command):
 
             if self.install:
                 check_call([python, 'setup.py', 'install'])
+                
+            # Save a copy of the gen.c file for each major version of Python.
+            gen_c_name = 'gen_py%s.c'%python_major(python)
+            os.rename(os.path.join('cypari_src', 'gen.c'), os.path.join('cypari_src', gen_c_name))
 
         # Build sdist using the *first* specified Python
         check_call([pythons[0], 'setup.py', 'sdist'])
@@ -149,6 +161,9 @@ class CyPariBuildExt(build_ext):
             if not os.path.exists('build'):
                 os.mkdir('build')
             os.rename('pari_src', os.path.join('build', 'pari_src'))
+            # Find the correct gen.c for our version of Python.
+            gen_c_name = 'gen_py%d.c'%sys.version_info.major
+            os.rename(os.path.join('cypari_src', gen_c_name), os.path.join('cypari_src', 'gen.c'))
             building_sdist = True
         
         if not os.path.exists(os.path.join('build', PARIDIR)):
