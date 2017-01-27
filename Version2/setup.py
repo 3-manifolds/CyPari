@@ -61,6 +61,7 @@ class CyPariClean(Command):
     def run(self):
         junkdirs = (glob('build/lib*') +
                     glob('build/bdist*') +
+                    glob('build/temp*') +
                     glob('cypari*.egg-info')
         )
         for dir in junkdirs:
@@ -125,6 +126,7 @@ class CyPariRelease(Command):
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
         print('releasing for: %s'%(', '.join(pythons)))
         for python in pythons:
+            check_call([python, 'setup.py', 'clean'])
             check_call([python, 'setup.py', 'build'])
             check_call([python, 'setup.py', 'test'])
             if sys.platform.startswith('linux'):
@@ -137,7 +139,7 @@ class CyPariRelease(Command):
 
             if self.install:
                 check_call([python, 'setup.py', 'install'])
-                
+            
             # Save a copy of the gen.c file for each major version of Python.
             gen_c_name = 'gen_py%s.c'%python_major(python)
             os.rename(os.path.join('cypari_src', 'gen.c'), os.path.join('cypari_src', gen_c_name))
