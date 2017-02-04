@@ -34,7 +34,7 @@ Interrupt and signal handling for Cython
 #endif
 
 /* Posix version */
-#ifndef __MINGW32__
+#if !defined(__MINGW32__) && !defined(_WIN32)
 
 #include <stdio.h>
 #include <string.h>
@@ -331,11 +331,9 @@ static void sigdie(int sig, const char* s)
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <Python.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <pari/pari.h>
 #include "struct_signals.h"
 #include <windows.h>

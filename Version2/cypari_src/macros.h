@@ -91,7 +91,7 @@ extern "C" {
  * a short-circuiting operator (the second argument is only evaluated
  * if the first returns 0).
  */
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
 #define _sig_on_(message) ( unlikely(_sig_on_prejmp(message, __FILE__, __LINE__)) || _sig_on_postjmp(setjmp(cysigs.env)) )
   //#define _sig_on_(message) ( 1 )
 #else
@@ -163,7 +163,7 @@ static inline void _sig_off_(const char* file, int line)
   else
     {
       --cysigs.sig_on_count;
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
       /* If a pari_error was generated, mingw32ctrlc should be reset to 0. */
       if (win32ctrlc > 0)
 	{
@@ -233,7 +233,7 @@ static inline void sig_unblock(void)
 {
     cysigs.block_sigint = 0;
 
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
     if (unlikely(cysigs.interrupt_received) && cysigs.sig_on_count > 0)
       raise(cysigs.interrupt_received);  /* Re-raise the signal */
 #else
@@ -256,7 +256,7 @@ static inline void sig_retry(void)
     if (unlikely(cysigs.sig_on_count <= 0))
     {
       DEBUG( "sig_retry() without sig_on()\n")
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
 	// FIX ME!!!!
 	raise(SIGFPE);
 #else
@@ -278,7 +278,7 @@ static inline void sig_error(void)
     {
         fprintf(stderr, "sig_error() without sig_on()\n");
     }
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
     /* 
      * The Windows abort function will terminate the process no
      * matter what.  If a SIGABRT handler is set it will be called,
@@ -295,7 +295,7 @@ static inline void sig_error(void)
 }
 
 #define test_sigsegv() {int *p = (void*)5; *p = 5;}
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
   #define send_signal(sig) raise(sig)
 #else
   #define send_signal(sig) kill(getpid(), sig)

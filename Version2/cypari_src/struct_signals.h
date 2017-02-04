@@ -21,7 +21,7 @@
 
 #ifndef CYSIGNALS_STRUCT_SIGNALS_H
 #define CYSIGNALS_STRUCT_SIGNALS_H
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
 #define sigjmp_buf jmp_buf
 #define siglongjmp longjmp
 #endif
@@ -85,7 +85,7 @@ typedef struct
     /* In Windows we use this to indicate that a signal has been
      * mapped to SIGFPE (to allow immediate processing with longjmp).
      */
-#ifdef __MINGW32__
+#if defined(__MINGW32__) || defined(_WIN32)
     volatile sig_atomic_t sig_mapped_to_FPE;
 #endif
 } cysigs_t;
