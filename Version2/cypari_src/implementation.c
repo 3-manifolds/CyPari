@@ -339,6 +339,9 @@ static void sigdie(int sig, const char* s)
 #include <windows.h>
 #include <float.h>
 
+#ifndef __MINGW32__
+#  define inline __inline
+#endif
 /* The cysigs object (there is a unique copy of this, shared by all
  * Cython modules using cysignals) */
 static cysigs_t cysigs;
@@ -550,10 +553,11 @@ static void _sig_on_recover(void)
 static void _sig_off_warning(const char* file, int line)
 {
     char buf[320];
+    PyGILState_STATE gilstate_save;
     snprintf(buf, sizeof(buf), "sig_off() without sig_on() at %s:%i", file, line);
 
     /* Raise a warning with the Python GIL acquired */
-    PyGILState_STATE gilstate_save = PyGILState_Ensure();
+    gilstate_save = PyGILState_Ensure();
     PyErr_WarnEx(PyExc_RuntimeWarning, buf, 2);
     PyGILState_Release(gilstate_save);
 
