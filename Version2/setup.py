@@ -16,9 +16,6 @@ from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
-# Load the version number.
-exec(open('cypari_src/version.py').read())
-
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32':
     # Build with mingw by default.
@@ -257,9 +254,14 @@ pari_gen = Extension('cypari.gen',
                      extra_link_args=link_args,
                      extra_compile_args=compile_args)
 
+# Load the version number.
+sys.path.insert(0, 'cypari_src')
+from version import __version__
+sys.path.pop(0)
+
 setup(
     name = 'cypari',
-    version = version,
+    version = __version__,
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari_src'},
