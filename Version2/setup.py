@@ -16,11 +16,34 @@ from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
+# By default we build the CyPari extension with mingw.  As an
+# experiment.  If msvc is specified, we will build the Pari library
+# with mingw and build the extension with msvc.  Currently this does
+# build an extension, but the extension does not load.
+compiler_set = False
+ext_compiler = 'mingw32'
+for n, arg in enumerate(sys.argv):
+    if arg == '-c':
+        ext_compiler = sys.argv[n+1]
+        compiler_set = True
+        break
+    elif arg.startswith('-c'):
+        ext_compiler = arg[2:]
+        compiler_set = True
+        break
+    elif arg.startswith('--compiler'):
+        ext_compiler = arg.split('=')[1]
+        compiler_set = True
+        break
+if not compiler_set and 'build' in sys.argv:
+    sys.argv.append('--compiler=mingw32')
+    
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32':
-    # Build with mingw by default.
-    if sys.argv[1] == 'build':
-        sys.argv.append('-cmingw32')
+    # We always build the Pari library with mingw, no matter which compiler
+    # is used for the CyPari extension.
+#    if sys.argv[1] == 'build':
+#        sys.argv.append('-cmingw32')
     # Make sure that our C compiler matches our python and that we can run bash
     # This assumes that msys2 is installed in C:\msys64.
     if sys.maxsize > 2**32:   # use mingw64
@@ -228,7 +251,8 @@ class CyPariSourceDist(sdist):
 
 link_args = []
 compile_args = []
-if sys.platform == 'win32':
+
+if ext_compiler == 'mingw32':
     major, minor = sys.version_info.major, sys.version_info.minor
     if major == 3:
         if minor == 4:
@@ -241,8 +265,26 @@ if sys.platform == 'win32':
                      '-Dprintf=__MINGW_PRINTF_FORMAT']
     if sys.maxsize > 2**32:
         compile_args.append('-DMS_WIN64')
+elif ext_compiler == 'msvc':
+    # Experimental!  This builds, but the dll load fails.
+    # ignore the assembly language inlines when building the extension.
+    compile_args += ['/DDISABLE_INLINE']
+    # Without these three libraries there will be unassigned symbols.
+    # But the Python symbols seem to get assigned to libadvapi32.
+    if sys.maxsize > 2**32:
+        link_args += [
+            r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libmingwex.a',
+            r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libadvapi32.a',
+            r'C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\6.2.0\libgcc.a',
+            ]
+    else:
+        link_args += [
+            r'C:\msys64\mingw32\i686-w64-mingw32\lib\libmingwex.a',
+            r'C:\msys64\mingw32\i686-w64-mingw32\lib\libadvapi32.a',
+            r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\6.2.0\libgcc.a',
+            ]
 link_args += [pari_static_library]
-
+    
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 

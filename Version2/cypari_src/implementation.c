@@ -516,7 +516,8 @@ static void cysigs_signal_handler(int sig)
     }
 }
 
-extern int sig_raise_exception(int sig, const char* msg);
+__PYX_EXTERN_C DL_EXPORT(int) sig_raise_exception(int, char const *);
+//extern int sig_raise_exception(int sig, const char* msg);
 
 /* This calls sig_raise_exception() to actually raise the exception. */
 static void do_raise_exception(int sig)
