@@ -16,12 +16,8 @@ from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
-# By default we build the CyPari extension with mingw.  As an
-# experiment.  If msvc is specified, we will build the Pari library
-# with mingw and build the extension with msvc.  Currently this does
-# build an extension, but the extension does not load.
 compiler_set = False
-ext_compiler = 'mingw32'
+ext_compiler = 'msvc'
 for n, arg in enumerate(sys.argv):
     if arg == '-c':
         ext_compiler = sys.argv[n+1]
@@ -36,7 +32,7 @@ for n, arg in enumerate(sys.argv):
         compiler_set = True
         break
 if not compiler_set and 'build' in sys.argv:
-    sys.argv.append('--compiler=mingw32')
+    sys.argv.append('--compiler=msvc')
     
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32':
@@ -266,11 +262,9 @@ if ext_compiler == 'mingw32':
     if sys.maxsize > 2**32:
         compile_args.append('-DMS_WIN64')
 elif ext_compiler == 'msvc':
-    # Experimental!  Build the extension with MSVC.
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
-    # Without these three libraries there will be unassigned symbols.
-    # But the Python symbols seem to get assigned to libadvapi32.
+    # These mingw libraries are needed to resolve symbols in libpari.
     if sys.maxsize > 2**32:
         msvc_link_args += [
             r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libmingwex.a',

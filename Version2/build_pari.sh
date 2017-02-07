@@ -1,10 +1,13 @@
 #! /bin/bash
-#
-# This builds a fat (i386/x86_64) PARI library for OS X > 10.5 or a 
-# normal binary for Linux or Windows. 
-#
+
+# This builds a fat (i386/x86_64) PARI library for OS X > 10.5.
+# On Windows it uses mingw32 or mingw64, depending on the
+# MSys2 environment.
+# On linux the default system gcc is used to build for the host
+# architecture.
 
 set -e
+
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
     if [ ! -d "build" ] ; then
@@ -14,7 +17,7 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../pari-2.9.1.tar.gz
     mv pari-2.9.1 pari_src
     cd pari_src
-    # neuter win32_set_pdf_viewer so it won't break the linking
+    # neuter win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -p0 < ../../Windows/mingw_c.patch
 else
     cd build/pari_src
@@ -27,10 +30,10 @@ else
     PREFIX=../pari
     LIBDIR=../pari/lib
 fi
-
 export DESTDIR=
 
 echo "Building Pari libary..."
+
 if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
     ./Configure --prefix=../pari32 --libdir=../pari32/lib --without-gmp
@@ -55,22 +58,24 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     echo Patching paricfg.h for dual architectures
     patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
     cd pari_src
-else
-    if [ $(uname | cut -b -5) = "MINGW" ] ; then
-	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
-    fi
+    
+elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+    # This allows using C99 format specifications in printf.
+    export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     
     ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 
-    if [ $(uname | cut -b -5) = "MINGW" ] ; then
-	# remove the funky RUNPTH which confuses gcc and is irrelevant anyway
-	echo Patching the MinGW Makefile ...
-	sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
-    fi
+    # Remove the funky RUNPTH which confuses gcc and is irrelevant anyway.
+    echo Patching the MinGW Makefile ...
+    sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
     
-    make install
-    make install-lib-sta
-    cp src/language/anal.h $PREFIX/include/pari
+else # linux, presumably
+    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 fi
+    
+make install
+make install-lib-sta
+cp src/language/anal.h $PREFIX/include/pari
+
 # Fix non-prototype function declarations
 sed -i -e s/\(\)\;/\(void\)\;/ $PREFIX/include/pari/paripriv.h
