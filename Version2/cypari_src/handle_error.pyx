@@ -160,7 +160,7 @@ cdef int _pari_err_handle(GEN E) except 0:
         PariError: impossible inverse in gdiv: 0
 
     """
-    cdef long errnum = E[1]
+    cdef long errnum = <long>E[1]
 
     sig_block()
     cdef char* errstr
