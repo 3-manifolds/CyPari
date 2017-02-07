@@ -1337,8 +1337,8 @@ General number fields::
 
     >>> G = pari('x^6 + 108').galoisinit()
     >>> L = G.galoissubgroups()
-    >>> list(L[0][1])
-    [3, 2]
+    >>> list(L[0][1]) == [3, 2]
+    True
 
     >>> G = pari('x^6 + 108').galoisinit()
     >>> G.galoisisabelian()

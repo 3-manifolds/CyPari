@@ -236,7 +236,7 @@ cdef class gen:
         """
         cdef long h
         sig_on()
-        h = hash_GEN(self.g)
+        h = <long>hash_GEN(self.g)
         sig_off()
         return h
 
@@ -797,14 +797,15 @@ cdef class gen:
             [0, 4]
 
         >>> K = pari('x^4 - 4*x^2 + 1').nfinit()
-        >>> s = K.nf_get_sign(); s
-        [4, 0]
-        >>> isinstance(s, list); isinstance(s[0], int)
+        >>> s = K.nf_get_sign(); s == [4, 0]
         True
+        >>> isinstance(s, list)
+        True
+        >>> isinstance(s[0], int) or isinstance(s[0], long)
         True
         """
-        cdef long r1
-        cdef long r2
+        cdef pari_longword r1
+        cdef pari_longword r2
         cdef GEN sign
         sig_on()
         sign = member_sign(self.g)
@@ -961,7 +962,7 @@ cdef class gen:
             sage: pari(K).idealfactor(K.ideal(5))[0,0].pr_get_e()
             1
         """
-        cdef long e
+        cdef pari_longword e
         sig_on()
         e = pr_get_e(self.g)
         sig_off()
@@ -984,7 +985,7 @@ cdef class gen:
             sage: pari(K).idealfactor(K.ideal(5))[0,0].pr_get_f()
             1
         """
-        cdef long f
+        cdef pari_longword f
         sig_on()
         f = pr_get_f(self.g)
         sig_off()
@@ -1136,9 +1137,9 @@ cdef class gen:
             sage: c[1]
             2
             sage: sv = pari('Vecsmall([1,2,3])')
-            sage: sv[2]
-            3
-            sage: isinstance(sv[2], int)
+            sage: sv[2] == 3
+            True
+            sage: isinstance(sv[2], int) or isinstance(sv[2], long)
             True
             sage: tuple(pari('3/5'))
             (3, 5)
@@ -1218,9 +1219,9 @@ cdef class gen:
         >>> c[1]
         2
         >>> sv = pari('Vecsmall([1,2,3])')
-        >>> sv[2]
-        3
-        >>> isinstance(sv[2], int)
+        >>> sv[2] == 3
+        True
+        >>> isinstance(sv[2], int) or isinstance(sv[2], long)
         True
         >>> tuple(pari('3/5'))
         (3, 5)
@@ -1257,6 +1258,7 @@ cdef class gen:
         []
         """
         cdef int pari_type
+        cdef pari_longword i, j, l
 
         pari_type = typ(self.g)
 
@@ -1265,8 +1267,8 @@ cdef class gen:
                 raise TypeError("self must be of pari type t_MAT")
             if len(n) != 2:
                 raise IndexError("index must be an integer or a 2-tuple (i,j)")
-            i = int(n[0])
-            j = int(n[1])
+            i = n[0]
+            j = n[1]
 
             if i < 0 or i >= glength(<GEN>(self.g[1])):
                 raise IndexError("row index out of range")
@@ -1325,7 +1327,8 @@ cdef class gen:
             # these are definitely scalar!
             raise TypeError("PARI object of type %r cannot be indexed" % self.type())
 
-        elif n < 0 or n >= glength(self.g):
+        # Assume the length fits in a long, even in 64 bit Windows.
+        elif n < 0 or n >= <long>glength(self.g):
             raise IndexError("index out of range")
 
         elif pari_type == t_VEC or pari_type == t_MAT:
@@ -1347,7 +1350,7 @@ cdef class gen:
 
         elif pari_type == t_VECSMALL:
             #t_VECSMALL: vec. small ints  [ code ] [ x_1 ] ... [ x_k ]
-            return self.g[n+1]
+            return <pari_longword>self.g[n+1]
 
         elif pari_type == t_STR:
             #t_STR    : string            [ code ] [ man_1 ] ... [ man_k ]
@@ -1506,9 +1509,8 @@ cdef class gen:
         >>> isinstance(v[0], gen)
         True
         """
-        cdef int i, j
+        cdef pari_longword i, j, l
         cdef gen x = objtogen(y)
-        cdef long l
         cdef Py_ssize_t ii, jj, step
 
         sig_on()
@@ -1520,8 +1522,8 @@ cdef class gen:
                 if len(n) != 2:
                     raise ValueError("matrix index must be of the form [row, column]")
 
-                i = int(n[0])
-                j = int(n[1])
+                i = n[0]
+                j = n[1]
                 ind = (i,j)
 
                 if i < 0 or i >= glength(<GEN>(self.g[1])):
@@ -1550,7 +1552,7 @@ cdef class gen:
             i = int(n)
 
             if i < 0 or i >= glength(self.g):
-                raise IndexError("index (%s) must be between 0 and %s" % (i, glength(self.g)-1))
+                raise IndexError("index (%s) must be between 0 and %s" % (i, <pari_longword>glength(self.g)-1))
 
             # so python memory manager will work correctly
             # and not free x if PARI part of self is the
@@ -1870,21 +1872,21 @@ cdef class gen:
             cdef char *hexdigits
             hexdigits = "0123456789abcdef"
             cdef int i, j
-            cdef int size
+            cdef pari_longword size
             x = self.g
             if typ(x) != t_INT:
                 raise TypeError("gen must be of PARI type t_INT")
             if not signe(x):
                 return "0"
             lx = lgefint(x)-2  # number of words
-            size = lx*2*sizeof(long)
+            size = lx*2*sizeof(pari_longword)
             s = <char *>sig_malloc(size+2) # 1 char for sign, 1 char for '\0'
             sp = s + size+1
             sp[0] = 0
             xp = int_LSW(x)
             for i from 0 <= i < lx:
                 w = xp[0]
-                for j from 0 <= j < 2*sizeof(long):
+                for j from 0 <= j < 2*sizeof(pari_longword):
                     sp = sp-1
                     sp[0] = hexdigits[w & 15]
                     w = w>>4
@@ -1964,20 +1966,20 @@ cdef class gen:
             sage: w = v.python_list_small()
             sage: w
             [1, 2, 3, 10, 102, 10]
-            sage: isinstance(w[0], int)
+             sage: isinstance(w[0], int)
             True
 
         >>> v=pari([1,2,3,10,102,10]).Vecsmall()
         >>> w = v.python_list_small()
-        >>> w
-        [1, 2, 3, 10, 102, 10]
-        >>> isinstance(w[0], int)
+        >>> w == [1, 2, 3, 10, 102, 10]
+        True
+        >>> isinstance(w[0], int) or isinstance(w[0], long)
         True
         """
         cdef long n
         if typ(self.g) != t_VECSMALL:
             raise TypeError("Object (=%s) must be of type t_VECSMALL." % self)
-        return [self.g[n+1] for n in range(glength(self.g))]
+        return [<pari_longword>self.g[n+1] for n in range(<long>glength(self.g))]
 
     def python_list(gen self):
         """
@@ -2022,7 +2024,7 @@ cdef class gen:
 
         if typ(self.g) != t_VEC and typ(self.g) != t_COL:
             raise TypeError("Object (=%s) must be of type t_VEC or t_COL." % self)
-        return [self[n] for n in range(glength(self.g))]
+        return [self[n] for n in range(<long>glength(self.g))]
 
     def python(self, locals=None):
         """
@@ -2534,7 +2536,7 @@ cdef class gen:
         False
         """
         sig_on()
-        cdef long t = ispseudoprime(self.g, flag)
+        cdef pari_longword t = ispseudoprime(self.g, flag)
         sig_off()
         return t != 0
 
@@ -2581,13 +2583,13 @@ cdef class gen:
         >>> pari(2).ispower()
         (1, 2)
         """
-        cdef int n
+        cdef long n
         cdef GEN x
         cdef gen t0
 
         if k is None:
             sig_on()
-            n = gisanypower(self.g, &x)
+            n = <long>gisanypower(self.g, &x)
             if n == 0:
                 sig_off()
                 return 1, self
@@ -2596,7 +2598,7 @@ cdef class gen:
         else:
             t0 = objtogen(k)
             sig_on()
-            n = ispower(self.g, t0.g, &x)
+            n = <long>ispower(self.g, t0.g, &x)
             if n == 0:
                 sig_off()
                 return False, None
@@ -2649,7 +2651,7 @@ cdef class gen:
         cdef long n
 
         sig_on()
-        n = isprimepower(self.g, &x)
+        n = <long>isprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2692,7 +2694,7 @@ cdef class gen:
         cdef long n
 
         sig_on()
-        n = ispseudoprimepower(self.g, &x)
+        n = <long>ispseudoprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2858,7 +2860,7 @@ cdef class gen:
         # Reverse it in-place
         cdef GEN L = v + 1
         cdef GEN R = v + (lg(v)-1)
-        cdef long t
+        cdef pari_longword t
         while (L < R):
             t = L[0]
             L[0] = R[0]
@@ -3357,7 +3359,7 @@ cdef class gen:
         [True, False, True, True, True, True, True, True, True, True]
         """
         sig_on()
-        cdef long b = bittest(x.g, n)
+        cdef pari_longword b = bittest(x.g, n)
         sig_off()
         return b != 0
 
@@ -3410,7 +3412,7 @@ cdef class gen:
         OUTPUT: gen
         """
         if n <= 0:
-            return precision(x.g)
+            return <long>precision(x.g)
         sig_on()
         return P.new_gen(precision0(x.g, n))
 
@@ -3535,7 +3537,7 @@ cdef class gen:
         >>> pari('[x, I]').sizeword()
         20
         """
-        return gsizeword(x.g)
+        return <long>gsizeword(x.g)
 
     def sizebyte(gen x):
         """
@@ -3559,7 +3561,7 @@ cdef class gen:
         12           # 32-bit
         24           # 64-bit
         """
-        return gsizebyte(x.g)
+        return <long>gsizebyte(x.g)
 
     def truncate(gen x, estimate=False):
         """
@@ -3968,7 +3970,7 @@ cdef class gen:
         ``find_root`` is given, also returns the exact square root.
         """
         cdef GEN G
-        cdef long t
+        cdef pari_longword t
         cdef gen g
         sig_on()
         if find_root:
@@ -3998,7 +4000,7 @@ cdef class gen:
         False
         """
         sig_on()
-        cdef long t = issquarefree(self.g)
+        cdef pari_longword t = issquarefree(self.g)
         sig_off()
         return t != 0
 
@@ -4057,7 +4059,7 @@ cdef class gen:
         """
         cdef gen t0 = objtogen(n)
         sig_on()
-        cdef long t = Zn_issquare(self.g, t0.g)
+        cdef pari_longword t = Zn_issquare(self.g, t0.g)
         sig_off()
         return t != 0
 
@@ -4128,23 +4130,25 @@ cdef class gen:
             True
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
-        >>> e.ellan(3)
-        [1, -2, -1]
-        >>> e.ellan(20)
-        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2, 1, -2, 4, 4, -1, -4, -2, 4, 0, 2]
-        >>> e.ellan(-1)
-        []
-        >>> v = e.ellan(10, python_ints=True); v
-        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        >>> e.ellan(3) == [1, -2, -1]
+        True
+        >>> e.ellan(20) == [1, -2, -1, 2, 1, 2, -2, 0, -2, -2, 1, -2, 4, 4, -1, -4, -2, 4, 0, 2]
+        True
+        >>> e.ellan(-1) == []
+        True
+        >>> v = e.ellan(10, python_ints=True)
+        >>> v == [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        True
         >>> isinstance(v, list)
         True
-        >>> isinstance(v[0], int)
+        >>> isinstance(v[0], int) or isinstance(v[0], long)
         True
         """
+        cdef long i
         sig_on()
         cdef GEN g = anell(self.g, n)
         if python_ints:
-            v = [gtolong(gel(g, i+1)) for i in range(glength(g))]
+            v = [<pari_longword>gtolong(gel(g, i+1)) for i in range(<long>glength(g))]
             P.clear_stack()
             return v
         else:
@@ -4214,7 +4218,7 @@ cdef class gen:
         [-2, -1, 1, -2]
         >>> isinstance(v, list)
         True
-        >>> isinstance(v[0], int)
+        >>> isinstance(v[0], int) or isinstance(v[0], long)
         True
         >>> v = e.ellaplist(1)
         >>> v, isinstance(v, gen)
@@ -4238,7 +4242,7 @@ cdef class gen:
 
         # 2. Replace each prime in the table by ellap of it.
         cdef long i
-        for i from 0 <= i < glength(g):
+        for i from 0 <= i < <long>glength(g):
             set_gel(g, i + 1, ellap(self.g, gel(g, i + 1)))
         return P.new_gen(g)
 
@@ -4584,9 +4588,10 @@ cdef class gen:
 
         >>> nf = pari('x^2 + 1').nfinit()
         >>> p = nf.idealprimedec(5)[0]
-        >>> nf.nfeltval('50 - 25*x', p)
-        3
+        >>> nf.nfeltval('50 - 25*x', p) == 3
+        True
         """
+        cdef pari_longword v
         cdef gen t0 = objtogen(x)
         cdef gen t1 = objtogen(p)
         sig_on()
@@ -5094,9 +5099,9 @@ cdef class gen:
         cdef long t = typ(self.g)
         cdef gen t0
         cdef GEN result
-        cdef long arity
-        cdef long nargs = len(args)
-        cdef long nkwds = len(kwds)
+        cdef pari_longword arity
+        cdef Py_ssize_t nargs = len(args)
+        cdef Py_ssize_t nkwds = len(kwds)
 
         # Closure must be evaluated using *args
         if t == t_CLOSURE:
@@ -5256,6 +5261,7 @@ cdef class gen:
         """
         Return the degree of this polynomial.
         """
+        cdef pari_longword n
         sig_on()
         n = poldegree(self.g, P.get_var(var))
         sig_off()
@@ -5266,6 +5272,7 @@ cdef class gen:
         f.polisirreducible(): Returns True if f is an irreducible
         non-constant polynomial, or False if f is reducible or constant.
         """
+        cdef pari_longword t
         sig_on()
         t = isirreducible(self.g)
         P.clear_stack()
@@ -5298,7 +5305,7 @@ cdef class gen:
         """
         cdef long n
         sig_on()
-        n = glength(self.g)
+        n = <long>glength(self.g)
         sig_off()
         return n
 
@@ -5321,7 +5328,7 @@ cdef class gen:
         if self.ncols() == 0:
             sig_off()
             return 0
-        n = glength(<GEN>(self.g[1]))
+        n = <long>glength(<GEN>(self.g[1]))
         sig_off()
         return n
 
@@ -5415,7 +5422,7 @@ cdef class gen:
         sig_on()
         return P.new_gen(matkerint0(self.g, flag))
 
-    def factor(self, long limit=-1, proof=None):
+    def factor(self, pari_longword limit=-1, proof=None):
         """
         Return the factorization of x.
 
@@ -5921,7 +5928,7 @@ cdef class gen:
         True
         """
         deprecation(18203, "sizedigit() is deprecated in PARI")
-        return sizedigit(x.g)
+        return <long>sizedigit(x.g)
 
     def bernvec(x):
         r"""
@@ -6145,7 +6152,7 @@ cpdef gen objtogen(s):
 
     if isinstance(s, iterable_types):
         length = len(s)
-        v = P._empty_vector(length)
+        v = P._empty_vector(<long>length)
         for i from 0 <= i < length:
             v[i] = objtogen(s[i])
         return v
