@@ -171,16 +171,16 @@ cpdef gen_to_integer(gen x):
     # Try converting to a C long first. Note that we cannot use itos()
     # from PARI since that does not deal with LONG_MIN correctly.
     cdef pari_ulongword u
+    cdef pari_longword l
     if lgefint(g) == 3:  # abs(x) fits in a ulong
         u = g[2]         # u = abs(x)
         # Check that <long>(u) or <long>(-u) does not overflow
         if signe(g) >= 0:
-            if u <= <pari_ulongword>LONG_MAX:
+            if u <= LONG_MAX:
                 return <long>u
         else:
-            if u <= <pari_ulongword>(-LONG_MIN):
-                return -(<long>u)
-
+            if u <= -<float>LONG_MIN:
+                return -<long>u
         # Result does not fit in a C long or we are in Python 3
     return PyLong_FromGEN(g)
 
