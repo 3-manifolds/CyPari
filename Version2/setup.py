@@ -264,6 +264,7 @@ elif ext_compiler == 'msvc':
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
     gcc = subprocess.check_output(['gcc', '-dumpversion']).strip()
+    gcc = gcc.decode('ascii')
     # These mingw libraries are needed to resolve symbols in libpari.
     if sys.maxsize > 2**32:
         link_args += [
