@@ -247,7 +247,6 @@ class CyPariSourceDist(sdist):
 
 link_args = []
 compile_args = []
-msvc_link_args = []
 if ext_compiler == 'mingw32':
     major, minor = sys.version_info.major, sys.version_info.minor
     if major == 3:
@@ -264,18 +263,18 @@ if ext_compiler == 'mingw32':
 elif ext_compiler == 'msvc':
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
+    gcc = subprocess.check_output(['gcc', '-dumpversion']).strip()
     # These mingw libraries are needed to resolve symbols in libpari.
     if sys.maxsize > 2**32:
-        msvc_link_args += [
+        link_args += [
             r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\6.2.0\libgcc.a',
+            r'C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\%s\libgcc.a'%gcc,
             ]
     else:
-        msvc_link_args += [
+        link_args += [
             r'C:\msys64\mingw32\i686-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\6.2.0\libgcc.a',
+            r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\%s\libgcc.a'%gcc,
             ]
-link_args += msvc_link_args
 link_args += [pari_static_library]
     
 if sys.platform.startswith('linux'):
