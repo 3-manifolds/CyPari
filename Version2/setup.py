@@ -16,24 +16,27 @@ from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
-compiler_set = False
-ext_compiler = 'msvc'
-for n, arg in enumerate(sys.argv):
-    if arg == '-c':
-        ext_compiler = sys.argv[n+1]
-        compiler_set = True
-        break
-    elif arg.startswith('-c'):
-        ext_compiler = arg[2:]
-        compiler_set = True
-        break
-    elif arg.startswith('--compiler'):
-        ext_compiler = arg.split('=')[1]
-        compiler_set = True
-        break
-if not compiler_set and 'build' in sys.argv:
-    sys.argv.append('--compiler=msvc')
-    
+if sys.platform == 'win32':
+    compiler_set = False
+    ext_compiler = 'msvc'
+    for n, arg in enumerate(sys.argv):
+        if arg == '-c':
+            ext_compiler = sys.argv[n+1]
+            compiler_set = True
+            break
+        elif arg.startswith('-c'):
+            ext_compiler = arg[2:]
+            compiler_set = True
+            break
+        elif arg.startswith('--compiler'):
+            ext_compiler = arg.split('=')[1]
+            compiler_set = True
+            break
+    if not compiler_set and 'build' in sys.argv:
+        sys.argv.append('--compiler=msvc')
+else:
+    ext_compiler = ''
+
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32':
     # We always build the Pari library with mingw, no matter which compiler
