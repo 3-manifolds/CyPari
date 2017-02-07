@@ -3,8 +3,8 @@ Tests for the Sage <-> PARI interface
 
     >>> pari.polchebyshev(10)
     512*x^10 - 1280*x^8 + 1120*x^6 - 400*x^4 + 50*x^2 - 1
-    >>> pari("x^3 + 1").polsturm(-1, 1)
-    1
+    >>> pari("x^3 + 1").polsturm(-1, 1) == 1
+    True
     >>> pari.prime(10)
     29
     >>> pari.primes(10)
@@ -1191,12 +1191,12 @@ Elliptic curves::
     # ....:     assert(P0 == E(0))
 
     >>> e = pari([0,0,0,-82,0]).ellinit()
-    >>> e.ellrootno()
-    -1
-    >>> e.ellrootno(2)
-    1
-    >>> e.ellrootno(1009)
-    1
+    >>> e.ellrootno() == -1
+    True
+    >>> e.ellrootno(2) == 1
+    True
+    >>> e.ellrootno(1009) == 1
+    True
 
     >>> e = pari([0,0,0,1,0]).ellinit()
     >>> e.ellsigma(pari('2+I'))
@@ -1351,10 +1351,10 @@ General number fields::
 
     >>> G = pari('x^6 + 108').galoisinit()
     >>> L = G.galoissubgroups()
-    >>> G.galoisisnormal(L[0])
-    1
-    >>> G.galoisisnormal(L[2])
-    0
+    >>> G.galoisisnormal(L[0]) == 1
+    True
+    >>> G.galoisisnormal(L[2]) == 0
+    True
 
     sage: F = QuadraticField(5, 'alpha')
     sage: nf = F._pari_()
@@ -1475,14 +1475,14 @@ General number fields::
 
     >>> K = pari('t^3 - t + 1').nfinit()
     >>> t = pari('t')
-    >>> K.nfhilbert(t, t + 2)
-    -1
+    >>> K.nfhilbert(t, t + 2) == -1
+    True
     >>> P = K.idealprimedec(5)[0]   # Prime ideal above 5
-    >>> pari(K).nfhilbert(t, t + 2, P)
-    -1
+    >>> pari(K).nfhilbert(t, t + 2, P) == -1
+    True
     >>> P = K.idealprimedec(23)[0] # Prime ideal above 23, ramified
-    >>> pari(K).nfhilbert(t, t + 2, P)
-    1
+    >>> pari(K).nfhilbert(t, t + 2, P) == 1
+    True
 
     sage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
     sage: Fp.nfhnf([pari(A),[pari(P) for P in I]])

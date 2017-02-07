@@ -58,11 +58,11 @@ class PariReturnInt(PariReturn):
 
 class PariReturnLong(PariReturn):
     def ctype(self):
-        return "long"
+        return "pari_longword"
 
 class PariReturnULong(PariReturn):
     def ctype(self):
-        return "unsigned long"
+        return "pari_ulong"
 
 class PariReturnVoid(PariReturn):
     def ctype(self):
