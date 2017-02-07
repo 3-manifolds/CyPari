@@ -1005,12 +1005,12 @@ cdef class PariInstance(PariInstance_base):
         """
         return self._real_precision
 
-    def set_series_precision(self, long n):
+    def set_series_precision(self, int n):
         global precdl
         precdl = n
 
     def get_series_precision(self):
-        return precdl
+        return <int>precdl
 
     cdef inline void clear_stack(self):
         """
@@ -1272,13 +1272,13 @@ cdef class PariInstance(PariInstance_base):
         """
         return self.PARI_ONE
 
-    def new_with_bits_prec(self, s, long precision):
+    def new_with_bits_prec(self, s, unsigned long precision):
         r"""
         pari.new_with_bits_prec(self, s, precision) creates s as a PARI
         gen with (at most) precision *bits* of precision.
         """
         cdef unsigned long old_prec
-        old_prec = GP_DATA.fmt.sigd
+        old_prec = <unsigned long>GP_DATA.fmt.sigd
         precision = prec_bits_to_dec(precision)
         if not precision:
             precision = old_prec
@@ -1357,12 +1357,13 @@ cdef class PariInstance(PariInstance_base):
         ...
         cypari_src.gen.PariError: incorrect priority in gtopoly: variable x <= xx
         """
+        # We assume that the result will fit in a long, even on 64 bit Windows.
         if v is None:
             return -1
         cdef long varno
         if isinstance(v, gen):
             sig_on()
-            varno = gvar((<gen>v).g)
+            varno = <long>gvar((<gen>v).g)
             sig_off()
             if varno < 0:
                 return -1
@@ -1372,7 +1373,7 @@ cdef class PariInstance(PariInstance_base):
             return -1
         cdef bytes s = v.encode('ascii')
         sig_on()
-        varno = fetch_user_var(s)
+        varno = <long>fetch_user_var(s)
         sig_off()
         return varno
 
