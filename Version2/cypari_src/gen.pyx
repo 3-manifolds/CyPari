@@ -5902,19 +5902,19 @@ cdef class gen:
             5
 
         >>> x = pari('10^100')
-        >>> x.Str().length()
-        101
-        >>> x.sizedigit()
-        101
+        >>> x.Str().length() == 101
+        True
+        >>> x.sizedigit() == 101
+        True
         >>> x = pari('1.234')
         >>> x
         1.23400000000000
-        >>> x.sizedigit()
-        1
-        >>> pari('7234.1').sizedigit()
-        4
-        >>> pari('9234.1').sizedigit()
-        5
+        >>> x.sizedigit() == 1
+        True
+        >>> pari('7234.1').sizedigit() == 4
+        True
+        >>> pari('9234.1').sizedigit() == 5
+        True
         """
         deprecation(18203, "sizedigit() is deprecated in PARI")
         return sizedigit(x.g)

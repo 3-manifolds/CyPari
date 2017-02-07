@@ -251,7 +251,7 @@ class CyPariSourceDist(sdist):
 
 link_args = []
 compile_args = []
-
+msvc_link_args = []
 if ext_compiler == 'mingw32':
     major, minor = sys.version_info.major, sys.version_info.minor
     if major == 3:
@@ -266,23 +266,22 @@ if ext_compiler == 'mingw32':
     if sys.maxsize > 2**32:
         compile_args.append('-DMS_WIN64')
 elif ext_compiler == 'msvc':
-    # Experimental!  This builds, but the dll load fails.
-    # ignore the assembly language inlines when building the extension.
+    # Experimental!  Build the extension with MSVC.
+    # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
     # Without these three libraries there will be unassigned symbols.
     # But the Python symbols seem to get assigned to libadvapi32.
     if sys.maxsize > 2**32:
-        link_args += [
+        msvc_link_args += [
             r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libadvapi32.a',
             r'C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\6.2.0\libgcc.a',
             ]
     else:
-        link_args += [
+        msvc_link_args += [
             r'C:\msys64\mingw32\i686-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw32\i686-w64-mingw32\lib\libadvapi32.a',
             r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\6.2.0\libgcc.a',
             ]
+link_args += msvc_link_args
 link_args += [pari_static_library]
     
 if sys.platform.startswith('linux'):

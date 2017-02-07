@@ -14,6 +14,8 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../pari-2.9.1.tar.gz
     mv pari-2.9.1 pari_src
     cd pari_src
+    # neuter win32_set_pdf_viewer so it won't break the linking
+    patch -p0 < ../../Windows/mingw_c.patch
 else
     cd build/pari_src
 fi
