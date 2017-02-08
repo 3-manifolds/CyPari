@@ -72,16 +72,23 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # Remove the funky RUNPTH which confuses gcc and is irrelevant anyway.
     echo Patching the MinGW Makefile ...
     sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
+    make install-lib-sta
+    # We cannot build the dll for Pythons > 3.4, because mingw can't
+    # handle the Universal CRT.  So we also cannot build gp.
+    cd Omingw-*
+    make install-include
+    make install-cfg
+    make install-doc
+    cd ..
+    # Remove the .o files, since Pari always builds in the same directory 
+    make clean
     
 else # linux, presumably
     ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+    make install
+    make install-lib-sta
 fi
 
-make install-lib-sta
-cd Omingw-*
-make install-include
-cd ..
-make clean
 cp src/language/anal.h $PREFIX/include/pari
 
 # Fix non-prototype function declarations
