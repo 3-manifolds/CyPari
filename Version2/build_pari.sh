@@ -75,6 +75,7 @@ fi
     
 make install
 make install-lib-sta
+make clean
 cp src/language/anal.h $PREFIX/include/pari
 
 # Fix non-prototype function declarations
