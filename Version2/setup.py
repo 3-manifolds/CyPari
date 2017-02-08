@@ -41,8 +41,6 @@ else:
 if sys.platform == 'win32':
     # We always build the Pari library with mingw, no matter which compiler
     # is used for the CyPari extension.
-#    if sys.argv[1] == 'build':
-#        sys.argv.append('-cmingw32')
     # Make sure that our C compiler matches our python and that we can run bash
     # This assumes that msys2 is installed in C:\msys64.
     if sys.maxsize > 2**32:   # use mingw64
@@ -268,17 +266,11 @@ elif ext_compiler == 'msvc':
     compile_args += ['/DDISABLE_INLINE']
     gcc = subprocess.check_output(['gcc', '-dumpversion']).strip()
     gcc = gcc.decode('ascii')
-    # These mingw libraries are needed to resolve symbols in libpari.
+    # Add a library of mingw crt objects needed by libpari.
     if sys.maxsize > 2**32:
-        link_args += [
-            r'C:\msys64\mingw64\x86_64-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw64\lib\gcc\x86_64-w64-mingw32\%s\libgcc.a'%gcc,
-            ]
+        link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a')]
     else:
-        link_args += [
-            r'C:\msys64\mingw32\i686-w64-mingw32\lib\libmingwex.a',
-            r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\%s\libgcc.a'%gcc,
-            ]
+        link_args += [os.path.join('Windows', 'crt', 'libparicrt32.a')]
 link_args += [pari_static_library]
     
 if sys.platform.startswith('linux'):

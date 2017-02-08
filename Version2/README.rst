@@ -44,7 +44,16 @@ to build for Python 3.
 
 For building on Windows we expect you to have a working msys2 system
 with a mingw32 toolchain that has been modified as described in the
-file Windows/README.Windows.
+file Windows/README.Windows.  The default now is to build libpari.a
+with the mingw gcc toolchain but to build the Python extension with
+the appropriate version of MSVC.  This requires linking with a library
+which contains a few functions from the mingw C runtime which are not
+available in the MSVC runtime.  This library is built by simply
+extracting the needed object files from mingw libraries.  You must
+build it before you run setup.py build.  To do so, change to the
+Windows crt directory and run make.  This will build libparicrt32.a
+and libparicrt64.a.  It is also possible to build the Python extension
+entirely with mingw.  To do this run setup.py build -cmingw32.
 
 Currently we support 32 and 64 bit Python 2.7 on linux, macOS and
 Windows.  On linux and macOS we support 32 and 64 bit Python 3.5 or
