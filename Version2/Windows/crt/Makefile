@@ -33,7 +33,7 @@ mingwex64 = /c/msys64/mingw64/x86_64-w64-mingw32/lib/libmingwex.a
 libgcc32 = /c/msys64/mingw32/lib/gcc/i686-w64-mingw32/$(GCC_VERSION)/libgcc.a
 libgcc64 = /c/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/$(GCC_VERSION)/libgcc.a
 
-all: libparicrt32 libparicrt64
+all: libparicrt32 libparicrt64 get_output_format32.o get_output_format64.o
 
 libparicrt32:
 	ar -x $(libgcc32) $(gcc32_objs)
@@ -46,6 +46,12 @@ libparicrt64:
 	ar -x $(mingwex64) $(mingw64_objs)
 	ar -r libparicrt64.a $(gcc64_objs) $(mingw64_objs)
 	rm *.o
+
+get_output_format32.o: get_output_format.c
+	(PATH=/mingw32/bin;gcc -c -oget_output_format32.o get_output_format.c)
+
+get_output_format64.o: get_output_format.c
+	(PATH=/mingw64/bin;gcc -c -oget_output_format64.o get_output_format.c)
 
 clean:
 	rm *.o

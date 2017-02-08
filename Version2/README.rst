@@ -52,10 +52,19 @@ available in the MSVC runtime.  This library is built by simply
 extracting the needed object files from mingw libraries.  You must
 build it before you run setup.py build.  To do so, change to the
 Windows crt directory and run make.  This will build libparicrt32.a
-and libparicrt64.a.  It is also possible to build the Python extension
-entirely with mingw.  To do this run setup.py build -cmingw32.
+and libparicrt64.a as well as two "dummy" object files which implement
+the function get_output_format.  That directory also constains a
+modified version of the mingw stdio.h header.  In order to build
+CyPari for Python 3.5 or later, this file must be copied to
+/c/msys64/mingw32/i686-w64-mingw32/include/stdio.h and
+/c/msys64/mingw64/x86_64-w64-mingw32/include/stdio.h (after making
+copies of the originals, of course.)  The changes to stdio.h are
+needed because of changes to the definition of stdin, stdout, and
+stderr when Microsoft adopted its "Universal CRT".  The new
+definitions apply when the variable UNIVERSAL_CRT is defined. It is
+also possible to build the Windows Python extension entirely with mingw
+for Python versions less than 3.5.  To do this, run setup.py build -cmingw32.
 
-Currently we support 32 and 64 bit Python 2.7 on linux, macOS and
-Windows.  On linux and macOS we support 32 and 64 bit Python 3.5 or
-3.6.  On Windows we support 64 bit Python 3.4, due to limitations of
-mingw.
+Currently we support 32 and 64 bit Python 2.7, 3.4, 3.5 and 3.6
+on linux, macOS and Windows.
+
