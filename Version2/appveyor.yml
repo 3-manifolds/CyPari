@@ -32,6 +32,8 @@ install:
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
   - "bash install_files_64.sh"
+  - cd ..\crt
+  - "bash make"
   - cd ..\..
 
   # Build CyPari. 
