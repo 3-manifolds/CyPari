@@ -36,15 +36,15 @@ libgcc64 = /c/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/$(GCC_VERSION)/libgcc.a
 all: libparicrt32 libparicrt64
 
 libparicrt32:
-	ar -x $(libgcc32) $(gcc32_objs)
-	ar -x $(mingwex32) $(mingw32_objs)
-	ar -r libparicrt32.a $(gcc32_objs) $(mingw32_objs)
+	/mingw32/bin/ar -x $(libgcc32) $(gcc32_objs)
+	/mingw32/bin/ar -x $(mingwex32) $(mingw32_objs)
+	/mingw32/bin/ar -r libparicrt32.a $(gcc32_objs) $(mingw32_objs)
 	rm *.o
 
 libparicrt64:
-	ar -x $(libgcc64) $(gcc64_objs)
-	ar -x $(mingwex64) $(mingw64_objs)
-	ar -r libparicrt64.a $(gcc64_objs) $(mingw64_objs)
+	/mingw64/bin/ar -x $(libgcc64) $(gcc64_objs)
+	/mingw64/bin/ar -x $(mingwex64) $(mingw64_objs)
+	/mingw64/bin/ar -r libparicrt64.a $(gcc64_objs) $(mingw64_objs)
 	rm *.o
 
 clean:
