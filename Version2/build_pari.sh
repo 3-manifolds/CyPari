@@ -24,6 +24,7 @@ else
 fi
 
 if [ "$#" -eq 1 ] ; then
+    echo ============================= $1
     PREFIX=../$1
     LIBDIR=../$1/lib
 else
@@ -61,8 +62,11 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # This allows using C99 format specifications in printf.
-    export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
-    
+    if [[ "$1" = *"u" ]] ; then
+	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT -DUNIVERSAL_CRT'
+    else
+	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
+    fi
     ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 
     # Remove the funky RUNPTH which confuses gcc and is irrelevant anyway.
@@ -72,9 +76,11 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 else # linux, presumably
     ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 fi
-    
-make install
+
 make install-lib-sta
+cd Omingw-*
+make install-include
+cd ..
 make clean
 cp src/language/anal.h $PREFIX/include/pari
 

@@ -14,8 +14,10 @@ environment:
     - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python34"
     - PYTHON: "C:\\Python34-x64"
-    #- PYTHON: "C:\\Python35"
-    #- PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python36-x64"
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
@@ -32,6 +34,9 @@ install:
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
   - "bash install_files_64.sh"
+  - cd ..\crt
+  - copy stdio.h C:\msys64\mingw64\x86_64-w64-mingw32\include
+  - copy stdio.h C:\msys64\mingw32\i686-w64-mingw32\include
   - cd ..\..
 
   # Build CyPari. 

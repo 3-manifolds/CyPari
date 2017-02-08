@@ -57,13 +57,25 @@ else:
 
 # We build the 32 bit and 64 bit versions of the Pari library in separate
 # directories, but in macOS we use lipo to combine them into a fat library.
-if sys.platform != 'darwin':
+# On Windows we also build separately for the Universal CRT on Python >= 3.5
+if sys.platform == 'darwin':
+    PARIDIR = 'pari'
+elif sys.platform == 'win32':
+    if sys.maxsize > 2**32:
+        if sys.version_info >= (3,5):
+            PARIDIR = 'pari64u'
+        else:
+            PARIDIR = 'pari64'
+    else:
+        if sys.version_info >= (3,5):
+            PARIDIR = 'pari32u'
+        else:
+            PARIDIR = 'pari32'
+else:
     if sys.maxsize > 2**32:
         PARIDIR = 'pari64'
     else:
         PARIDIR = 'pari32'
-else:
-    PARIDIR = 'pari'
     
 pari_include_dir = os.path.join('build', PARIDIR, 'include')
 pari_library_dir = os.path.join('build', PARIDIR, 'lib')
@@ -168,7 +180,8 @@ class CyPariRelease(Command):
         if sys.platform.startswith('linux'):
             for name in os.listdir('dist'):
                 if name.endswith('.whl'):
-                    subprocess.check_call(['auditwheel', 'repair', os.path.join('dist', name)])
+                    subprocess.check_call(['auditwheel', 'repair',
+                                           os.path.join('dist', name)])
 
 class CyPariBuildExt(build_ext):
         
@@ -182,7 +195,8 @@ class CyPariBuildExt(build_ext):
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             # Find the correct gen.c for our version of Python.
             gen_c_name = 'gen_py%d.c'%sys.version_info.major
-            os.rename(os.path.join('cypari_src', gen_c_name), os.path.join('cypari_src', 'gen.c'))
+            os.rename(os.path.join('cypari_src', gen_c_name),
+                      os.path.join('cypari_src', 'gen.c'))
             building_sdist = True
         
         if not os.path.exists(os.path.join('build', PARIDIR)):
@@ -264,13 +278,15 @@ if ext_compiler == 'mingw32':
 elif ext_compiler == 'msvc':
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
-    gcc = subprocess.check_output(['gcc', '-dumpversion']).strip()
-    gcc = gcc.decode('ascii')
-    # Add a library of mingw crt objects needed by libpari.
+    # Add the mingw crt objects needed by libpari.
     if sys.maxsize > 2**32:
         link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a')]
+        if sys.version_info >= (3, 5):
+            link_args += [os.path.join('Windows', 'crt', 'get_output_format64.o')]
     else:
         link_args += [os.path.join('Windows', 'crt', 'libparicrt32.a')]
+        if sys.version_info >= (3, 5):
+            link_args += [os.path.join('Windows', 'crt', 'get_output_format32.o')]
 link_args += [pari_static_library]
     
 if sys.platform.startswith('linux'):
