@@ -1,17 +1,19 @@
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
-import sys
+import sys, platform
 if sys.version_info.major == 2:
     from . import py2tests
 else:
     from . import py3tests
 
+cpu_width = platform.architecture()[0]
+
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
         regex32 = re.compile(r'(\n.*?)\s+# 32-bit\s*$', re.MULTILINE)
         regex64 = re.compile(r'(\n.*?)\s+# 64-bit\s*$', re.MULTILINE)
-        if sys.maxsize > 2**32:
+        if cpu_width == '64bit':
             string = regex32.sub('', string)
             string = regex64.sub('\g<1>', string)
         else:

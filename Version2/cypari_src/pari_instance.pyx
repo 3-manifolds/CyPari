@@ -234,7 +234,8 @@ IFAC: found 2 large prime (power) factors.
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-import sys
+import sys, platform
+cpu_width = platform.architecture()[0]
 
 IF SAGE:
     pass
@@ -825,7 +826,7 @@ cdef class PariInstance(PariInstance_base):
             paristack_setsize(size, sizemax)
         ELSE:
             from memory import total_ram
-            if sys.maxsize < 2**32:
+            if cpu_width == '32bit':
                 sizemax = min(total_ram() // 4, 2**30)
             else:
                 sizemax = total_ram() // 4
