@@ -24,7 +24,6 @@ else
 fi
 
 if [ "$#" -eq 1 ] ; then
-    echo ============================= $1
     PREFIX=../$1
     LIBDIR=../$1/lib
 else
