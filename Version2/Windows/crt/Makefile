@@ -33,6 +33,9 @@ mingwex64 = /c/msys64/mingw64/x86_64-w64-mingw32/lib/libmingwex.a
 libgcc32 = /c/msys64/mingw32/lib/gcc/i686-w64-mingw32/$(GCC_VERSION)/libgcc.a
 libgcc64 = /c/msys64/mingw64/lib/gcc/x86_64-w64-mingw32/$(GCC_VERSION)/libgcc.a
 
+STDIO32 = /c/msys64/mingw32/i686-w64-mingw32/include/stdio.h
+STDIO64 = /c/msys64/mingw64/x86_64-w64-mingw32/include/stdio.h
+
 all: libparicrt32 libparicrt64 get_output_format32.o get_output_format64.o
 
 libparicrt32:
@@ -57,3 +60,10 @@ clean:
 	rm *.o
 	rm *.a
 
+save-stdio:
+	cp $(STDIO32) $(STDIO32).orig
+	cp $(STDIO64) $(STDIO64).orig
+
+install-stdio:
+	cp stdio.h $(STDIO32)
+	cp stdio.h $(STDIO64)
