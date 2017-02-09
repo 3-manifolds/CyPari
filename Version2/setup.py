@@ -8,13 +8,15 @@ of `SageMath <http://www.sagemath.org>`_, but is independent of the rest of
 SageMath and can be used with any recent version of Python (except on Windows,
 where 3.4 is currently the only supported version of Python 3).
 """
-import os, sys, re, sysconfig, subprocess, shutil, site
+import os, sys, re, sysconfig, subprocess, shutil, site, platform
 from glob import glob
 from setuptools import setup, Command
 from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
+
+cpu_width = platform.architecture()[0]
 
 if sys.platform == 'win32':
     compiler_set = False
@@ -43,7 +45,7 @@ if sys.platform == 'win32':
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
     # This assumes that msys2 is installed in C:\msys64.
-    if sys.maxsize > 2**32:   # use mingw64
+    if cpu_width == '64bit':   # use mingw64
         WINPATH=r'C:\msys64\mingw64\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'
         BASHPATH='/c/msys64/mingw64/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'
     else:   # use mingw32
@@ -61,7 +63,7 @@ else:
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
 elif sys.platform == 'win32':
-    if sys.maxsize > 2**32:
+    if cpu_width == '64bit':
         if sys.version_info >= (3,5):
             PARIDIR = 'pari64u'
         else:
@@ -72,7 +74,7 @@ elif sys.platform == 'win32':
         else:
             PARIDIR = 'pari32'
 else:
-    if sys.maxsize > 2**32:
+    if cpu_width  == '64bit':
         PARIDIR = 'pari64'
     else:
         PARIDIR = 'pari32'
@@ -229,7 +231,7 @@ class CyPariBuildExt(build_ext):
         # thereby breaking lots of stuff in the Python headers.
         ct_filename = os.path.join('cypari_src', 'ct_constants.pxi') 
         ct_constants = b''
-        if sys.platform == 'win32' and sys.maxsize > 2**32:
+        if sys.platform == 'win32' and cpu_width == '64bit':
             ct_constants += b'DEF WIN64 = True\n'
         else:
             ct_constants += b'DEF WIN64 = False\n'
@@ -273,13 +275,13 @@ if ext_compiler == 'mingw32':
     link_args += ['-Wl,--subsystem,windows']
     compile_args += ['-D__USE_MINGW_ANSI_STDIO',
                      '-Dprintf=__MINGW_PRINTF_FORMAT']
-    if sys.maxsize > 2**32:
+    if cpu_width == '64bit':
         compile_args.append('-DMS_WIN64')
 elif ext_compiler == 'msvc':
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
     # Add the mingw crt objects needed by libpari.
-    if sys.maxsize > 2**32:
+    if cpu_width == '64bit':
         link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a')]
         if sys.version_info >= (3, 5):
             link_args += [os.path.join('Windows', 'crt', 'get_output_format64.o')]
