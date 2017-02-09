@@ -101,8 +101,7 @@ class CyPariClean(Command):
                 pass
         junkfiles = (glob('cypari_src/*.so*') +
                      glob('cypari_src/*.pyc') +
-                     glob('cypari_src/gen*.c') +
-                     ['cypari_src/gen_api.h']
+                     ['cypari_src/gen.c', 'cypari_src/gen_api.h']
         )
         for file in junkfiles:
             try:
@@ -172,7 +171,8 @@ class CyPariRelease(Command):
             
             # Save a copy of the gen.c file for each major version of Python.
             gen_c_name = 'gen_py%s.c'%python_major(python)
-            os.rename(os.path.join('cypari_src', 'gen.c'), os.path.join('cypari_src', gen_c_name))
+            os.rename(os.path.join('cypari_src', 'gen.c'),
+                      os.path.join('cypari_src', gen_c_name))
 
         # Build sdist using the *first* specified Python
         check_call([pythons[0], 'setup.py', 'sdist'])
