@@ -7,7 +7,7 @@ component
 of `SageMath <http://www.sagemath.org>`_, but is independent of the rest of
 SageMath and can be used with any recent version of Python 2 or 3.
 """
-import os, sys, re, sysconfig, subprocess, shutil, site, platform
+import os, sys, re, sysconfig, subprocess, shutil, site, platform, time
 from glob import glob
 from setuptools import setup, Command
 from distutils.extension import Extension
@@ -101,7 +101,8 @@ class CyPariClean(Command):
                 pass
         junkfiles = (glob('cypari_src/*.so*') +
                      glob('cypari_src/*.pyc') +
-                     ['cypari_src/gen.c', 'cypari_src/gen_api.h']
+                     glob('cypari_src/gen.c') +
+                     glob('cypari_src/gen*.h')
         )
         for file in junkfiles:
             try:
@@ -151,6 +152,8 @@ class CyPariRelease(Command):
             shutil.rmtree('build')
         if os.path.exists('dist'):
             shutil.rmtree('dist')
+        for filename in glob('cypari_src/gen*.c'):
+            os.remove(filename)
 
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
         print('releasing for: %s'%(', '.join(pythons)))
@@ -158,6 +161,11 @@ class CyPariRelease(Command):
             check_call([python, 'setup.py', 'clean'])
             check_call([python, 'setup.py', 'build'])
             check_call([python, 'setup.py', 'test'])
+            # Save a copy of the gen.c file for each major version of Python.
+            gen_c_name = 'gen_py%s.c'%python_major(python)
+            gen_c_path = os.path.join('cypari_src', gen_c_name)
+            if not os.path.exists(gen_c_path):
+                os.rename(os.path.join('cypari_src', 'gen.c'), gen_c_path)
             if sys.platform.startswith('linux'):
                 plat = get_platform().replace('linux', 'manylinux1')
                 plat = plat.replace('-', '_')
@@ -168,11 +176,6 @@ class CyPariRelease(Command):
 
             if self.install:
                 check_call([python, 'setup.py', 'install'])
-            
-            # Save a copy of the gen.c file for each major version of Python.
-            gen_c_name = 'gen_py%s.c'%python_major(python)
-            os.rename(os.path.join('cypari_src', 'gen.c'),
-                      os.path.join('cypari_src', gen_c_name))
 
         # Build sdist using the *first* specified Python
         check_call([pythons[0], 'setup.py', 'sdist'])
