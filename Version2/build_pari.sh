@@ -19,6 +19,8 @@ if [ ! -d "build/pari_src" ] ; then
     cd pari_src
     # neuter win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -p0 < ../../Windows/mingw_c.patch
+    # patch for the transcendental function precision problems
+    patch -p1 < ../../pari-2.9.1.patch
 else
     cd build/pari_src
 fi
