@@ -102,7 +102,8 @@ class CyPariClean(Command):
         junkfiles = (glob('cypari_src/*.so*') +
                      glob('cypari_src/*.pyc') +
                      glob('cypari_src/gen.c') +
-                     glob('cypari_src/gen*.h')
+                     glob('cypari_src/gen*.h') +
+                     glob('cypari_src/auto*.pxi')
         )
         for file in junkfiles:
             try:

@@ -70,10 +70,8 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     fi
     ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
 
-    # Remove the funky RUNPTH which confuses gcc and is irrelevant anyway.
-    echo Patching the MinGW Makefile ...
-    sed -i -e s/^RUNPTH/\#RUNPTH/ Omingw-*/Makefile
-    make install-lib-sta
+    make install-lib-sta RUNPTH=
+    
     # We cannot build the dll for Pythons > 3.4, because mingw can't
     # handle the Universal CRT.  So we also cannot build gp.
     cd Omingw-*
