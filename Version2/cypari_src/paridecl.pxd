@@ -2260,6 +2260,14 @@ cdef extern from "parisage.h":
     GEN     ibitxor(GEN x, GEN y)
     GEN     nv_fromdigits_2k(GEN x, long k)
 
+    # bnflog.c
+    
+    GEN bnflogef(GEN bnf, GEN pr)
+    GEN bnflog(GEN bnf, GEN l)
+    GEN bnflogdegree(GEN bnf, GEN A, GEN ell)
+    long nfislocalpower(GEN nf, GEN pr, GEN a, GEN n)
+    long rnfislocalcyclo(GEN rnf)
+    
     # buch1.c
 
     GEN     Buchquad(GEN D, double c1, double c2, long prec)
