@@ -2549,6 +2549,8 @@ cdef extern from "parisage.h":
     GEN     elladd(GEN e, GEN z1, GEN z2)
     GEN     ellap(GEN e, GEN p)
     long    ellap_CM_fast(GEN E, ulong p, long CM)
+    GEN     ellan(GEN e, long n);
+    GEN     ellanQ_zv(GEN e, long n);
     GEN     ellcard(GEN E, GEN p)
     GEN     ellchangecurve(GEN e, GEN ch)
     GEN     ellchangeinvert(GEN w)

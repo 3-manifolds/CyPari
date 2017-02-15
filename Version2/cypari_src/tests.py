@@ -1040,7 +1040,8 @@ Elliptic curves::
     >>> E = pari((0,1,1,-2,0)).ellinit()
     >>> E.ellanalyticrank()
     [2, 1.51863300057685]
-
+    >>> E.ellan(10)
+    [1, -2, -2, 2, -3, 4, -5, 0, 1, 6]
     >>> e = pari([0, -1, 1, -10, -20]).ellinit()
     >>> e.ellap(2)
     -2
@@ -1118,6 +1119,8 @@ Elliptic curves::
     [2, -10, [1, 0, 0, 0], 4]
 
     >>> e = pari([0,1,1,-2,0]).ellinit()
+    >>> e.ellan(10)
+    [1, -2, -2, 2, -3, 4, -5, 0, 1, 6]
     >>> e.elllseries(2.1)
     0.402838047956646
     >>> e.elllseries(1, precision=128).abs() < 2**-126
@@ -1199,6 +1202,8 @@ Elliptic curves::
     True
 
     >>> e = pari([0,0,0,1,0]).ellinit()
+    >>> e.ellan(10)
+    [1, 0, 0, 0, 2, 0, 0, 0, -3, 0]
     >>> e.ellsigma(pari('2+I'))
     1.43490215804166 + 1.80307856719256*I
 
