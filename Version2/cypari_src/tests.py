@@ -1120,9 +1120,9 @@ Elliptic curves::
     >>> e = pari([0,1,1,-2,0]).ellinit()
     >>> e.elllseries(2.1)
     0.402838047956646
-    >>> e.elllseries(1, precision=128).abs() < 2**-124
+    >>> e.elllseries(1, precision=128).abs() < 2**-126
     True
-    >>> e.elllseries(1, precision=256).abs() < 2**-256
+    >>> e.elllseries(1, precision=256).abs() < 2**-254
     True
     >>> e.elllseries(-2)
     0
