@@ -1537,6 +1537,47 @@ General number fields::
     >>> K.nfisisom(L)
     [-1/2*y - 1/2, 1/2*y - 1/2]
 
+    # Logarithmic l-class groups (bnflog.c)
+    >>> K = pari('x^2 + 521951').bnfinit()
+    >>> K.bnflog(2)
+    [[4, 2], [4], [2]]
+    >>> K = pari('x^4 + 13*x^2 -12*x + 52').bnfinit()
+    >>> K.bnflog(2)
+    [[], [], []]
+    >>> K.bnflog(3)
+    [[3], [3], []]
+    >>> K.bnflog(7)
+    [[7], [], [7]]
+    >>> K = pari('y^6 - 3*y^5 + 5*y^3 - 3*y + 1').nfinit()
+    >>> K.bnflogef(K.idealprimedec(2)[0])
+    [6, 1]
+    >>> K.bnflogef(K.idealprimedec(5)[0])
+    [1, 2]
+    >>> K.bnflogdegree(K.idealprimedec(5)[0], 5)
+    36
+    >>> K.bnflogdegree(K.idealprimedec(5)[0], 7)
+    25
+    >>> K = pari('y^2 + 1').nfinit()
+    >>> P = K.idealprimedec(2)[0]     # the ramified prime above 2
+    >>> K.nfislocalpower(P, -1, 2)    # -1 is a square
+    1
+    >>> K.nfislocalpower(P, -1, 4)    # but not a 4th power
+    0
+    >>> K.nfislocalpower(P, 2, 2)     # and 2 is not a square
+    0
+    >>> Q = K.idealprimedec(5)[0]     # some prime above 5
+    >>> K.nfislocalpower(Q, pari('[0, 32]~'), 30)  # 32*I is locally a 30th power
+    1
+    >>> K = pari('y^2 + y + 1').nfinit()
+    >>> L = K.rnfinit(pari('x^3 - y')) # = K(zeta_9), globally cyclotomic
+    >>> L.rnfislocalcyclo()
+    1
+
+    # We expect 3-adic continuity by Krasner's lemma
+    >>> [K.rnfinit(pari('x^3 - y + 3^%d'%i)).rnfislocalcyclo() for i in range(1,6)]
+    [0, 1, 1, 1, 1]
+
+
     # Pari orders variables by creation time.  The
     # ordering determines whether xy is an element
     # of Q[x][y] or Q[y][x].
