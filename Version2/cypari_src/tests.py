@@ -1558,23 +1558,23 @@ General number fields::
     >>> K.bnflogdegree(K.idealprimedec(5)[0], 7)
     25
     >>> K = pari('y^2 + 1').nfinit()
-    >>> P = K.idealprimedec(2)[0]     # the ramified prime above 2
-    >>> K.nfislocalpower(P, -1, 2)    # -1 is a square
-    1
-    >>> K.nfislocalpower(P, -1, 4)    # but not a 4th power
-    0
-    >>> K.nfislocalpower(P, 2, 2)     # and 2 is not a square
-    0
+    >>> P = K.idealprimedec(2)[0]        # the ramified prime above 2
+    >>> K.nfislocalpower(P, -1, 2) == 1   # -1 is a square
+    True
+    >>> K.nfislocalpower(P, -1, 4) == 0   # but not a 4th power
+    True
+    >>> K.nfislocalpower(P, 2, 2) == 0    # and 2 is not a square
+    True
     >>> Q = K.idealprimedec(5)[0]     # some prime above 5
-    >>> K.nfislocalpower(Q, pari('[0, 32]~'), 30)  # 32*I is locally a 30th power
-    1
+    >>> K.nfislocalpower(Q, pari('[0, 32]~'), 30)  == 1 # 32*I is locally a 30th power
+    True
     >>> K = pari('y^2 + y + 1').nfinit()
     >>> L = K.rnfinit(pari('x^3 - y')) # = K(zeta_9), globally cyclotomic
-    >>> L.rnfislocalcyclo()
-    1
+    >>> L.rnfislocalcyclo() == 1
+    True
 
     # We expect 3-adic continuity by Krasner's lemma
-    >>> [K.rnfinit(pari('x^3 - y + 3^%d'%i)).rnfislocalcyclo() for i in range(1,6)]
+    >>> [int(K.rnfinit(pari('x^3 - y + 3^%d'%i)).rnfislocalcyclo()) for i in range(1,6)]
     [0, 1, 1, 1, 1]
 
 
