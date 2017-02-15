@@ -36,11 +36,7 @@ To clean up the build area (but not remove Pari) use:
     python setup.py clean
 
 Note that the future module is required for Python 2.  (Install with
-pip install future).  Also, it is necessary to build for Python 2
-before building for Python3.  This is because the scripts in autogen
-are not (yet) compatible with Python 3.  Building with Python 2 will
-install auto_gen.pxi and auto_instance.pxi which can then be used
-to build for Python 3.
+pip install future).
 
 For building on Windows we expect you to have a working msys2 system
 with a mingw32 toolchain that has been modified as described in the
@@ -58,12 +54,18 @@ modified version of the mingw stdio.h header.  In order to build
 CyPari for Python 3.5 or later, this file must be copied to
 /c/msys64/mingw32/i686-w64-mingw32/include/stdio.h and
 /c/msys64/mingw64/x86_64-w64-mingw32/include/stdio.h (after making
-copies of the originals, of course.)  The changes to stdio.h are
-needed because of changes to the definition of stdin, stdout, and
-stderr when Microsoft adopted its "Universal CRT".  The new
-definitions apply when the variable UNIVERSAL_CRT is defined. It is
-also possible to build the Windows Python extension entirely with mingw
-for Python versions less than 3.5.  To do this, run setup.py build -cmingw32.
+copies of the originals, of course.)  You can perform these two
+actions by running
+    make save-stdio
+    make install-stdio
+from the Windows/crt directory.  The changes to stdio.h are needed
+because of changes to the definition of stdin, stdout, and stderr when
+Microsoft adopted its "Universal CRT".  The new definitions apply when
+the variable UNIVERSAL_CRT is defined.
+
+It is also possible to build the Windows Python extension entirely
+with mingw for Python versions less than 3.5.  To do this, run
+setup.py build -cmingw32.
 
 Currently we support 32 and 64 bit Python 2.7, 3.4, 3.5 and 3.6
 on linux, macOS and Windows.

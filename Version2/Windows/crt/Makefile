@@ -61,8 +61,8 @@ clean:
 	rm *.a
 
 save-stdio:
-	cp $(STDIO32) $(STDIO32).orig
-	cp $(STDIO64) $(STDIO64).orig
+	cp -n $(STDIO32) $(STDIO32).orig
+	cp -n $(STDIO64) $(STDIO64).orig
 
 install-stdio:
 	cp stdio.h $(STDIO32)
