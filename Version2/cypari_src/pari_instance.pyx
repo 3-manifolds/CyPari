@@ -1031,20 +1031,24 @@ cdef class PariInstance(PariInstance_base):
         >>> pari.pi()
         3.14159265358979
         >>> pari.pi().precision()
-        3
+        3  # 64-bit
+        4  # 32-bit
         >>> pari.set_default_bit_precision(212)
         64
         >>> pari.get_default_bit_precision()
-        256
+        256 # 64-bit
+        224 # 32-bit
         >>> pari.pi()
         3.14159265358979
         >>> pari.pi().precision()
-        6
+        6  # 64-bit
+        9  # 32-bit
         >>> old_real_precision = pari.set_real_precision(50)
         >>> pari.pi()
         3.1415926535897932384626433832795028841971693993751
         >>> pari.set_default_bit_precision(64)
-        256
+        256 # 64-bit
+        224 # 32-bit
         >>> pari.pi()
         3.141592653589793239
         >>> pari.set_real_precision(old_real_precision)
