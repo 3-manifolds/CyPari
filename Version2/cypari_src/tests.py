@@ -1579,8 +1579,8 @@ General number fields::
     [1, y, 2*y + 1]
     >>> lifts = [K.nfmodprlift(x, modP) for x in mods]; lifts
     [1, 1/5*y, 2/5*y + 1]
-    >>> K.nfeltval(lifts[2] - zk[2], P)
-    1
+    >>> K.nfeltval(lifts[2] - zk[2], P) == 1
+    True
 
     # Logarithmic l-class groups (bnflog.c)
     >>> K = pari('x^2 + 521951').bnfinit()
