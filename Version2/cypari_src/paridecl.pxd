@@ -1513,9 +1513,9 @@ cdef extern from "parisage.h":
     GEN     matmultodiagonal(GEN x, GEN y)
     GEN     matslice0(GEN A, long x1, long x2, long y1, long y2)
     GEN     parapply(GEN V, GEN C)
-    void    parfor(GEN a, GEN b, GEN code, void *E, long call(void*, GEN, GEN))
-    void    parforprime(GEN a, GEN b, GEN code, void *E, long call(void*, GEN, GEN))
-    void    parforvec(GEN x, GEN code, long flag, void *E, long call(void*, GEN, GEN))
+#    void    parfor(GEN a, GEN b, GEN code, void *E, long call(void*, GEN, GEN))
+#    void    parforprime(GEN a, GEN b, GEN code, void *E, long call(void*, GEN, GEN))
+#    void    parforvec(GEN x, GEN code, long flag, void *E, long call(void*, GEN, GEN))
     GEN     parselect(GEN C, GEN D, long flag)
     GEN     select0(GEN A, GEN f, long flag)
     GEN     shallowextract(GEN x, GEN L)
@@ -2143,8 +2143,8 @@ cdef extern from "parisage.h":
     GEN     Xadic_lindep(GEN x)
     GEN     algdep(GEN x, long n)
     GEN     algdep0(GEN x, long n, long bit)
-    void    forqfvec(void *E, long (*fun)(void *, GEN, GEN, double), GEN a, GEN BORNE)
-    void    forqfvec0(GEN a, GEN BORNE, GEN code)
+#    void    forqfvec(void *E, long (*fun)(void *, GEN, GEN, double), GEN a, GEN BORNE)
+#    void    forqfvec0(GEN a, GEN BORNE, GEN code)
     GEN     gaussred_from_QR(GEN x, long prec)
     GEN     lindep0(GEN x, long flag)
     GEN     lindep(GEN x)
@@ -2506,7 +2506,7 @@ cdef extern from "parisage.h":
     GEN     ellidentify(GEN E)
     GEN     ellsearch(GEN A)
     GEN     ellsearchcurve(GEN name)
-    void    forell(void *E, long call(void*, GEN), long a, long b, long flag)
+#    void    forell(void *E, long call(void*, GEN), long a, long b, long flag)
 
     # ellfromeqn.c
 
@@ -3698,10 +3698,10 @@ cdef extern from "parisage.h":
 
     # part.c
 
-    void    forpart(void *E, long call(void*, GEN), long k, GEN nbound, GEN abound)
-    void    forpart_init(forpart_t *T, long k, GEN abound, GEN nbound)
-    GEN     forpart_next(forpart_t *T)
-    GEN     forpart_prev(forpart_t *T)
+#    void    forpart(void *E, long call(void*, GEN), long k, GEN nbound, GEN abound)
+#    void    forpart_init(forpart_t *T, long k, GEN abound, GEN nbound)
+#    GEN     forpart_next(forpart_t *T)
+#    GEN     forpart_prev(forpart_t *T)
     GEN     numbpart(GEN x)
     GEN     partitions(long k, GEN nbound, GEN abound)
 
@@ -4042,7 +4042,7 @@ cdef extern from "parisage.h":
     # subgroup.c
 
     GEN     subgrouplist(GEN cyc, GEN bound)
-    void    forsubgroup(void *E, long fun(void*, GEN), GEN cyc, GEN B)
+#    void    forsubgroup(void *E, long fun(void*, GEN), GEN cyc, GEN B)
 
     # stark.c
 
@@ -4056,12 +4056,12 @@ cdef extern from "parisage.h":
     GEN     asympnum(void *E, GEN (*f)(void *, GEN, long), long muli, GEN alpha, long prec)
     GEN     derivnum(void *E, GEN (*eval)(void *, GEN, long prec), GEN x, long prec)
     GEN     derivfun(void *E, GEN (*eval)(void *, GEN, long prec), GEN x, long prec)
-    int     forcomposite_init(forcomposite_t *C, GEN a, GEN b)
-    GEN     forcomposite_next(forcomposite_t *C)
-    GEN     forprime_next(forprime_t *T)
-    int     forprime_init(forprime_t *T, GEN a, GEN b)
-    int     forvec_init(forvec_t *T, GEN x, long flag)
-    GEN     forvec_next(forvec_t *T)
+#    int     forcomposite_init(forcomposite_t *C, GEN a, GEN b)
+#    GEN     forcomposite_next(forcomposite_t *C)
+#    GEN     forprime_next(forprime_t *T)
+#    int     forprime_init(forprime_t *T, GEN a, GEN b)
+#    int     forvec_init(forvec_t *T, GEN x, long flag)
+#    GEN     forvec_next(forvec_t *T)
     GEN     limitnum(void *E, GEN (*f)(void *, GEN, long), long muli, GEN alpha, long prec)
     GEN     polzag(long n, long m)
     GEN     prodeuler(void *E, GEN (*eval)(void *, GEN), GEN ga, GEN gb, long prec)
