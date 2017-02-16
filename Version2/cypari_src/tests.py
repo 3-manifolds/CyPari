@@ -951,6 +951,25 @@ Number-theoretical functions::
     >>> pari(-5).znstar()
     [4, [4], [Mod(2, 5)]]
 
+    >>> g = pari(101).znprimroot(); g
+    Mod(2, 101)
+    >>> pari(5).znlog(g)
+    24
+    >>> g**24
+    Mod(5, 101)
+    >>> G = pari('2*101^10').znprimroot(); G
+    Mod(110462212541120451003, 220924425082240902002)
+    >>> pari(5).znlog(G)
+    76210072736547066624
+    >>> G**_ == 5
+    True
+    >>> N = pari('2^4*3^2*5^3*7^4*11')
+    >>> g = pari(13).Mod(N)
+    >>> (g**110).znlog(g)
+    110
+    >>> pari(6).znlog(pari(2).Mod(3))
+    []
+
 Finite fields::
 
     >>> x = pari('x')

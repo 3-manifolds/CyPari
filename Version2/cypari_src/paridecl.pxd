@@ -1744,6 +1744,7 @@ cdef extern from "parisage.h":
     long    unegisfundamental(ulong x)
     long    uposisfundamental(ulong x)
     GEN     znlog(GEN x, GEN g, GEN o)
+    GEN     znlog0(GEN h, GEN g, GEN o)
     GEN     znorder(GEN x, GEN o)
     GEN     znprimroot(GEN m)
     GEN     znstar(GEN x)
