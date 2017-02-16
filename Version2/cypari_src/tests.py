@@ -1542,6 +1542,27 @@ General number fields::
     >>> K.nfisisom(L)
     [-1/2*y - 1/2, 1/2*y - 1/2]
 
+    >>> pari('x^2 + 1').nfbasis()
+    [1, x]
+    >>> pari('y^2 + y + 1').nfbasis()
+    [1, y]
+    >>> pari('x^3 - 17').nfbasis()
+    [1, x, 1/3*x^2 - 1/3*x + 1/3]
+    >>> pari('x^4 + 13*x^2 -12*x + 52').nfbasis()
+    [1, x, x^2, 1/12*x^3 - 1/6*x^2 + 5/12*x + 1/6]
+
+    >>> K = pari('y^3 - 250').nfinit()
+    >>> P = K.idealprimedec(5)[1]
+    >>> modP = K.nfmodprinit(P)
+    >>> zk = K[6]; zk
+    [1, 1/5*y, 1/25*y^2]
+    >>> mods = [K.nfmodpr(t, modP) for t in K[6]]; mods
+    [1, y, 2*y + 1]
+    >>> lifts = [K.nfmodprlift(x, modP) for x in mods]; lifts
+    [1, 1/5*y, 2/5*y + 1]
+    >>> K.nfeltval(lifts[2] - zk[2], P)
+    1
+
     # Logarithmic l-class groups (bnflog.c)
     >>> K = pari('x^2 + 521951').bnfinit()
     >>> K.bnflog(2)
