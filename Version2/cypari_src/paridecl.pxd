@@ -2378,6 +2378,7 @@ cdef extern from "parisage.h":
     long    zncharisodd(GEN G, GEN chi)
     GEN     zncharmul(GEN G, GEN a, GEN b)
     GEN     zncharorder(GEN G,  GEN chi)
+    GEN     znchartokronecker(GEN G, GEN chi, long flag)
     int     znconrey_check(GEN cyc, GEN chi)
     GEN     znconrey_normalized(GEN G, GEN chi)
     GEN     znconreychar(GEN bid, GEN m)

@@ -1643,7 +1643,13 @@ General number fields::
     >>> x**2 * y + x*y.sumformal() + (y**2).sumformal() == S
     True
 
-
+    # NOTE: in Pari 2.9.1 idealstar(,N) is not the same as pari('x').nfinit().idealstar(N)
+    >>> G = pari(8).znstar(2)  # flag 2 means to compute generators
+    >>> CHARS = [1,3,5,7]
+    >>> [G.znchartokronecker(n) for n in CHARS]
+    [4, -8, 8, -4]
+    >>> [G.znchartokronecker(n,1) for n in CHARS]
+    [1, -8, 8, -4]
 
     # Pari orders variables by creation time.  The
     # ordering determines whether xy is an element
