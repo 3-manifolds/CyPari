@@ -1622,6 +1622,28 @@ General number fields::
     >>> [int(K.rnfinit(pari('x^3 - y + 3^%d'%i)).rnfislocalcyclo()) for i in range(1,6)]
     [0, 1, 1, 1, 1]
 
+# Sums
+    >>> pari('n').sumformal()
+    1/2*n^2 + 1/2*n
+    >>> f = pari('n -> n^3 + n^2 + 1')
+    >>> f('n').sumformal()
+    1/4*n^4 + 5/6*n^3 + 3/4*n^2 + 7/6*n
+    >>> pari('n').sumformal()
+    1/2*n^2 + 1/2*n
+    >>> f = pari('n -> n^3 + n^2 + 1')
+    >>> F = f('n').sumformal(); F
+    1/4*n^4 + 5/6*n^3 + 3/4*n^2 + 7/6*n
+    >>> sum([f(n) for n in range(1001, 2001)]) == F.subst('n', 2000) - F.subst('n', 1000)
+    True
+    >>> pari('x^2 + x*y + y^2').sumformal('y')
+    y*x^2 + (1/2*y^2 + 1/2*y)*x + (1/3*y^3 + 1/2*y^2 + 1/6*y)
+    >>> S = pari('x^2 + x*y + y^2').sumformal('y'); S
+    y*x^2 + (1/2*y^2 + 1/2*y)*x + (1/3*y^3 + 1/2*y^2 + 1/6*y)
+    >>> x = pari('x'); y = pari('y')
+    >>> x**2 * y + x*y.sumformal() + (y**2).sumformal() == S
+    True
+
+
 
     # Pari orders variables by creation time.  The
     # ordering determines whether xy is an element
