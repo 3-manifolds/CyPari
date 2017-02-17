@@ -303,9 +303,7 @@ elif ext_compiler == 'msvc':
         if sys.version_info >= (3, 5):
             link_args += [os.path.join('Windows', 'crt', 'get_output_format32.o')]
             
-link_args += [pari_static_library]
-if sys.platform.startswith('linux') or sys.platform == 'darwin':
-    link_args += [gmp_static_library]
+link_args += [pari_static_library, gmp_static_library]
     
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
