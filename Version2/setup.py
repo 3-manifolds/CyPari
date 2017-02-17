@@ -61,26 +61,33 @@ else:
 # On Windows we also build separately for the Universal CRT on Python >= 3.5
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
+    GMPDIR = 'gmp'
 elif sys.platform == 'win32':
     if cpu_width == '64bit':
+        GMPDIR = 'gmp64'
         if sys.version_info >= (3,5):
             PARIDIR = 'pari64u'
         else:
             PARIDIR = 'pari64'
     else:
+        GMPDIR = 'gmp32'
         if sys.version_info >= (3,5):
             PARIDIR = 'pari32u'
         else:
             PARIDIR = 'pari32'
 else:
     if cpu_width  == '64bit':
+        GMPDIR = 'gmp64'
         PARIDIR = 'pari64'
     else:
+        GMPDIR = 'gmp32'
         PARIDIR = 'pari32'
     
 pari_include_dir = os.path.join('build', PARIDIR, 'include')
 pari_library_dir = os.path.join('build', PARIDIR, 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
+gmp_library_dir = os.path.join('build', GMPDIR, 'lib')
+gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
 class CyPariClean(Command):
     user_options = []
@@ -198,6 +205,7 @@ class CyPariBuildExt(build_ext):
             if not os.path.exists('build'):
                 os.mkdir('build')
             os.rename('pari_src', os.path.join('build', 'pari_src'))
+            os.rename('gmp_src', os.path.join('build', 'gmp_src'))
             # Find the correct gen.c for our version of Python.
             gen_c_name = 'gen_py%d.c'%sys.version_info.major
             os.rename(os.path.join('cypari_src', gen_c_name),
@@ -205,13 +213,13 @@ class CyPariBuildExt(build_ext):
             building_sdist = True
         
         if not os.path.exists(os.path.join('build', PARIDIR)):
-            # This is meant to work even  in a Windows Command Prompt
             if sys.platform == 'win32':
-                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s'%(BASHPATH, PARIDIR)
+                # This is meant to work even in a Windows Command Prompt
+                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             elif sys.platform == 'darwin':
                 cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
-                cmd = r'export PATH="%s" ; bash build_pari.sh %s'%(BASHPATH, PARIDIR)
+                cmd = r'export PATH="%s" ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             print([BASH, '-c', cmd])
             if subprocess.call([BASH, '-c', cmd]):
                 sys.exit("***Failed to build PARI library***")
@@ -262,8 +270,10 @@ class CyPariSourceDist(sdist):
         
     def run(self):
         os.rename(os.path.join('build', 'pari_src'), 'pari_src')
+        os.rename(os.path.join('build', 'gmp_src'), 'gmp_src')
         sdist.run(self)
         os.rename('pari_src', os.path.join('build', 'pari_src'))
+        os.rename('gmp_src', os.path.join('build', 'gmp_src'))
 
 link_args = []
 compile_args = []
@@ -292,7 +302,10 @@ elif ext_compiler == 'msvc':
         link_args += [os.path.join('Windows', 'crt', 'libparicrt32.a')]
         if sys.version_info >= (3, 5):
             link_args += [os.path.join('Windows', 'crt', 'get_output_format32.o')]
+            
 link_args += [pari_static_library]
+if sys.platform.startswith('linux'):
+    link_args += [gmp_static_library]
     
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
