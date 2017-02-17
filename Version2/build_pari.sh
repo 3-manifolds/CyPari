@@ -8,6 +8,39 @@
 
 set -e
 
+if [ "$#" -eq 2 ] ; then
+    PARIPREFIX=../$1
+    LIBDIR=../$1/lib
+    GMPPREFIX=../$2
+else
+    PARIPREFIX=../pari
+    LIBDIR=../pari/lib
+    GMPPREFIX=../gmp
+fi
+
+if [ ! -d "build/gmp_src" ] ; then
+    echo "Untarring gmp ..."
+    if [ ! -d "build" ] ; then
+	mkdir build ;
+    fi
+    cd build
+    tar xzf ../gmp-6.1.2.tar.gz
+    mv gmp-6.1.2 gmp_src
+    cd gmp_src
+else
+    cd build/gmp_src
+fi
+if [ $(uname) = "Darwin" ] ; then
+    echo Darwin
+elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+    echo MinGW
+else    
+    export CFLAGS=-fPIC
+fi
+./configure --prefix=$(pwd)/$GMPPREFIX
+make install
+cd ../..
+
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
     if [ ! -d "build" ] ; then
@@ -19,33 +52,24 @@ if [ ! -d "build/pari_src" ] ; then
     cd pari_src
     # neuter win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -p0 < ../../Windows/mingw_c.patch
-    # patch for the transcendental function precision problems
-    patch -p1 < ../../pari-2.9.1.patch
 else
     cd build/pari_src
 fi
 
-if [ "$#" -eq 1 ] ; then
-    PREFIX=../$1
-    LIBDIR=../$1/lib
-else
-    PREFIX=../pari
-    LIBDIR=../pari/lib
-fi
 export DESTDIR=
 
 echo "Building Pari libary..."
 
 if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
-    ./Configure --prefix=../pari32 --libdir=../pari32/lib --without-gmp
+    ./Configure --prefix=../pari32 --libdir=../pari32/lib --with-gmp
     cd Odarwin-i386
     make install-lib-sta
     make install-include
     cd ..
     cp src/language/anal.h ../pari32/include/pari
     export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
-    ./Configure --prefix=../pari64 --libdir=../pari64/lib --without-gmp --host=x86_64-darwin
+    ./Configure --prefix=../pari64 --libdir=../pari64/lib --with-gmp --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
     make install-lib-sta
@@ -68,7 +92,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi
-    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
 
     make install-lib-sta RUNPTH=
     
@@ -83,12 +107,12 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     make clean
     
 else # linux, presumably
-    ./Configure --prefix=${PREFIX} --libdir=${LIBDIR} --without-gmp
+    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
     make install
     make install-lib-sta
 fi
 
-cp src/language/anal.h $PREFIX/include/pari
+cp src/language/anal.h $PARIPREFIX/include/pari
 
 # Fix non-prototype function declarations
-sed -i -e s/\(\)\;/\(void\)\;/ $PREFIX/include/pari/paripriv.h
+sed -i -e s/\(\)\;/\(void\)\;/ $PARIPREFIX/include/pari/paripriv.h

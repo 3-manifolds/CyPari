@@ -10,3 +10,4 @@ prune pari_src/Odarwin-x86_64
 prune pari_src/Odarwin-i386
 prune pari_src/Omingw-x86_64
 prune pari_src/Omingw-i386
+recursive-include gmp_src *

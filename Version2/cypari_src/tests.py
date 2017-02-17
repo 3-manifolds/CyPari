@@ -629,8 +629,10 @@ Transcendental functions::
     >>> pari(5).cotan()
     -0.295812915532746
     >>> x = pari.pi()
-    >>> pari(x).cotan()  # random
-    -1. E19
+    >>> pari(x).cotan()
+    Traceback (most recent call last):
+    ...
+    cypari_src.gen.PariError: impossible inverse in divrr: 0.E-18
 
     >>> pari(1).dilog()
     1.64493406684823
