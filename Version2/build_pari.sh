@@ -18,31 +18,39 @@ else
     GMPPREFIX=../gmp
 fi
 
-if [ ! -d "build/gmp_src" ] ; then
-    echo "Untarring gmp ..."
-    if [ ! -d "build" ] ; then
-	mkdir build ;
-    fi
-    cd build
-    tar xzf ../gmp-6.1.2.tar.gz
-    mv gmp-6.1.2 gmp_src
-    cd gmp_src
-else
-    cd build/gmp_src
-fi
-if [ $(uname) = "Darwin" ] ; then
-    export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
-    ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
-elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-    export CFLAGS=-fPIC
-    ./configure --prefix=$(pwd)/${GMPPREFIX}
-else    
-    export CFLAGS=-fPIC
-    ./configure --prefix=$(pwd)/${GMPPREFIX}
-fi
+if [ ${GMPPREFIX} != "nogmp" ] ; then
 
-make install
-cd ../..
+    if [ ! -d "build/gmp_src" ] ; then
+	echo "Untarring gmp ..."
+	if [ ! -d "build" ] ; then
+	    mkdir build ;
+	fi
+	cd build
+	tar xzf ../gmp-6.1.2.tar.gz
+	mv gmp-6.1.2 gmp_src
+	cd gmp_src
+    else
+	cd build/gmp_src
+    fi
+    if [ $(uname) = "Darwin" ] ; then
+	export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
+	./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
+    elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+	export CFLAGS=-fPIC
+	if [ $2 = "gmp32" ] ; then
+	    export ABI=32
+	    ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
+	else
+	    ./configure --prefix=$(pwd)/${GMPPREFIX}
+	fi
+    else    
+	export CFLAGS=-fPIC
+	./configure --prefix=$(pwd)/${GMPPREFIX}
+    fi
+    make install
+    make distclean
+    cd ../..
+fi
 
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
@@ -95,7 +103,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi
-    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
+    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp=${GMPPREFIX}
 
     make install-lib-sta RUNPTH=
     
