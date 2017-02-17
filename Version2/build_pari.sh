@@ -37,7 +37,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 else    
     export CFLAGS=-fPIC
 fi
-./configure --prefix=$(pwd)/$GMPPREFIX
+./configure --prefix=$(pwd)/${GMPPREFIX}
 make install
 cd ../..
 
@@ -107,7 +107,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     make clean
     
 else # linux, presumably
-    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
+    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp=${GMPPREFIX}
     make install
     make install-lib-sta
 fi
