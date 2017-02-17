@@ -34,7 +34,7 @@ if [ $(uname) = "Darwin" ] ; then
     export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
     ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-    echo MinGW
+    export CFLAGS=-fPIC
     ./configure --prefix=$(pwd)/${GMPPREFIX}
 else    
     export CFLAGS=-fPIC
