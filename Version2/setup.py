@@ -304,7 +304,7 @@ elif ext_compiler == 'msvc':
             link_args += [os.path.join('Windows', 'crt', 'get_output_format32.o')]
             
 link_args += [pari_static_library]
-if sys.platform.startswith('linux'):
+if sys.platform.startswith('linux') or sys.platform == 'darwin':
     link_args += [gmp_static_library]
     
 if sys.platform.startswith('linux'):
