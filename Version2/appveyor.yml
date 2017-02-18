@@ -43,7 +43,7 @@ install:
   - "%PYTHON%\\python.exe setup.py build"
 
 cache:
-  - libcache -> libcache.cfg
+  - C:\projects\cypari\Version2\libcache -> C:\projects\cypari\Version2\libcache.cfg
 
 build:
   none
