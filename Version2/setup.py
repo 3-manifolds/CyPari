@@ -85,10 +85,10 @@ else:
         GMPDIR = 'gmp32'
         PARIDIR = 'pari32'
     
-pari_include_dir = os.path.join('build', PARIDIR, 'include')
-pari_library_dir = os.path.join('build', PARIDIR, 'lib')
+pari_include_dir = os.path.join('libcache', PARIDIR, 'include')
+pari_library_dir = os.path.join('libcache', PARIDIR, 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
-gmp_library_dir = os.path.join('build', GMPDIR, 'lib')
+gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
 class CyPariClean(Command):
@@ -214,7 +214,8 @@ class CyPariBuildExt(build_ext):
                       os.path.join('cypari_src', 'gen.c'))
             building_sdist = True
         
-        if not os.path.exists(os.path.join('build', PARIDIR)):
+        if (not os.path.exists(os.path.join('libcache', PARIDIR))
+            or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
                 # This is meant to work even in a Windows Command Prompt
                 cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)

@@ -9,13 +9,13 @@
 set -e
 
 if [ "$#" -eq 2 ] ; then
-    PARIPREFIX=../$1
-    LIBDIR=../$1/lib
-    GMPPREFIX=../$2
+    PARIPREFIX=../../libcache/$1
+    LIBDIR=../../libcache/$1/lib
+    GMPPREFIX=../../libcache/$2
 else
-    PARIPREFIX=../pari
-    LIBDIR=../pari/lib
-    GMPPREFIX=../gmp
+    PARIPREFIX=../../libcache/pari
+    LIBDIR=../../libcache/pari/lib
+    GMPPREFIX=../../libcache/gmp
 fi
 
 if [ ${GMPPREFIX} != "nogmp" ] ; then
