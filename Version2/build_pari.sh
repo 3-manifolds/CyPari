@@ -36,10 +36,14 @@ if [ ${GMPPREFIX} != "nogmp" ] ; then
 	export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
 	./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
     elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-	export CFLAGS=-fPIC
-	if [ $2 = "gmp32" ] ; then
+	if [ $2 = "gmp32u" ] || [ $2 = "gmp64u" ] ; then
+	    export CFLAGS='-fPIC -DUNIVERSAL_CRT'
+	else
+	    export CFLAGS='-fPIC'
+	fi
+	if [ $2 = "gmp32" ] || [ $2 = "gmp32u" ] ; then
 	    export ABI=32
-	    ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
+	    ./configure --prefix=$(pwd)/${GMPPREFIX}
 	else
 	    ./configure --prefix=$(pwd)/${GMPPREFIX}
 	fi
