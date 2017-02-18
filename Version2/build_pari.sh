@@ -43,12 +43,17 @@ if [ ${GMPPREFIX} != "nogmp" ] ; then
 	fi
 	if [ $2 = "gmp32" ] || [ $2 = "gmp32u" ] ; then
 	    export ABI=32
-	    ./configure --prefix=$(pwd)/${GMPPREFIX}
 	else
-	    ./configure --prefix=$(pwd)/${GMPPREFIX}
-	fi
+            export ABI=64
+        fi
+	./configure --prefix=$(pwd)/${GMPPREFIX}
     else    
 	export CFLAGS=-fPIC
+	if [ $2 = "gmp32" ] ; then
+            export ABI=32
+        else
+            export ABI=64
+        fi
 	./configure --prefix=$(pwd)/${GMPPREFIX}
     fi
     make install
