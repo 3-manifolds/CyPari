@@ -10,6 +10,7 @@ cypari_src/gen.h
 *.so
 *.so.*
 Version2/build
+Version2/libcache
 Version2/cypari/auto*
 Version2/cypari/*.c
 Version2/cypari/gen.h

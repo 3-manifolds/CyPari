@@ -2,7 +2,7 @@ import os
 
 PARIDIR = None
 for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
-    gphelp = os.path.join('build', paridir, 'bin', 'gphelp')
+    gphelp = os.path.join('libcache', paridir, 'bin', 'gphelp')
     if os.path.exists(gphelp):
         PARIDIR = paridir
         break
