@@ -9,7 +9,7 @@ import subprocess
 import os
 from six import unichr
 from autogen import PARIDIR
-GPHELP = os.path.join('.', 'build', PARIDIR, 'bin', 'gphelp')
+GPHELP = os.path.join('.', 'libcache', PARIDIR, 'bin', 'gphelp')
 
 leading_ws = re.compile("^( +)", re.MULTILINE)
 trailing_ws = re.compile("( +)$", re.MULTILINE)

@@ -42,6 +42,9 @@ install:
   # Build CyPari. 
   - "%PYTHON%\\python.exe setup.py build"
 
+cache:
+  - libcache -> libcache.cfg
+
 build:
   none
 
