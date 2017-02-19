@@ -44,7 +44,7 @@ install:
 
 cache:
   # Comment out the next line and commit to clear the cache.
-  - libcache -> appveyor.yml
+  - cypari\Version2\libcache -> cypari\Version2\appveyor.yml
 
 build:
   none
