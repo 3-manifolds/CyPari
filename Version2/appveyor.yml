@@ -39,14 +39,9 @@ install:
   - copy stdio.h C:\msys64\mingw32\i686-w64-mingw32\include
   - cd ..\..
 
+build:
   # Build CyPari. 
   - "%PYTHON%\\python.exe setup.py build"
-
-cache:
-  - C:\projects\cypari\Version2\libcache -> C:\projects\cypari\Version2\libcache.cfg
-
-build:
-  none
 
 test_script:
   # Put your test command here.
