@@ -119,3 +119,9 @@ cp src/language/anal.h $PARIPREFIX/include/pari
 
 # Fix non-prototype function declarations
 sed -i -e s/\(\)\;/\(void\)\;/ $PARIPREFIX/include/pari/paripriv.h
+
+# Fix bad paths
+sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/bin/gphelp
+sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/include/pari/paricfg.h
+sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/lib/pari/pari.cfg
+sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/share/pari/doc/paricfg.tex
