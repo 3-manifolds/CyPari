@@ -18,48 +18,31 @@ else
     GMPPREFIX=../../libcache/gmp
 fi
 
-if [ ${GMPPREFIX} != "nogmp" ] ; then
-
-    if [ ! -d "build/gmp_src" ] ; then
-	echo "Untarring gmp ..."
-	if [ ! -d "build" ] ; then
-	    mkdir build ;
-	fi
-	cd build
-	tar xzf ../gmp-6.1.2.tar.gz
-	mv gmp-6.1.2 gmp_src
-	cd gmp_src
-    else
-	cd build/gmp_src
+if [ ! -d "build/gmp_src" ] ; then
+    echo "Untarring gmp ..."
+    if [ ! -d "build" ] ; then
+	mkdir build ;
     fi
-    if [ $(uname) = "Darwin" ] ; then
-	export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
-	./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
-    elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-	if [ $2 = "gmp32u" ] || [ $2 = "gmp64u" ] ; then
-	    export CFLAGS='-fPIC -DUNIVERSAL_CRT'
-	else
-	    export CFLAGS='-fPIC'
-	fi
-	if [ $2 = "gmp32" ] || [ $2 = "gmp32u" ] ; then
-	    export ABI=32
-	else
-            export ABI=64
-        fi
-	./configure --prefix=$(pwd)/${GMPPREFIX}
-    else    
-	export CFLAGS=-fPIC
-	if [ $2 = "gmp32" ] ; then
-            export ABI=32
-        else
-            export ABI=64
-        fi
-	./configure --prefix=$(pwd)/${GMPPREFIX}
-    fi
-    make install
-    make distclean
-    cd ../..
+    cd build
+    tar xzf ../gmp-6.1.2.tar.gz
+    mv gmp-6.1.2 gmp_src
+    cd gmp_src
+else
+    cd build/gmp_src
 fi
+if [ $(uname) = "Darwin" ] ; then
+    export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
+    ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
+elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+    echo MinGW
+    ./configure --prefix=$(pwd)/${GMPPREFIX}
+else    
+    export CFLAGS=-fPIC
+    ./configure --prefix=$(pwd)/${GMPPREFIX}
+fi
+
+make install
+cd ../..
 
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
@@ -112,7 +95,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi
-    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp=${GMPPREFIX}
+    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
 
     make install-lib-sta RUNPTH=
     

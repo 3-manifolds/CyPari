@@ -9,9 +9,8 @@ import subprocess
 import os
 from six import unichr
 from autogen import PARIDIR
-#GPHELP = os.path.join(os.path.abspath('.'), 'libcache', PARIDIR, 'bin', 'gphelp')
-GPHELP = '/'.join(['.', 'libcache', PARIDIR, 'bin', 'gphelp'])
-print('Using gphelp at %s'%GPHELP)
+GPHELP = os.path.join('.', 'libcache', PARIDIR, 'bin', 'gphelp')
+
 leading_ws = re.compile("^( +)", re.MULTILINE)
 trailing_ws = re.compile("( +)$", re.MULTILINE)
 double_space = re.compile("  +")

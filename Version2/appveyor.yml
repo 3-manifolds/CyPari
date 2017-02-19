@@ -11,23 +11,19 @@ environment:
     # A build job will be started for each definition below.
     
     - PYTHON: "C:\\Python27"
+    - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python34"
-#    - PYTHON: "C:\\Python27-x64"
-#    - PYTHON: "C:\\Python34-x64"
-#    - PYTHON: "C:\\Python35"
-#    - PYTHON: "C:\\Python35-x64"
-#    - PYTHON: "C:\\Python36"
-#    - PYTHON: "C:\\Python36-x64"
-
-cache:
-  - Version2\libcache
+    - PYTHON: "C:\\Python34-x64"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python36-x64"
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python version you want to use on PATH.
-  # See what was restored from the cache
-  - dir /s /b Version2\libcache
+  
   # Install python packages
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
@@ -42,13 +38,16 @@ install:
   - copy stdio.h C:\msys64\mingw64\x86_64-w64-mingw32\include
   - copy stdio.h C:\msys64\mingw32\i686-w64-mingw32\include
   - cd ..\..
-  
-  # Build CyPari.
+
+  # Build CyPari. 
   - "%PYTHON%\\python.exe setup.py build"
+
+cache:
+  - libcache -> libcache.cfg
 
 build:
   none
-  
+
 test_script:
   # Put your test command here.
   - "%PYTHON%\\python.exe setup.py test"
