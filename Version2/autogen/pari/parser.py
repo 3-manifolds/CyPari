@@ -43,7 +43,7 @@ def pari_share():
         sage: pari_share()
         '.../local/share/pari'
     """
-    return os.path.join('libcache', PARIDIR, "share", "pari")
+    return '/'.join('libcache', PARIDIR, "share", "pari")
 
 paren_re = re.compile(r"[(](.*)[)]")
 argname_re = re.compile(r"[ {]*([A-Za-z_][A-Za-z0-9_]*)")
