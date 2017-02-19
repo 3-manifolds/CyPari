@@ -38,11 +38,12 @@ install:
   - copy stdio.h C:\msys64\mingw64\x86_64-w64-mingw32\include
   - copy stdio.h C:\msys64\mingw32\i686-w64-mingw32\include
   - cd ..\..
-
-build:
   # Build CyPari. 
   - "%PYTHON%\\python.exe setup.py build"
 
+build:
+  none
+  
 test_script:
   # Put your test command here.
   - "%PYTHON%\\python.exe setup.py test"
