@@ -18,30 +18,45 @@ else
     GMPPREFIX=../../libcache/gmp
 fi
 
-if [ ! -d "build/gmp_src" ] ; then
-    echo "Untarring gmp ..."
-    if [ ! -d "build" ] ; then
-	mkdir build ;
+if [ "$2" != "nogmp" ] ; then
+    if [ ! -d "build/gmp_src" ] ; then
+	echo "Untarring gmp ..."
+	if [ ! -d "build" ] ; then
+	    mkdir build ;
+	fi
+	cd build
+	tar xzf ../gmp-6.1.2.tar.gz
+	mv gmp-6.1.2 gmp_src
+	cd gmp_src
+    else
+	cd build/gmp_src
     fi
-    cd build
-    tar xzf ../gmp-6.1.2.tar.gz
-    mv gmp-6.1.2 gmp_src
-    cd gmp_src
-else
-    cd build/gmp_src
+    if [ $(uname) = "Darwin" ] ; then
+	export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
+	./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
+    elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+	if [ "$2" = "gmp32u" ] ; then
+	    export ABI=32
+	    export CFLAGS='-DUNIVERSAL_CRT'
+	fi
+	if [ "$2" = "gmp64u" ] ; then
+	    export ABI=64
+	    export CFLAGS='-DUNIVERSAL_CRT'
+	fi
+	./configure --prefix=$(pwd)/${GMPPREFIX}
+    else # linux
+	if [ "$2" = "gmp32" ] ; then
+            export ABI=32
+	else
+            export ABI=64
+	fi
+	export CFLAGS=-fPIC
+	./configure --prefix=$(pwd)/${GMPPREFIX}
+    fi
+    make install
+    make distclean
+    cd ../..
 fi
-if [ $(uname) = "Darwin" ] ; then
-    export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
-    ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
-elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-    ./configure --prefix=$(pwd)/${GMPPREFIX}
-else    
-    export CFLAGS=-fPIC
-    ./configure --prefix=$(pwd)/${GMPPREFIX}
-fi
-
-make install
-cd ../..
 
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
@@ -94,7 +109,7 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # This allows using C99 format specifications in printf.
-    if [[ "$1" = *"u" ]] ; then
+    if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT -DUNIVERSAL_CRT'
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'

@@ -64,17 +64,19 @@ if sys.platform == 'darwin':
     GMPDIR = 'gmp'
 elif sys.platform == 'win32':
     if cpu_width == '64bit':
-        GMPDIR = 'gmp64'
         if sys.version_info >= (3,5):
             PARIDIR = 'pari64u'
+            GMPDIR = 'gmp64u'
         else:
             PARIDIR = 'pari64'
+            GMPDIR = 'gmp64'
     else:
-        GMPDIR = 'gmp32'
         if sys.version_info >= (3,5):
             PARIDIR = 'pari32u'
+            GMPDIR = 'gmp32u'
         else:
             PARIDIR = 'pari32'
+            GMPDIR = 'gmp32'
 else:
     if cpu_width  == '64bit':
         GMPDIR = 'gmp64'
