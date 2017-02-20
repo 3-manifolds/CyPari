@@ -31,31 +31,48 @@ if [ "$2" != "nogmp" ] ; then
     else
 	cd build/gmp_src
     fi
+
     if [ $(uname) = "Darwin" ] ; then
-	export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
-	./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
-    elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-	if [ "$2" = "gmp32u" ] ; then
-	    export ABI=32
-	    export CFLAGS='-DUNIVERSAL_CRT'
+	export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
+	export ABI=32
+	./configure --with-pic --prefix=$(pwd)/${GMPPREFIX}32
+	make install
+	make distclean
+	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
+	export ABI=64
+	./configure --with-pic --prefix=$(pwd)/${GMPPREFIX}64
+	make install
+        make distclean
+	if [ ! -d "${GMPPREFIX}/lib" ] ; then
+	    mkdir -p ${GMPPREFIX}/lib
 	fi
-	if [ "$2" = "gmp64u" ] ; then
-	    export ABI=64
-	    export CFLAGS='-DUNIVERSAL_CRT'
+	lipo ${GMPPREFIX}32/lib/libgmp.a ${GMPPREFIX}64/lib/libgmp.a -create -output ${GMPPREFIX}/lib/libgmp.a
+	cd ../..
+    else
+	if [ $(uname | cut -b -5) = "MINGW" ] ; then
+	    if [ "$2" = "gmp32u" ] ; then
+		export ABI=32
+		export CFLAGS='-DUNIVERSAL_CRT'
+	    fi
+	    if [ "$2" = "gmp64u" ] ; then
+		export ABI=64
+		export CFLAGS='-DUNIVERSAL_CRT'
+	    fi
+	    ./configure --prefix=$(pwd)/${GMPPREFIX}
+	else # linux
+	    if [ "$2" = "gmp32" ] ; then
+		export ABI=32
+	    else
+		export ABI=64
+	    fi
+	    export CFLAGS=-fPIC
+	    ./configure --prefix=$(pwd)/${GMPPREFIX}
 	fi
-	./configure --prefix=$(pwd)/${GMPPREFIX}
-    else # linux
-	if [ "$2" = "gmp32" ] ; then
-            export ABI=32
-	else
-            export ABI=64
-	fi
-	export CFLAGS=-fPIC
-	./configure --prefix=$(pwd)/${GMPPREFIX}
-    fi
-    make install
-    make distclean
-    cd ../..
+	make install
+	make distclean
+	cd ../..
+fi
+
 fi
 
 if [ ! -d "build/pari_src" ] ; then
@@ -79,14 +96,14 @@ echo "Building Pari libary..."
 
 if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
-    ./Configure --prefix=../pari32 --libdir=../pari32/lib --with-gmp=${GMPPREFIX}
+    ./Configure --prefix=../pari32 --libdir=../pari32/lib --with-gmp=${GMPPREFIX}32
     cd Odarwin-i386
     make install-lib-sta
     make install-include
     cd ..
     cp src/language/anal.h ../pari32/include/pari
     export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
-    ./Configure --prefix=../pari64 --libdir=../pari64/lib --with-gmp=${GMPPREFIX} --host=x86_64-darwin
+    ./Configure --prefix=../pari64 --libdir=../pari64/lib --with-gmp=${GMPPREFIX}64 --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
     make install-lib-sta
