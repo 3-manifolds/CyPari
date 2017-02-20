@@ -234,7 +234,7 @@ IFAC: found 2 large prime (power) factors.
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-import sys, platform
+import sys
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
 IF SAGE:
