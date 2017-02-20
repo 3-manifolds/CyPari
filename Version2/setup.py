@@ -272,11 +272,13 @@ class CyPariBuildExt(build_ext):
 class CyPariSourceDist(sdist):
         
     def run(self):
-        os.rename(os.path.join('build', 'pari_src'), 'pari_src')
-        os.rename(os.path.join('build', 'gmp_src'), 'gmp_src')
+        check_call(['tar', 'xfz', 'pari-2.9.1.tar.gz'])
+        os.rename('pari-2.9.1', 'pari_src')
+        check_call(['tar', 'xfz', 'gmp-6.1.2.tar.gz'])
+        os.rename('gmp-6.1.2', 'gmp_src')
         sdist.run(self)
-        os.rename('pari_src', os.path.join('build', 'pari_src'))
-        os.rename('gmp_src', os.path.join('build', 'gmp_src'))
+        shutil.rmtree('pari_src')
+        shutil.rmtree('gmp_src')
 
 link_args = []
 compile_args = []
