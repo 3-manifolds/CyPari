@@ -235,7 +235,7 @@ IFAC: found 2 large prime (power) factors.
 include "sage.pxi"
 
 import sys, platform
-cpu_width = platform.architecture()[0]
+cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
 IF SAGE:
     pass
