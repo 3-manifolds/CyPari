@@ -11,13 +11,13 @@ environment:
     # A build job will be started for each definition below.
     
     - PYTHON: "C:\\Python27"
-#    - PYTHON: "C:\\Python27-x64"
+    - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python34"
-#    - PYTHON: "C:\\Python34-x64"
-#    - PYTHON: "C:\\Python35"
-#    - PYTHON: "C:\\Python35-x64"
-#    - PYTHON: "C:\\Python36"
-#    - PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python34-x64"
+    - PYTHON: "C:\\Python35"
+    - PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python36"
+    - PYTHON: "C:\\Python36-x64"
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
