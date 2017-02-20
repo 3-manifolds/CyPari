@@ -7,7 +7,7 @@ if sys.version_info.major == 2:
 else:
     from . import py3tests
 
-cpu_width = platform.architecture()[0]
+cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
 class DocTestParser(doctest.DocTestParser):
     def parse(self, string, name='<string>'):
