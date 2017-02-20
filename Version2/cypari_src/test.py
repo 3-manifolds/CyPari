@@ -1,7 +1,7 @@
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
-import sys, platform
+import sys
 if sys.version_info.major == 2:
     from . import py2tests
 else:
