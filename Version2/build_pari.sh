@@ -34,7 +34,6 @@ if [ $(uname) = "Darwin" ] ; then
     export CFLAGS='-fPIC -mmacosx-version-min=10.5 -arch i386 -arch x86_64'
     ./configure --disable-assembly --prefix=$(pwd)/${GMPPREFIX}
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
-    echo MinGW
     ./configure --prefix=$(pwd)/${GMPPREFIX}
 else    
     export CFLAGS=-fPIC
@@ -77,16 +76,21 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     make install
     make install-lib-sta
     cd ..
-    mkdir ../pari ../pari/lib
-    lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ../pari/lib/libpari.a
-    echo current directory: `pwd`
-    echo `ls -l ..` `ls -l ../pari64`
-    cp -r ../pari64/include ../pari
-    cp src/language/anal.h ../pari/include/pari
-    cd ..
-    echo Patching paricfg.h for dual architectures
-    patch pari/include/pari/paricfg.h < ../macOS/mac_paricfg.patch
-    cd pari_src
+    echo current directory `pwd`
+    echo running mkdir ${PARIPREFIX} ${PARIPREFIX}/lib
+    mkdir ${PARIPREFIX} ${PARIPREFIX}/lib
+    lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ${PARIPREFIX}/lib/libpari.a
+    cp -r ../pari64/include ${PARIPREFIX}
+    cp -r ../pari64/bin ${PARIPREFIX}
+    cp -r ../pari64/share ${PARIPREFIX}
+    cp -r ../pari64/lib/pari ${PARIPREFIX}/lib
+    cp src/language/anal.h ${PARIPREFIX}/include/pari
+    # Patch paricfg.h for dual architectures
+    cd ${PARIPREFIX}
+    patch include/pari/paricfg.h < ../../macOS/mac_paricfg.patch
+    # patch gphelp, because we relocate it.
+    sed -i -e 's/build\/pari_src\/\.\.\/pari64/libcache\/pari/g' ${PARIPREFIX}/bin/gphelp
+    cd ../../build/pari_src
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # This allows using C99 format specifications in printf.
