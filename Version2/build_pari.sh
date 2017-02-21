@@ -35,12 +35,12 @@ if [ "$2" != "nogmp" ] ; then
     #macOS -- build separately for 32 and 64 bits then use lipo
 	export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
 	export ABI=32
-	./configure --with-pic --host=i686-none-none --prefix=${GMPPREFIX}32
+	./configure --with-pic --build=i686-none-none --prefix=${GMPPREFIX}32
 	make install
 	make distclean
 	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
 	export ABI=64
-	./configure --with-pic --host=x86_64-none-none --prefix=${GMPPREFIX}64
+	./configure --with-pic --build=x86_64-none-none --prefix=${GMPPREFIX}64
 	make install
         make distclean
 	if [ ! -d "${GMPPREFIX}/lib" ] ; then
@@ -53,26 +53,28 @@ if [ "$2" != "nogmp" ] ; then
 	# Windows -- with no CFLAGS the ABI is not needed
 	    if [ "$2" = "gmp32u" ] ; then
 		export ABI=32
-		export CFLAGS='-DUNIVERSAL_CRT'
-		HOST=i686-none-none
 	    fi
 	    if [ "$2" = "gmp64u" ] ; then
 		export ABI=64
 		export CFLAGS='-DUNIVERSAL_CRT'
-		HOST=x86_64-none-none
+	    fi
+	    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+		BUILD=i686-none-none
+	    else
+		BUILD=x86_64-none-none
 	    fi
 	else
 	# linux
 	    if [ "$2" = "gmp32" ] ; then
 		export ABI=32
-		HOST=i686-none-none
+		BUILD=i686-none-none
 	    else
 		export ABI=64
-		HOST=x86_64-none-none
+		BUILD=x86_64-none-none
 	    fi
 	fi
-	echo ./configure --host=${HOST} --prefix=${GMPPREFIX} --with-pic
-	./configure --host=${HOST} --prefix=${GMPPREFIX} --with-pic
+	echo ./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
+	./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	make install
 	make distclean
 	cd ../..
