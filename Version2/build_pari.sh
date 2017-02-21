@@ -35,12 +35,12 @@ if [ "$2" != "nogmp" ] ; then
     #macOS -- build separately for 32 and 64 bits then use lipo
 	export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
 	export ABI=32
-	./configure --with-pic --build=x86-none-none --prefix=${GMPPREFIX}32
+	./configure --with-pic --build=i686-none-none --prefix=${GMPPREFIX}32
 	make install
 	make distclean
 	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
 	export ABI=64
-	./configure --with-pic --build=x86_64-none-none --prefix=${GMPPREFIX}64
+	./configure --with-pic --build=i686_64-none-none --prefix=${GMPPREFIX}64
 	make install
         make distclean
 	if [ ! -d "${GMPPREFIX}/lib" ] ; then
@@ -54,7 +54,7 @@ if [ "$2" != "nogmp" ] ; then
 	    if [ "$2" = "gmp32u" ] ; then
 		export ABI=32
 		export CFLAGS='-DUNIVERSAL_CRT'
-		BUILD=x86-none-none
+		BUILD=i686-none-none
 	    fi
 	    if [ "$2" = "gmp64u" ] ; then
 		export ABI=64
@@ -65,7 +65,7 @@ if [ "$2" != "nogmp" ] ; then
 	# linux
 	    if [ "$2" = "gmp32" ] ; then
 		export ABI=32
-		BUILD=x86-none-none
+		BUILD=i686-none-none
 	    else
 		export ABI=64
 		BUILD=x86_64-none-none
