@@ -43,8 +43,7 @@ install:
   - "%PYTHON%\\python.exe setup.py build"
 
 cache:
-  # Comment out the next line and commit to clear the cache.
-  - Version2\libcache -> Version2\appveyor.yml
+  - Version2\libcache
 
 build:
   none
