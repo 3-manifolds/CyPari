@@ -1,22 +1,22 @@
 #! /bin/bash
 
-# This builds a fat (i386/x86_64) PARI library for OS X > 10.5.
-# On Windows it uses mingw32 or mingw64, depending on the
-# MSys2 environment.
-# On linux the default system gcc is used to build for the host
-# architecture.
+# On macOS this builds a fat (i386/x86_64) PARI library for OS X > 10.5.
+# On Windows it uses mingw32 or mingw64, depending on the MSys2 environment.
+# On linux the default system gcc is used to build for the host architecture.
 
 set -e
 
 if [ "$#" -eq 2 ] ; then
-    PARIPREFIX=../../libcache/$1
-    LIBDIR=../../libcache/$1/lib
-    GMPPREFIX=../../libcache/$2
+    PARIPREFIX=$(pwd)/libcache/$1
+    PARILIBDIR=$(pwd)/libcache/$1/lib
+    GMPPREFIX=$(pwd)/libcache/$2
 else
-    PARIPREFIX=../../libcache/pari
-    LIBDIR=../../libcache/pari/lib
-    GMPPREFIX=../../libcache/gmp
+    PARIPREFIX=$(pwd)/libcache/pari
+    PARILIBDIR=$(pwd)/libcache/pari/lib
+    GMPPREFIX=$(pwd)/libcache/gmp
 fi
+
+echo Building gmp ...
 
 if [ "$2" != "nogmp" ] ; then
     if [ ! -d "build/gmp_src" ] ; then
@@ -31,16 +31,16 @@ if [ "$2" != "nogmp" ] ; then
     else
 	cd build/gmp_src
     fi
-
     if [ $(uname) = "Darwin" ] ; then
+    #macOS -- build separately for 32 and 64 bits then use lipo
 	export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
 	export ABI=32
-	./configure --with-pic --prefix=$(pwd)/${GMPPREFIX}32
+	./configure --with-pic --prefix=${GMPPREFIX}32
 	make install
 	make distclean
 	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
 	export ABI=64
-	./configure --with-pic --prefix=$(pwd)/${GMPPREFIX}64
+	./configure --with-pic --prefix=${GMPPREFIX}64
 	make install
         make distclean
 	if [ ! -d "${GMPPREFIX}/lib" ] ; then
@@ -50,6 +50,7 @@ if [ "$2" != "nogmp" ] ; then
 	cd ../..
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
+	# Windows -- with no CFLAGS the ABI is not needed
 	    if [ "$2" = "gmp32u" ] ; then
 		export ABI=32
 		export CFLAGS='-DUNIVERSAL_CRT'
@@ -58,22 +59,23 @@ if [ "$2" != "nogmp" ] ; then
 		export ABI=64
 		export CFLAGS='-DUNIVERSAL_CRT'
 	    fi
-	    ./configure --prefix=$(pwd)/${GMPPREFIX}
-	else # linux
+	else
+	# linux
 	    if [ "$2" = "gmp32" ] ; then
 		export ABI=32
 	    else
 		export ABI=64
 	    fi
 	    export CFLAGS=-fPIC
-	    ./configure --prefix=$(pwd)/${GMPPREFIX}
 	fi
+	./configure --prefix=${GMPPREFIX}
 	make install
 	make distclean
 	cd ../..
+    fi
 fi
 
-fi
+echo Building Pari ...
 
 if [ ! -d "build/pari_src" ] ; then
     echo "Untarring Pari..."
@@ -91,10 +93,8 @@ else
 fi
 
 export DESTDIR=
-
-echo "Building Pari libary..."
-
-if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
+if [ $(uname) = "Darwin" ] ; then
+#macOS -- build separately for 32 and 64 bits then use lipo
     export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
     ./Configure --prefix=../pari32 --libdir=../pari32/lib --with-gmp=${GMPPREFIX}32
     cd Odarwin-i386
@@ -108,9 +108,9 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     make install
     make install-lib-sta
     cd ..
-    echo current directory `pwd`
-    echo running mkdir ${PARIPREFIX} ${PARIPREFIX}/lib
-    mkdir ${PARIPREFIX} ${PARIPREFIX}/lib
+    if [ ! -d ${PARILIBDIR} ] ; then
+	mkdir -p ${PARILIBDIR}
+    fi
     lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ${PARIPREFIX}/lib/libpari.a
     cp -r ../pari64/include ${PARIPREFIX}
     cp -r ../pari64/bin ${PARIPREFIX}
@@ -125,39 +125,50 @@ if [ $(uname) = "Darwin" ] ; then # build for both 32 and 64 bits
     cd ../../build/pari_src
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+#Windows
     # This allows using C99 format specifications in printf.
     if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT -DUNIVERSAL_CRT'
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi
-    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp
+    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
 
-    make install-lib-sta RUNPTH=
+    # Pari's Configure script screws up the paths if you specify
+    # an absolute prefix within the msys64 environment.
+    # At least the pattern is easy to recognize.
+    cd Omingw-*
+    sed -i -e 's/C:.*C:/C:/g' Makefile
+    sed -i -e 's/C:.*C:/C:/g' pari.cfg
+    sed -i -e 's/C:.*C:/C:/g' pari.nsi
+    sed -i -e 's/C:.*C:/C:/g' paricfg.h
+    cd ..
+    make install-lib-sta
     
     # We cannot build the dll for Pythons > 3.4, because mingw can't
-    # handle the Universal CRT.  So we also cannot build gp.
+    # handle the Universal CRT.  So we also cannot build gp. But we
+    # need gphelp.  So do a partial install.
     cd Omingw-*
     make install-include
     make install-cfg
     make install-doc
     cd ..
-    # Remove the .o files, since Pari always builds in the same directory 
+
+    # Pari's Configure will also screw up the path in the gphelp script.
+    sed -i -e 's/C:.*C:/C:/g' ${PARIPREFIX}/bin/gphelp
+
+    # Remove the .o files, since Pari always builds in the same directory.
     make clean
     
-else # linux, presumably
-    ./Configure --prefix=${PARIPREFIX} --libdir=${LIBDIR} --with-gmp=${GMPPREFIX}
+else
+# linux
+    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
     make install
     make install-lib-sta
 fi
 
+# We need this "private" header file.
 cp src/language/anal.h $PARIPREFIX/include/pari
 
-# Fix non-prototype function declarations
+# Fix some non-prototype function declarations (until Pari 2.9.2 is released).
 sed -i -e s/\(\)\;/\(void\)\;/ $PARIPREFIX/include/pari/paripriv.h
-
-# Fix bad paths
-sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/bin/gphelp
-sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/include/pari/paricfg.h
-sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/lib/pari/pari.cfg
-sed -i -e 's/\/build\/pari_src\/\.\.\/\.\.//g' $PARIPREFIX/share/pari/doc/paricfg.tex
