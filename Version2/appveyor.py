@@ -75,16 +75,18 @@ class AppveyorREST(object):
         Start a new build
         """
         url = 'https://ci.appveyor.com/api/builds'
-        headers = {'Authorization': 'Bearer {0.api_token}'.format(self)}
-        payload = {
-            accountName: self.username,
-            projectSlug: self.project,
-            branch: 'master',
-            environmentVariables: {}
+        headers = {'Authorization': 'Bearer {0.api_token}'.format(self),
+                   'Content-type': 'application/json'}
+        data = {
+            'accountName': self.username,
+            'projectSlug': self.project,
+            'branch': 'default',
+            'environmentVariables': {}
         }
-        response = requests.post(url, headers=headers, payload=payload)
+        response = requests.post(url, data=json.dumps(data), headers=headers)
+        response.raise_for_status()
         info = self.json_decoder.decode(response.content.decode('utf-8'))
-        print('Started build #{build_id}.'.format(build_id=info['buildId']))
+        print('Started build#{build_id}.'.format(build_id=info['buildId']))
 
 def main():
     if len(sys.argv) == 1 or set(['help', '-help', '--help', '-h']).intersection(sys.argv):
