@@ -51,16 +51,14 @@ if [ "$2" != "nogmp" ] ; then
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
 	# Windows -- with no CFLAGS the ABI is not needed
-	    if [ "$2" = "gmp32u" ] ; then
-		export ABI=32
-	    fi
-	    if [ "$2" = "gmp64u" ] ; then
-		export ABI=64
+	    if [ "$2" = "gmp32u" ] || [ "$2" = "gmp64u" ] ; then
 		export CFLAGS='-DUNIVERSAL_CRT'
 	    fi
 	    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+		export ABI=32
 		BUILD=i686-none-none
 	    else
+		export ABI=64
 		BUILD=x86_64-none-none
 	    fi
 	else
