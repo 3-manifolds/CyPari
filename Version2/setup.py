@@ -16,7 +16,7 @@ from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
-debug = True
+debug = False
 
 if sys.platform == 'win32':
     compiler_set = False
