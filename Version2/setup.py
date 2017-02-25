@@ -16,7 +16,6 @@ from distutils.command.sdist import sdist
 from distutils.util import get_platform
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
-debug = False
 
 if sys.platform == 'win32':
     compiler_set = False
@@ -299,9 +298,9 @@ if ext_compiler == 'mingw32':
 elif ext_compiler == 'msvc':
     # Ignore the assembly language inlines when building the extension.
     compile_args += ['/DDISABLE_INLINE']
-    if debug:
+    if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
-        link_args += ['/DEBUG:FULL']
+        link_args += ['/DEBUG']
     # Add the mingw crt objects needed by libpari.
     if cpu_width == '64bit':
         link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a')]
