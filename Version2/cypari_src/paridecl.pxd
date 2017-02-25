@@ -88,7 +88,7 @@ cdef extern from "parisage.h":
     int     (*cb_pari_handle_exception)(long) except 0
     # Cython gets confused by this on Windows 64 and we don't
     # need to do it here.
-    # void    (*cb_pari_err_recover)(long)
+    void    (*cb_pari_err_recover)(long)
 
     # kernel/gmp/int.h
 
