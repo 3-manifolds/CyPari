@@ -565,20 +565,36 @@ static void _sig_off_warning(const char* file, int line)
     print_backtrace();
 }
 
+LONG WINAPI
+SIGSEGV_generator(struct _EXCEPTION_POINTERS *ExceptionInfo)
+{
+  if (ExceptionInfo->ExceptionRecord->ExceptionCode ==
+      EXCEPTION_ACCESS_VIOLATION) {
+    raise(SIGSEGV);
+    printf("raising SIGSEGV\n");
+    return EXCEPTION_CONTINUE_EXECUTION;
+  } else{
+    printf("skipped exception\n");
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+}
+
 static void setup_cysignals_handlers(void)
 {
-    /* Reset the cysigs structure */
+  static PVOID exc_handler = NULL;
+  /* Reset the cysigs structure */
   DEBUG("Installing signal handlers.\n")
-    memset(&cysigs, 0, sizeof(cysigs));
-    if (signal(SIGINT, &cysigs_interrupt_handler) == SIG_ERR ||
-        signal(SIGFPE, cysigs_signal_handler) == SIG_ERR     ||
-	signal(SIGILL, cysigs_signal_handler) == SIG_ERR     ||
-	signal(SIGABRT, cysigs_signal_handler) == SIG_ERR    ||
-	signal(SIGSEGV, cysigs_signal_handler) == SIG_ERR    )
-      {
-	perror("signal");
-	exit(1);
-      }
+  memset(&cysigs, 0, sizeof(cysigs));
+  if (signal(SIGINT, &cysigs_interrupt_handler) == SIG_ERR ||
+      signal(SIGFPE, cysigs_signal_handler) == SIG_ERR     ||
+      signal(SIGILL, cysigs_signal_handler) == SIG_ERR     ||
+      signal(SIGABRT, cysigs_signal_handler) == SIG_ERR    ||
+      signal(SIGSEGV, cysigs_signal_handler) == SIG_ERR    )
+    {
+      perror("signal");
+      exit(1);
+    }
+   exc_handler = AddVectoredExceptionHandler(1, SIGSEGV_generator);
 }
 
 static void print_sep(void)
