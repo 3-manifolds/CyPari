@@ -571,10 +571,8 @@ SIGSEGV_generator(struct _EXCEPTION_POINTERS *ExceptionInfo)
   if (ExceptionInfo->ExceptionRecord->ExceptionCode ==
       EXCEPTION_ACCESS_VIOLATION) {
     raise(SIGSEGV);
-    printf("raising SIGSEGV\n");
     return EXCEPTION_CONTINUE_EXECUTION;
   } else{
-    printf("skipped exception\n");
     return EXCEPTION_CONTINUE_SEARCH;
   }
 }
