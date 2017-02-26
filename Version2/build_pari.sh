@@ -6,6 +6,14 @@
 
 set -e
 
+if [[ $(pwd) =~ " " ]]; then
+    echo "Fatal Error: Sorry, the path:"
+    echo "             $(pwd)"
+    echo "             has a space in it, preventing GMP from building"
+    echo "             because of a limitation of libtool."
+    exit 1
+fi
+
 if [ "$#" -eq 2 ] ; then
     PARIPREFIX=$(pwd)/libcache/$1
     PARILIBDIR=$(pwd)/libcache/$1/lib
