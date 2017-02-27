@@ -1,10 +1,6 @@
 import os, sys, json, requests
 from future.builtins import input
-
-if sys.version_info.major < 3:
-    from ConfigParser import ConfigParser
-else:
-    from configparser import ConfigParser
+from configparser import ConfigParser
 
 class AppveyorREST(object):
     """
