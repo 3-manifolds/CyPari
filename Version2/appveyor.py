@@ -1,4 +1,5 @@
 import os, sys, json, requests
+from future.builtins import input
 
 if sys.version_info.major < 3:
     from ConfigParser import ConfigParser
@@ -99,9 +100,9 @@ def main():
     else:
         print('appveyor.cfg not found - creating ...')
         config.add_section('appveyor')
-        config.set('appveyor', 'project', raw_input('Project name: '))
-        config.set('appveyor', 'username', raw_input('Username: '))
-        config.set('appveyor', 'token', raw_input('Api token: '))
+        config.set('appveyor', 'project', input('Project name: '))
+        config.set('appveyor', 'username', input('Username: '))
+        config.set('appveyor', 'token', input('Api token: '))
         with open('appveyor.cfg', 'wb') as output:
             config.write(output)
             
