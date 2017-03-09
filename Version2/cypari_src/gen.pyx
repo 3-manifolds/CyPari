@@ -1311,11 +1311,10 @@ cdef class gen:
                 v[i] = self[j]
             return v
 
-        ## there are no "out of bounds" problems
-        ## for a polynomial or power series, so these go before
-        ## bounds testing
         if pari_type == t_POL:
-            return self.polcoeff(n)
+            if 0 <= n <= self.poldegree():
+                return self.polcoeff(n)
+            raise IndexError("index out of range")
 
         elif pari_type == t_SER:
             bound = valp(self.g) + lg(self.g) - 2
