@@ -31,13 +31,13 @@ IF SAGE == False:
     cpdef long prec_words_to_bits(long prec_in_words)
     cpdef long default_bitprec(long bitprec=*)
 
-    cdef class PariInstance_auto:
+    cdef class Pari_auto:
         pass
-    cdef class PariInstance_base(PariInstance_auto):
+    cdef class Pari_base(Pari_auto):
         pass
     
     @cython.final
-    cdef class PariInstance(PariInstance_base):
+    cdef class Pari(Pari_base):
         cdef long _real_precision
         cdef readonly Gen PARI_ZERO, PARI_ONE, PARI_TWO
         cpdef Gen zero(self)
@@ -52,7 +52,7 @@ IF SAGE == False:
         cpdef _real_coerced_to_bits_prec(self, double x, long bits)
         cdef _UI_callback
     
-    cdef PariInstance pari_instance
+    cdef Pari pari_instance
 
     # stack.pyx
     cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address)

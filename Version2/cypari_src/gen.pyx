@@ -1,7 +1,10 @@
+# Use sys.getdefaultencoding() to convert Unicode strings to <char*>
+#
+# cython: c_string_encoding=default
 """
 Sage class for PARI's GEN type
 
-See the ``PariInstance`` class for documentation and examples.
+See the ``Pari`` class for documentation and examples.
 
 AUTHORS:
 
@@ -20,7 +23,7 @@ AUTHORS:
 - Jeroen Demeyer (2011-11-12): rewrite various conversion routines
   (:trac:`11611`, :trac:`11854`, :trac:`11952`)
 
-- Peter Bruin (2013-11-17): move PariInstance to a separate file
+- Peter Bruin (2013-11-17): move Pari to a separate file
   (:trac:`15185`)
 
 - Jeroen Demeyer (2014-02-09): upgrade to PARI 2.7 (:trac:`15767`)
@@ -33,6 +36,9 @@ AUTHORS:
   ``pari.desc`` (:trac:`17631` and :trac:`17860`)
 
 - Kiran Kedlaya (2016-03-23): implement infinity type
+
+- Luca De Feo (2016-09-06): Separate Sage-specific components from
+  generic C-interface in ``Pari`` (:trac:`20241`)
 
 - Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
   CyPari module.
@@ -63,11 +69,12 @@ PARI stack size set to 200000 bytes, maximum size set to ...
 
 #*****************************************************************************
 #       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
-#                     ???? Justin Walker
-#                     ???? Gonzalo Tornaria
-#                     2010 Robert Bradshaw <robertwb@math.washington.edu>
-#                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
-#                     2016 Marc Culler and Nathan Dunfield
+#       Copyright (C) ???? Justin Walker
+#       Copyright (C) ???? Gonzalo Tornaria
+#       Copyright (C) 2010 Robert Bradshaw <robertwb@math.washington.edu>
+#       Copyright (C) 2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#       Copyright (C) 2016 Luca De Feo <luca.defeo@polytechnique.edu>
+#       Copyright (C) 2016 Marc Culler and Nathan Dunfield
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -131,9 +138,9 @@ IF SAGE:
 #    from sage.rings.integer cimport Integer
 #    from sage.rings.rational cimport Rational
 #    from sage.rings.infinity import Infinity
-#    from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
+#    from pari_instance cimport (Pari, pari_instance, prec_bits_to_words,
 #                                prec_words_to_bits, default_bitprec)
-#    cdef PariInstance P = pari_instance
+#    cdef Pari P = pari_instance
 ELSE:
     include "memory.pxi"
     include "signals.pyx"
@@ -247,7 +254,7 @@ cdef class Gen:
 
         EXAMPLES:
 
-        A PARI vector becomes a Sage list::
+        A PARI vector becomes a Python list::
 
             sage: L = pari("vector(10,i,i^2)").list()
             sage: L
