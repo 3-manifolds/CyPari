@@ -180,7 +180,7 @@ cdef int _pari_err_handle(GEN E) except 0:
         if s is not NULL:
             pari_error_string = s.decode('ascii') + ": " + pari_error_string
 
-        raise PariError(errnum, pari_error_string, pari_instance.new_gen_noclear(E))
+        raise PariError(errnum, pari_error_string, new_gen_noclear(E))
     finally:
         sig_unblock()
 

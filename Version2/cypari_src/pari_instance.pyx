@@ -563,7 +563,7 @@ IF SAGE:
                True
            """
            sig_on()
-           return self.new_gen(self._new_GEN_from_mpz_t(value))
+           return new_gen(self._new_GEN_from_mpz_t(value))
 
        cdef inline GEN _new_GEN_from_mpz_t(self, mpz_t value):
            r"""
@@ -621,7 +621,7 @@ IF SAGE:
                True
            """
            sig_on()
-           return self.new_gen(self._new_GEN_from_mpq_t(value))
+           return new_gen(self._new_GEN_from_mpq_t(value))
 
        cdef inline GEN _new_GEN_from_mpq_t(self, mpq_t value):
            r"""
@@ -646,7 +646,7 @@ IF SAGE:
            set_gel(z, 2, self._new_GEN_from_mpz_t(prime))
            set_gel(z, 3, self._new_GEN_from_mpz_t(p_pow))
            set_gel(z, 4, self._new_GEN_from_mpz_t(unit))
-           return self.new_gen(z)
+           return new_gen(z)
 
        cdef GEN _new_GEN_from_fmpz_mat_t(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc):
            r"""
@@ -698,7 +698,7 @@ IF SAGE:
                g = self._new_GEN_from_fmpz_mat_t_rotate90(B, nr, nc)
            else:
                g = self._new_GEN_from_fmpz_mat_t(B, nr, nc)
-           return self.new_gen(g)
+           return new_gen(g)
 
        cdef GEN _new_GEN_from_mpq_t_matrix(self, mpq_t** B, Py_ssize_t nr, Py_ssize_t nc):
            cdef GEN x
@@ -720,7 +720,7 @@ IF SAGE:
            """
            sig_on()
            cdef GEN g = self._new_GEN_from_mpq_t_matrix(B, nr, nc)
-           return self.new_gen(g)
+           return new_gen(g)
 
        cdef _coerce_c_impl(self, x):
            """
@@ -884,9 +884,9 @@ cdef class PariInstance(PariInstance_base):
 
         # Initialize some constants
         sig_on()
-        self.PARI_ZERO = self.new_gen_noclear(gen_0)
-        self.PARI_ONE = self.new_gen_noclear(gen_1)
-        self.PARI_TWO = self.new_gen_noclear(gen_2)
+        self.PARI_ZERO = new_gen_noclear(gen_0)
+        self.PARI_ONE = new_gen_noclear(gen_1)
+        self.PARI_TWO = new_gen_noclear(gen_2)
         sig_off()
 
     @property
@@ -1058,46 +1058,46 @@ cdef class PariInstance(PariInstance_base):
         """
         return default_bitprec(n)
 
-    cdef inline void clear_stack(self):
-        """
-        Call ``sig_off()``. If we are leaving the outermost
-        ``sig_on() ... sig_off()`` block, then clear the PARI stack.
-        """
-        global avma
-        if sig_on_count <= 1:
-            avma = pari_mainstack.top
-        sig_off()
+    # cdef inline void clear_stack(self):
+    #     """
+    #     Call ``sig_off()``. If we are leaving the outermost
+    #     ``sig_on() ... sig_off()`` block, then clear the PARI stack.
+    #     """
+    #     global avma
+    #     if sig_on_count <= 1:
+    #         avma = pari_mainstack.top
+    #     sig_off()
 
-    cdef inline Gen new_gen(self, GEN x):
-        """
-        Create a new Gen wrapping `x`, then call ``clear_stack()``.
-        Except if `x` is ``gnil``, then we return ``None`` instead.
-        """
-        cdef Gen g
-        if x is gnil:
-            g = None
-        else:
-            g = self.new_gen_noclear(x)
-        self.clear_stack()
-        return g
+    # cdef inline Gen new_gen(self, GEN x):
+    #     """
+    #     Create a new Gen wrapping `x`, then call ``clear_stack()``.
+    #     Except if `x` is ``gnil``, then we return ``None`` instead.
+    #     """
+    #     cdef Gen g
+    #     if x is gnil:
+    #         g = None
+    #     else:
+    #         g = new_gen_noclear(x)
+    #     self.clear_stack()
+    #     return g
 
-    cdef inline Gen new_gen_noclear(self, GEN x):
-        """
-        Create a new Gen, but don't free any memory on the stack and don't
-        call sig_off().
-        """
-        cdef pari_sp address
-        cdef Gen y = Gen.__new__(Gen)
-        y.g = self.deepcopy_to_python_heap(x, &address)
-        y.b = address
-        IF SAGE:
-           y._parent = self
-        # y.refers_to (a dict which is None now) is initialised as needed
-        return y
+    # cdef inline Gen new_gen_noclear(self, GEN x):
+    #     """
+    #     Create a new Gen, but don't free any memory on the stack and don't
+    #     call sig_off().
+    #     """
+    #     cdef pari_sp address
+    #     cdef Gen y = Gen.__new__(Gen)
+    #     y.g = self.deepcopy_to_python_heap(x, &address)
+    #     y.b = address
+    #     IF SAGE:
+    #        y._parent = self
+    #     # y.refers_to (a dict which is None now) is initialised as needed
+    #     return y
 
     cdef Gen new_gen_from_int(self, int value):
         sig_on()
-        return self.new_gen(stoi(value))
+        return new_gen(stoi(value))
 
     cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum):
         """
@@ -1119,7 +1119,7 @@ cdef class PariInstance(PariInstance_base):
             ## polynomial is zero
             setsigne(z,0)
 
-        return self.new_gen(z)
+        return new_gen(z)
 
     def double_to_gen(self, x):
         cdef double dx
@@ -1167,9 +1167,9 @@ cdef class PariInstance(PariInstance_base):
 
         sig_on()
         if x == 0:
-            return self.new_gen(real_0_bit(-53))
+            return new_gen(real_0_bit(-53))
         else:
-            return self.new_gen(dbltor(x))
+            return new_gen(dbltor(x))
 
     cdef GEN double_to_GEN(self, double x):
         if x == 0:
@@ -1201,10 +1201,10 @@ cdef class PariInstance(PariInstance_base):
         cdef GEN g
         sig_on()
         if x == 0:
-            return self.new_gen(real_0_bit(-bits))
+            return new_gen(real_0_bit(-bits))
         else:
             g = dbltor(x)
-            return self.new_gen(gtofp(g, words))
+            return new_gen(gtofp(g, words))
 
     def complex(self, re, im):
         """
@@ -1213,14 +1213,14 @@ cdef class PariInstance(PariInstance_base):
         cdef Gen t0 = self(re)
         cdef Gen t1 = self(im)
         sig_on()
-        return self.new_gen(mkcomplex(t0.g, t1.g))
+        return new_gen(mkcomplex(t0.g, t1.g))
 
-    cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address):
-        cdef size_t s = <size_t> gsizebyte(x)
-        cdef pari_sp tmp_bot = <pari_sp> sig_malloc(s)
-        cdef pari_sp tmp_top = tmp_bot + s
-        address[0] = tmp_bot
-        return gcopy_avma(x, &tmp_top)
+    # cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address):
+    #     cdef size_t s = <size_t> gsizebyte(x)
+    #     cdef pari_sp tmp_bot = <pari_sp> sig_malloc(s)
+    #     cdef pari_sp tmp_top = tmp_bot + s
+    #     address[0] = tmp_bot
+    #     return gcopy_avma(x, &tmp_top)
 
     cdef Gen new_ref(self, GEN g, Gen parent):
         """
@@ -1715,14 +1715,14 @@ cdef class PariInstance(PariInstance_base):
         if end is None:
             t0 = objtogen(n)
             sig_on()
-            return self.new_gen(primes0(t0.g))
+            return new_gen(primes0(t0.g))
         elif n is None:
             t0 = self.PARI_TWO  # First prime
         else:
             t0 = objtogen(n)
         t1 = objtogen(end)
         sig_on()
-        return self.new_gen(primes_interval(t0.g, t1.g))
+        return new_gen(primes_interval(t0.g, t1.g))
 
     def primes_up_to_n(self, n):
         deprecation(20216, "pari.primes_up_to_n(n) is deprecated, use pari.primes(end=n) instead")
@@ -1757,7 +1757,7 @@ cdef class PariInstance(PariInstance_base):
         1
         """
         sig_on()
-        return self.new_gen(polchebyshev1(n, self.get_var(v)))
+        return new_gen(polchebyshev1(n, self.get_var(v)))
 
     # Deprecated by upstream PARI: do not remove this deprecated alias
     # as long as it exists in PARI.
@@ -1788,7 +1788,7 @@ cdef class PariInstance(PariInstance_base):
         15511210043330985984000000
         """
         sig_on()
-        return self.new_gen(mpfact(n))
+        return new_gen(mpfact(n))
 
     def polsubcyclo(self, long n, long d, v=None):
         """
@@ -1819,7 +1819,7 @@ cdef class PariInstance(PariInstance_base):
         """
         cdef Gen plist
         sig_on()
-        plist = self.new_gen(polsubcyclo(n, d, self.get_var(v)))
+        plist = new_gen(polsubcyclo(n, d, self.get_var(v)))
         if typ(plist.g) != t_VEC:
             return pari.vector(1, [plist])
         else:
@@ -1909,7 +1909,7 @@ cdef class PariInstance(PariInstance_base):
     cdef Gen _empty_vector(self, long n):
         cdef Gen v
         sig_on()
-        v = self.new_gen(zerovec(n))
+        v = new_gen(zerovec(n))
         return v
 
     def matrix(self, long m, long n, entries=None):
@@ -1922,7 +1922,7 @@ cdef class PariInstance(PariInstance_base):
         cdef Gen x
 
         sig_on()
-        A = self.new_gen(zeromatcopy(m,n))
+        A = new_gen(zeromatcopy(m,n))
         if entries is not None:
             if len(entries) != m*n:
                 raise IndexError("len of entries (=%s) must be %s*%s=%s"%(len(entries),m,n,m*n))
@@ -1957,7 +1957,7 @@ cdef class PariInstance(PariInstance_base):
         """
         cdef Gen t0 = objtogen(P)
         sig_on()
-        return self.new_gen(genus2red(t0.g, NULL))
+        return new_gen(genus2red(t0.g, NULL))
 
     def List(self, x=None):
         """
@@ -1995,10 +1995,10 @@ cdef class PariInstance(PariInstance_base):
         """
         if x is None:
             sig_on()
-            return self.new_gen(listcreate())
+            return new_gen(listcreate())
         cdef Gen t0 = objtogen(x)
         sig_on()
-        return self.new_gen(gtolist(t0.g))
+        return new_gen(gtolist(t0.g))
 
 IF SAGE:
     cdef inline void INT_to_mpz(mpz_ptr value, GEN g):
