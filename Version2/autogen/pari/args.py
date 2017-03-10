@@ -169,16 +169,16 @@ class PariArgumentClass(PariArgument):
         return s
 
 
-class PariInstanceArgument(PariArgumentObject):
+class PariArgument(PariArgumentObject):
     """
-    ``self`` argument for ``PariInstance`` object.
+    ``self`` argument for ``Pari`` object.
     """
     def __init__(self):
-        PariArgument.__init__(self, iter(["self"]), None, 0)
+        PariArgumentObject.__init__(self, iter(["self"]), None, 0)
     def convert_code(self):
-        return "        cdef PariInstance pari_instance = <PariInstance>self\n"
+        return "        cdef Pari pari_instance = <Pari>self\n"
     def _typerepr(self):
-        return "PariInstance"
+        return "Pari"
 
 
 class PariArgumentGEN(PariArgumentObject):

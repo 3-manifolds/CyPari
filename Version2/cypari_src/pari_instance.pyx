@@ -488,8 +488,8 @@ def prec_words_to_dec(long prec_in_words):
 
 
 # The unique running Pari instance.
-cdef PariInstance pari_instance, P
-pari_instance = PariInstance()
+cdef Pari pari_instance, P
+pari_instance = Pari()
 P = pari_instance   # shorthand notation
 
 # Also a copy of PARI accessible from external pure python code.
@@ -519,7 +519,7 @@ cdef void sage_flush():
 include 'auto_instance.pxi'
 
 IF SAGE:
-   cdef class PariInstance_base(PariInstance_auto):
+   cdef class Pari_base(Pari_auto):
        """
        Base class which defines methods used only in Sage.
        """
@@ -741,7 +741,7 @@ ELSE:
     cdef void swallow_ch(char ch):
         return
 
-    cdef class PariInstance_base(PariInstance_auto):
+    cdef class Pari_base(Pari_auto):
         """
         Base class for CyPari.
         """
@@ -757,7 +757,7 @@ ELSE:
             pariErr.puts = sage_puts
 
 @cython.final
-cdef class PariInstance(PariInstance_base):
+cdef class Pari(Pari_base):
     
     def __init__(self, long size=1000000, unsigned long maxprime=500000):
         """
@@ -1730,10 +1730,10 @@ cdef class PariInstance(PariInstance_base):
 
     prime_list = deprecated_function_alias(20216, primes)
 
-    nth_prime = deprecated_function_alias(20216, PariInstance_auto.prime)
+    nth_prime = deprecated_function_alias(20216, Pari_auto.prime)
 
-    euler = PariInstance_auto.Euler
-    pi = PariInstance_auto.Pi
+    euler = Pari_auto.Euler
+    pi = Pari_auto.Pi
 
     def polchebyshev(self, long n, v=None):
         """
@@ -1825,7 +1825,7 @@ cdef class PariInstance(PariInstance_base):
         else:
             return plist
 
-    polcyclo_eval = deprecated_function_alias(20217, PariInstance_auto.polcyclo)
+    polcyclo_eval = deprecated_function_alias(20217, Pari_auto.polcyclo)
 
     def setrand(self, seed):
         """
