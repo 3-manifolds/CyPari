@@ -42,14 +42,10 @@ IF SAGE == False:
         cdef readonly Gen PARI_ZERO, PARI_ONE, PARI_TWO
         cpdef Gen zero(self)
         cpdef Gen one(self)
-        cdef inline Gen new_gen(self, GEN x)
-        cdef inline Gen new_gen_noclear(self, GEN x)
         cdef Gen new_gen_from_int(self, int value)
         cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)
-        cdef inline void clear_stack(self)
         cdef Gen double_to_gen_c(self, double)
         cdef GEN double_to_GEN(self, double)
-        cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address)
         cdef Gen new_ref(self, GEN g, Gen parent)
         cdef Gen _empty_vector(self, long n)
         cdef long get_var(self, v) except -2
@@ -57,6 +53,12 @@ IF SAGE == False:
         cdef _UI_callback
     
     cdef PariInstance pari_instance
+
+    # stack.pyx
+    cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address)
+    cdef inline Gen new_gen(GEN x)
+    cdef inline Gen new_gen_noclear(GEN x)
+    cdef inline void clear_stack()
 
     cdef void _pari_init_error_handling()
     cdef int _pari_err_handle(GEN E) except 0

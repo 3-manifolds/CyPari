@@ -130,7 +130,7 @@ class PariFunctionGenerator(object):
                     precision = prec_bits_to_words(precision)
                     sig_on()
                     cdef GEN _ret = bnfinit0(_P, flag, _tech, precision)
-                    return pari_instance.new_gen(_ret)
+                    return new_gen(_ret)
             <BLANKLINE>
             sage: G.handle_pari_function("ellmodulareqn",
             ....:     cname="ellmodulareqn", prototype="LDnDn",
@@ -148,7 +148,7 @@ class PariFunctionGenerator(object):
                         _y = pari_instance.get_var(y)
                     sig_on()
                     cdef GEN _ret = ellmodulareqn(N, _x, _y)
-                    return pari_instance.new_gen(_ret)
+                    return new_gen(_ret)
             <BLANKLINE>
             sage: G.handle_pari_function("setrand",
             ....:     cname="setrand", prototype="vG",
@@ -166,7 +166,7 @@ class PariFunctionGenerator(object):
                     cdef GEN _n = n.g
                     sig_on()
                     setrand(_n)
-                    pari_instance.clear_stack()
+                    clear_stack()
             <BLANKLINE>
         """
         try:

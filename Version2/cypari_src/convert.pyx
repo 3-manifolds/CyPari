@@ -83,14 +83,14 @@ cpdef integer_to_gen(x):
     IF PYTHON_MAJOR < 3:
         if isinstance(x, int):
             sig_on()
-            return P.new_gen(stoi(PyInt_AS_LONG(x)))
+            return new_gen(stoi(PyInt_AS_LONG(x)))
         elif isinstance(x, long):
             sig_on()
-            return P.new_gen(PyLong_AsGEN(x))
+            return new_gen(PyLong_AsGEN(x))
     ELSE:
         if isinstance(x, int):
             sig_on()
-            return P.new_gen(PyLong_AsGEN(x))
+            return new_gen(PyLong_AsGEN(x))
     
     raise TypeError("integer_to_gen() needs an int or long argument, not {}".format(type(x).__name__))
 
