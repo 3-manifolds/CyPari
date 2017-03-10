@@ -255,7 +255,7 @@ IF SAGE:
 #    from sage.libs.gmp.all cimport *
 #    from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
 #    from sage.libs.flint.fmpz_mat cimport *
-#    from sage.libs.pari.gen cimport gen, objtogen
+#    from sage.libs.pari.gen cimport Gen, objtogen
 #    from sage.libs.pari.handle_error cimport _pari_init_error_handling
 #    from sage.misc.superseded import deprecation, deprecated_function_alias
 #    from sage.env import CYGWIN_VERSION
@@ -541,9 +541,9 @@ IF SAGE:
            """
            return True
 
-       cdef gen new_gen_from_mpz_t(self, mpz_t value):
+       cdef Gen new_gen_from_mpz_t(self, mpz_t value):
            """
-           Create a new gen from a given MPIR-integer ``value``.
+           Create a new Gen from a given MPIR-integer ``value``.
 
            EXAMPLES::
 
@@ -593,9 +593,9 @@ IF SAGE:
            else:
                return stoi(value[0])
 
-       cdef gen new_gen_from_mpq_t(self, mpq_t value):
+       cdef Gen new_gen_from_mpq_t(self, mpq_t value):
            """
-           Create a new gen from a given MPIR-rational ``value``.
+           Create a new Gen from a given MPIR-rational ``value``.
 
            EXAMPLES::
 
@@ -637,7 +637,7 @@ IF SAGE:
            cdef GEN denom = self._new_GEN_from_mpz_t(mpq_denref(value))
            return mkfrac(num, denom)
 
-       cdef gen new_gen_from_padic(self, long ordp, long relprec,
+       cdef Gen new_gen_from_padic(self, long ordp, long relprec,
                                    mpz_t prime, mpz_t p_pow, mpz_t unit):
            cdef GEN z
            sig_on()
@@ -685,7 +685,7 @@ IF SAGE:
                    set_gcoeff(A, j+1, i+1, x)  # A[j+1, i+1] = x (using 1-based indexing)
            return A
 
-       cdef gen integer_matrix(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc, bint permute_for_hnf):
+       cdef Gen integer_matrix(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc, bint permute_for_hnf):
            """
            EXAMPLES::
 
@@ -711,7 +711,7 @@ IF SAGE:
                    set_gcoeff(A, i+1, j+1, x)  # A[i+1, j+1] = x (using 1-based indexing)
            return A
 
-       cdef gen rational_matrix(self, mpq_t** B, Py_ssize_t nr, Py_ssize_t nc):
+       cdef Gen rational_matrix(self, mpq_t** B, Py_ssize_t nr, Py_ssize_t nc):
            """
            EXAMPLES::
 
@@ -1024,7 +1024,7 @@ cdef class PariInstance(PariInstance_base):
         
     def set_default_bit_precision(self, int n):
         """
-        Set the default bit precision for real and complex gens.
+        Set the default bit precision for real and complex Gens.
 
         >>> pari.get_default_bit_precision()
         64
@@ -1068,12 +1068,12 @@ cdef class PariInstance(PariInstance_base):
             avma = pari_mainstack.top
         sig_off()
 
-    cdef inline gen new_gen(self, GEN x):
+    cdef inline Gen new_gen(self, GEN x):
         """
-        Create a new gen wrapping `x`, then call ``clear_stack()``.
+        Create a new Gen wrapping `x`, then call ``clear_stack()``.
         Except if `x` is ``gnil``, then we return ``None`` instead.
         """
-        cdef gen g
+        cdef Gen g
         if x is gnil:
             g = None
         else:
@@ -1081,13 +1081,13 @@ cdef class PariInstance(PariInstance_base):
         self.clear_stack()
         return g
 
-    cdef inline gen new_gen_noclear(self, GEN x):
+    cdef inline Gen new_gen_noclear(self, GEN x):
         """
-        Create a new gen, but don't free any memory on the stack and don't
+        Create a new Gen, but don't free any memory on the stack and don't
         call sig_off().
         """
         cdef pari_sp address
-        cdef gen y = gen.__new__(gen)
+        cdef Gen y = Gen.__new__(Gen)
         y.g = self.deepcopy_to_python_heap(x, &address)
         y.b = address
         IF SAGE:
@@ -1095,11 +1095,11 @@ cdef class PariInstance(PariInstance_base):
         # y.refers_to (a dict which is None now) is initialised as needed
         return y
 
-    cdef gen new_gen_from_int(self, int value):
+    cdef Gen new_gen_from_int(self, int value):
         sig_on()
         return self.new_gen(stoi(value))
 
-    cdef gen new_t_POL_from_int_star(self, int *vals, int length, long varnum):
+    cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum):
         """
         Note that degree + 1 = length, so that recognizing 0 is easier.
 
@@ -1126,7 +1126,7 @@ cdef class PariInstance(PariInstance_base):
         dx = float(x)
         return self.double_to_gen_c(dx)
 
-    cdef gen double_to_gen_c(self, double x):
+    cdef Gen double_to_gen_c(self, double x):
         """
         Create a new gen with the value of the double x, using Pari's
         dbltor.
@@ -1193,7 +1193,7 @@ cdef class PariInstance(PariInstance_base):
         >>> pari.set_real_precision(old_precision)
 	64
 
-        Here the pari gen uses two 64 bit words to provide at least
+        Here the pari Gen uses two 64 bit words to provide at least
         100 bits of precision.  This can be used, for example, to convert
         quad-double numbers to pari numbers.
         """
@@ -1210,8 +1210,8 @@ cdef class PariInstance(PariInstance_base):
         """
         Create a new complex number, initialized from re and im.
         """
-        cdef gen t0 = self(re)
-        cdef gen t1 = self(im)
+        cdef Gen t0 = self(re)
+        cdef Gen t1 = self(im)
         sig_on()
         return self.new_gen(mkcomplex(t0.g, t1.g))
 
@@ -1222,22 +1222,22 @@ cdef class PariInstance(PariInstance_base):
         address[0] = tmp_bot
         return gcopy_avma(x, &tmp_top)
 
-    cdef gen new_ref(self, GEN g, gen parent):
+    cdef Gen new_ref(self, GEN g, Gen parent):
         """
-        Create a new gen pointing to the given GEN, which is allocated as a
+        Create a new Gen pointing to the given GEN, which is allocated as a
         part of parent.g.
 
         .. note::
 
-           As a rule, there should never be more than one sage gen
+           As a rule, there should never be more than one sage Gen
            pointing to a given Pari GEN. So that means there is only
            one case where this function should be used: when a
-           complicated Pari GEN is allocated with a single gen
-           pointing to it, and one needs a gen pointing to one of its
+           complicated Pari GEN is allocated with a single Gen
+           pointing to it, and one needs a Gen pointing to one of its
            components.
 
-           For example, doing x = pari("[1,2]") allocates a gen pointing to
-           the list [1,2], but x[0] has no gen wrapping it, so new_ref
+           For example, doing x = pari("[1,2]") allocates a Gen pointing to
+           the list [1,2], but x[0] has no Gen wrapping it, so new_ref
            should be used there. Then parent would be x in this
            case. See __getitem__ for an example of usage.
 
@@ -1249,7 +1249,7 @@ cdef class PariInstance(PariInstance_base):
         >>> pari("[[1,2],3]")[0][1]
         2
         """
-        cdef gen p = gen.__new__(gen)
+        cdef Gen p = Gen.__new__(Gen)
         p.g = g
         p.b = 0
         IF SAGE:
@@ -1294,7 +1294,7 @@ cdef class PariInstance(PariInstance_base):
         """
         return objtogen(s)
 
-    cpdef gen zero(self):
+    cpdef Gen zero(self):
         """
         EXAMPLES::
 
@@ -1306,7 +1306,7 @@ cdef class PariInstance(PariInstance_base):
         """
         return self.PARI_ZERO
 
-    cpdef gen one(self):
+    cpdef Gen one(self):
         """
         EXAMPLES::
 
@@ -1321,7 +1321,7 @@ cdef class PariInstance(PariInstance_base):
     def new_with_bits_prec(self, s, unsigned long precision):
         r"""
         pari.new_with_bits_prec(self, s, precision) creates s as a PARI
-        gen with (at most) precision *bits* of precision.
+        Gen with (at most) precision *bits* of precision.
         """
         cdef unsigned long old_prec
         old_prec = <unsigned long>GP_DATA.fmt.sigd
@@ -1407,9 +1407,9 @@ cdef class PariInstance(PariInstance_base):
         if v is None:
             return -1
         cdef long varno
-        if isinstance(v, gen):
+        if isinstance(v, Gen):
             sig_on()
-            varno = <long>gvar((<gen>v).g)
+            varno = <long>gvar((<Gen>v).g)
             sig_off()
             if varno < 0:
                 return -1
@@ -1711,7 +1711,7 @@ cdef class PariInstance(PariInstance_base):
         >>> pari.primes(3,2)
         []
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         if end is None:
             t0 = objtogen(n)
             sig_on()
@@ -1765,7 +1765,7 @@ cdef class PariInstance(PariInstance_base):
 
     def factorial(self, long n):
         """
-        Return the factorial of the integer n as a PARI gen.
+        Return the factorial of the integer n as a PARI Gen.
 
         EXAMPLES::
 
@@ -1817,7 +1817,7 @@ cdef class PariInstance(PariInstance_base):
         >>> pari.polsubcyclo(8, 3)
         []
         """
-        cdef gen plist
+        cdef Gen plist
         sig_on()
         plist = self.new_gen(polsubcyclo(n, d, self.get_var(v)))
         if typ(plist.g) != t_VEC:
@@ -1867,7 +1867,7 @@ cdef class PariInstance(PariInstance_base):
         ...
         cypari_src.gen.PariError: incorrect type in setrand (t_POL)
         """
-        cdef gen t0 = self(seed)
+        cdef Gen t0 = self(seed)
         sig_on()
         setrand(t0.g)
         sig_off()
@@ -1897,7 +1897,7 @@ cdef class PariInstance(PariInstance_base):
         ...
         IndexError: length of entries (=3) must equal n (=2)
         """
-        cdef gen v = self._empty_vector(n)
+        cdef Gen v = self._empty_vector(n)
         if entries is not None:
             if len(entries) != n:
                 raise IndexError("length of entries (=%s) must equal n (=%s)"%\
@@ -1906,8 +1906,8 @@ cdef class PariInstance(PariInstance_base):
                 v[i] = x
         return v
 
-    cdef gen _empty_vector(self, long n):
-        cdef gen v
+    cdef Gen _empty_vector(self, long n):
+        cdef Gen v
         sig_on()
         v = self.new_gen(zerovec(n))
         return v
@@ -1918,8 +1918,8 @@ cdef class PariInstance(PariInstance_base):
         PARI matrix with given list of entries.
         """
         cdef long i, j, k
-        cdef gen A
-        cdef gen x
+        cdef Gen A
+        cdef Gen x
 
         sig_on()
         A = self.new_gen(zeromatcopy(m,n))
@@ -1955,7 +1955,7 @@ cdef class PariInstance(PariInstance_base):
         >>> pari.genus2red('[-5*x^5, x^3 - 2*x^2 - 2*x + 1]')
         [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
         """
-        cdef gen t0 = objtogen(P)
+        cdef Gen t0 = objtogen(P)
         sig_on()
         return self.new_gen(genus2red(t0.g, NULL))
 
@@ -1996,7 +1996,7 @@ cdef class PariInstance(PariInstance_base):
         if x is None:
             sig_on()
             return self.new_gen(listcreate())
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
         return self.new_gen(gtolist(t0.g))
 
