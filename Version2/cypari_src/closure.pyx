@@ -50,7 +50,7 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     Call ``py_func(*args)`` where ``py_func`` is a Python function
     and ``args`` is an array of ``GEN``s terminated by ``NULL``.
 
-    The arguments are converted from ``GEN`` to a Sage ``gen`` before
+    The arguments are converted from ``GEN`` to a Sage ``Gen`` before
     calling ``py_func``. The result is converted back to a PARI ``GEN``.
     """
     # How many arguments are there?
@@ -62,7 +62,7 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     cdef tuple t = PyTuple_New(n)
     cdef Py_ssize_t i
     for i in range(n):
-        a = pari_instance.new_gen_noclear(args[i])
+        a = new_gen_noclear(args[i])
         Py_INCREF(a)  # Need to increase refcount because the tuple steals it
         PyTuple_SET_ITEM(t, i, a)
 
@@ -118,7 +118,7 @@ cdef GEN call_python(GEN arg1, GEN arg2, GEN arg3, GEN arg4, GEN arg5, ulong py_
 cdef entree* ep_call_python = install(<void*>call_python, "call_python", "DGDGDGDGDGU")
 
 
-cpdef gen objtoclosure(f):
+cpdef Gen objtoclosure(f):
     """
     Convert a Python function (more generally, any callable) to a PARI
     ``t_CLOSURE``.
@@ -172,6 +172,6 @@ cpdef gen objtoclosure(f):
     # Convert f to a t_INT containing the address of f
     cdef GEN f_int = utoi(<ulong><PyObject*>f)
     # Create a t_CLOSURE which calls call_python() with py_func equal to f
-    cdef gen c = pari_instance.new_gen(snm_closure(ep_call_python, mkvec(f_int)))
+    cdef Gen c = new_gen(snm_closure(ep_call_python, mkvec(f_int)))
     c.refers_to = {0:f}  # c needs to keep a reference to f
     return c

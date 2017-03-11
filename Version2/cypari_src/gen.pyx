@@ -1,7 +1,10 @@
+# Use sys.getdefaultencoding() to convert Unicode strings to <char*>
+#
+# cython: c_string_encoding=default
 """
 Sage class for PARI's GEN type
 
-See the ``PariInstance`` class for documentation and examples.
+See the ``Pari`` class for documentation and examples.
 
 AUTHORS:
 
@@ -20,7 +23,7 @@ AUTHORS:
 - Jeroen Demeyer (2011-11-12): rewrite various conversion routines
   (:trac:`11611`, :trac:`11854`, :trac:`11952`)
 
-- Peter Bruin (2013-11-17): move PariInstance to a separate file
+- Peter Bruin (2013-11-17): move Pari to a separate file
   (:trac:`15185`)
 
 - Jeroen Demeyer (2014-02-09): upgrade to PARI 2.7 (:trac:`15767`)
@@ -33,6 +36,9 @@ AUTHORS:
   ``pari.desc`` (:trac:`17631` and :trac:`17860`)
 
 - Kiran Kedlaya (2016-03-23): implement infinity type
+
+- Luca De Feo (2016-09-06): Separate Sage-specific components from
+  generic C-interface in ``Pari`` (:trac:`20241`)
 
 - Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
   CyPari module.
@@ -63,11 +69,12 @@ PARI stack size set to 200000 bytes, maximum size set to ...
 
 #*****************************************************************************
 #       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
-#                     ???? Justin Walker
-#                     ???? Gonzalo Tornaria
-#                     2010 Robert Bradshaw <robertwb@math.washington.edu>
-#                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
-#                     2016 Marc Culler and Nathan Dunfield
+#       Copyright (C) ???? Justin Walker
+#       Copyright (C) ???? Gonzalo Tornaria
+#       Copyright (C) 2010 Robert Bradshaw <robertwb@math.washington.edu>
+#       Copyright (C) 2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#       Copyright (C) 2016 Luca De Feo <luca.defeo@polytechnique.edu>
+#       Copyright (C) 2016 Marc Culler and Nathan Dunfield
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -131,13 +138,14 @@ IF SAGE:
 #    from sage.rings.integer cimport Integer
 #    from sage.rings.rational cimport Rational
 #    from sage.rings.infinity import Infinity
-#    from pari_instance cimport (PariInstance, pari_instance, prec_bits_to_words,
+#    from pari_instance cimport (Pari, pari_instance, prec_bits_to_words,
 #                                prec_words_to_bits, default_bitprec)
-#    cdef PariInstance P = pari_instance
+#    cdef Pari P = pari_instance
 ELSE:
     include "memory.pxi"
     include "signals.pyx"
     init_cysignals()
+    include "stack.pyx"
     include "pari_instance.pyx"
     include "convert.pyx"
     include "handle_error.pyx"
@@ -146,7 +154,7 @@ ELSE:
 include 'auto_gen.pxi'
 
 @cython.final
-cdef class gen:
+cdef class Gen:
     """
     Cython extension class that models the PARI GEN type.
     """
@@ -158,7 +166,7 @@ cdef class gen:
 
     def __repr__(self):
         """
-        Display representation of a gen.
+        Display representation of a Gen.
 
         OUTPUT: a Python string
 
@@ -193,7 +201,7 @@ cdef class gen:
 
     def __str__(self):
         """
-        Convert this gen to a string.
+        Convert this Gen to a string.
 
         Except for PARI strings, we have ``str(x) == repr(x)``.
         For strings (type ``t_STR``), the returned string is not quoted.
@@ -242,18 +250,18 @@ cdef class gen:
 
     def list(self):
         """
-        Convert self to a list of PARI gens.
+        Convert self to a list of PARI Gens.
 
         EXAMPLES:
 
-        A PARI vector becomes a Sage list::
+        A PARI vector becomes a Python list::
 
             sage: L = pari("vector(10,i,i^2)").list()
             sage: L
             [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
             sage: isinstance(L, list)
             True
-            sage: isinstance(L[0], gen)
+            sage: isinstance(L[0], Gen)
             True
 
         >>> L = pari("vector(10,i,i^2)").list()
@@ -261,7 +269,7 @@ cdef class gen:
         [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
         >>> isinstance(L, list)
         True
-        >>> isinstance(L[0], gen)
+        >>> isinstance(L[0], Gen)
         True
 
         For polynomials, list() behaves as for ordinary Sage polynomials::
@@ -364,14 +372,14 @@ cdef class gen:
         >>> int(-2) + pari(3)
         1
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gadd(t0.g, t1.g))
+        return new_gen(gadd(t0.g, t1.g))
 
     def __sub__(left, right):
         """
@@ -397,50 +405,50 @@ cdef class gen:
         >>> int(-2) - pari(3)
         -5
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gsub(t0.g, t1.g))
+        return new_gen(gsub(t0.g, t1.g))
 
     def __mul__(left, right):
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gmul(t0.g, t1.g))
+        return new_gen(gmul(t0.g, t1.g))
 
     def __div__(left, right):
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gdiv(t0.g, t1.g))
+        return new_gen(gdiv(t0.g, t1.g))
 
     def __truediv__(left, right):
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gdiv(t0.g, t1.g))
+        return new_gen(gdiv(t0.g, t1.g))
 
-    def _add_one(gen self):
+    def _add_one(Gen self):
         """
         Return self + 1.
 
-        OUTPUT: pari gen
+        OUTPUT: pari Gen
 
         EXAMPLES::
 
@@ -459,7 +467,7 @@ cdef class gen:
         x^3 + 1
         """
         sig_on()
-        return P.new_gen(gaddsg(1, self.g))
+        return new_gen(gaddsg(1, self.g))
 
     def __mod__(left, right):
         """
@@ -485,14 +493,14 @@ cdef class gen:
         >>> int(-2) % pari(3)
         1
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return P.new_gen(gmod(t0.g, t1.g))
+        return new_gen(gmod(t0.g, t1.g))
 
     def __pow__(left, right, m):
         """
@@ -523,7 +531,7 @@ cdef class gen:
         >>> pari(2) ** int(-5)
         1/32
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
@@ -532,11 +540,11 @@ cdef class gen:
         if m is not None:
             t0 = t0.Mod(m)
         sig_on()
-        return P.new_gen(gpow(t0.g, t1.g, prec_bits_to_words(0)))
+        return new_gen(gpow(t0.g, t1.g, prec_bits_to_words(0)))
 
     def __neg__(self):
         sig_on()
-        return P.new_gen(gneg(self.g))
+        return new_gen(gneg(self.g))
 
     def __rshift__(self, long n):
         """
@@ -567,9 +575,9 @@ cdef class gen:
         >>> int(33) >> pari(2)
         8
         """
-        cdef gen t0 = objtogen(self)
+        cdef Gen t0 = objtogen(self)
         sig_on()
-        return P.new_gen(gshift(t0.g, -n))
+        return new_gen(gshift(t0.g, -n))
 
     def __lshift__(self, long n):
         """
@@ -599,15 +607,15 @@ cdef class gen:
         >>> int(33) << pari(2)
         132
         """
-        cdef gen t0 = objtogen(self)
+        cdef Gen t0 = objtogen(self)
         sig_on()
-        return P.new_gen(gshift(t0.g, n))
+        return new_gen(gshift(t0.g, n))
 
     def __invert__(self):
         sig_on()
-        return P.new_gen(ginv(self.g))
+        return new_gen(ginv(self.g))
 
-    def getattr(gen self, attr):
+    def getattr(Gen self, attr):
         """
         Return the PARI attribute with the given name.
 
@@ -646,7 +654,7 @@ cdef class gen:
         cdef bytes s = ("_." + attr).encode('ascii')
         cdef char *t = s
         sig_on()
-        return P.new_gen(closure_callgen1(strtofunction(t), self.g))
+        return new_gen(closure_callgen1(strtofunction(t), self.g))
 
     def mod(self):
         """
@@ -678,7 +686,7 @@ cdef class gen:
         # The hardcoded 1 below refers to the position in the internal
         # representation of a INTMOD or POLDMOD where the modulus is
         # stored.
-        return P.new_gen(gel(self.g, 1))
+        return new_gen(gel(self.g, 1))
 
     def nf_get_pol(self):
         """
@@ -750,7 +758,7 @@ cdef class gen:
         cypari_src.gen.PariError: incorrect type in pol (t_VEC)
         """
         sig_on()
-        return P.new_gen(member_pol(self.g))
+        return new_gen(member_pol(self.g))
 
     def nf_get_diff(self):
         """
@@ -772,7 +780,7 @@ cdef class gen:
         [12, 0, 0, 0; 0, 12, 8, 0; 0, 0, 4, 0; 0, 0, 0, 4]
         """
         sig_on()
-        return P.new_gen(member_diff(self.g))
+        return new_gen(member_diff(self.g))
 
     def nf_get_sign(self):
         """
@@ -835,7 +843,7 @@ cdef class gen:
         [1, x, x^3 - 4*x, x^2 - 2]
         """
         sig_on()
-        return P.new_gen(member_zk(self.g))
+        return new_gen(member_zk(self.g))
 
     def bnf_get_no(self):
         """
@@ -852,7 +860,7 @@ cdef class gen:
         8
         """
         sig_on()
-        return P.new_gen(bnf_get_no(self.g))
+        return new_gen(bnf_get_no(self.g))
 
     def bnf_get_cyc(self):
         """
@@ -872,7 +880,7 @@ cdef class gen:
         [4, 2]
         """
         sig_on()
-        return P.new_gen(bnf_get_cyc(self.g))
+        return new_gen(bnf_get_cyc(self.g))
 
     def bnf_get_gen(self):
         """
@@ -896,7 +904,7 @@ cdef class gen:
         Mat([[3, [-1, 1]~, 1, 1, [1, -65; 1, 1]], 1])
         """
         sig_on()
-        return P.new_gen(bnf_get_gen(self.g))
+        return new_gen(bnf_get_gen(self.g))
 
     def bnf_get_reg(self):
         """
@@ -915,11 +923,11 @@ cdef class gen:
         2.66089858019037
         """
         sig_on()
-        return P.new_gen(bnf_get_reg(self.g))
+        return new_gen(bnf_get_reg(self.g))
 
     def bnfunit(self):
         sig_on()
-        return P.new_gen(bnf_get_fu(self.g))
+        return new_gen(bnf_get_fu(self.g))
 
     def pr_get_p(self):
         """
@@ -943,7 +951,7 @@ cdef class gen:
         5
         """
         sig_on()
-        return P.new_gen(pr_get_p(self.g))
+        return new_gen(pr_get_p(self.g))
 
     def pr_get_e(self):
         """
@@ -1021,7 +1029,7 @@ cdef class gen:
         [-2, 1]~
         """
         sig_on()
-        return P.new_gen(pr_get_gen(self.g))
+        return new_gen(pr_get_gen(self.g))
 
     def bid_get_cyc(self):
         """
@@ -1045,7 +1053,7 @@ cdef class gen:
         [4, 2]
         """
         sig_on()
-        return P.new_gen(bid_get_cyc(self.g))
+        return new_gen(bid_get_cyc(self.g))
 
     def bid_get_gen(self):
         """
@@ -1083,9 +1091,9 @@ cdef class gen:
         cypari_src.gen.PariError: missing bid generators. Use idealstar(,,2)
         """
         sig_on()
-        return P.new_gen(bid_get_gen(self.g))
+        return new_gen(bid_get_gen(self.g))
 
-    def __getitem__(gen self, n):
+    def __getitem__(Gen self, n):
         """
         Return the nth entry of self. The indexing is 0-based, like in
         Python. Note that this is *different* than the default behavior
@@ -1281,8 +1289,8 @@ cdef class gen:
                 return self.refers_to[ind]
             else:
                 ## In this case, we're being asked to return
-                ## a GEN that has no gen pointing to it, so
-                ## we need to create such a gen, add it to
+                ## a GEN that has no Gen pointing to it, so
+                ## we need to create such a Gen, add it to
                 ## self.refers_to, and return it.
                 val = P.new_ref(gmael(self.g, j+1, i+1), self)
                 if self.refers_to is None:
@@ -1337,8 +1345,8 @@ cdef class gen:
                 return self.refers_to[n]
             else:
                 ## In this case, we're being asked to return
-                ## a GEN that has no gen pointing to it, so
-                ## we need to create such a gen, add it to
+                ## a GEN that has no Gen pointing to it, so
+                ## we need to create such a Gen, add it to
                 ## self.refers_to, and return it.
                 val = P.new_ref(gel(self.g, n+1), self)
                 if self.refers_to is None:
@@ -1376,7 +1384,7 @@ cdef class gen:
             ## as mentioned above
             return P.new_ref(gel(self.g,n+1), self)
 
-    def __setitem__(gen self, n, y):
+    def __setitem__(Gen self, n, y):
         r"""
         Set the nth entry to a reference to y.
 
@@ -1385,7 +1393,7 @@ cdef class gen:
                *unlike* in PARI/GP.
 
             -  Assignment sets the nth entry to a reference to y, assuming y is
-               an object of type gen. This is the same as in Python, but
+               an object of type Gen. This is the same as in Python, but
                *different* than what happens in the gp interpreter, where
                assignment makes a copy of y.
 
@@ -1444,7 +1452,7 @@ cdef class gen:
             sage: s[:1]=[1]
             sage: s
             [1, 0]
-            sage: isinstance(s[0], gen)
+            sage: isinstance(s[0], Gen)
             True
             sage: s = pari(range(20)) ; s
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
@@ -1460,7 +1468,7 @@ cdef class gen:
             sage: v[:] = [20..29]
             sage: v
             [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-            sage: isinstance(v[0], gen)
+            sage: isinstance(v[0], Gen)
             True
 
         >>> v = pari(list(range(10)))
@@ -1492,7 +1500,7 @@ cdef class gen:
         >>> s[:1]=[1]
         >>> s
         [1, 0]
-        >>> isinstance(s[0], gen)
+        >>> isinstance(s[0], Gen)
         True
         >>> s = pari(list(range(20))) ; s
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
@@ -1505,11 +1513,11 @@ cdef class gen:
         >>> v[:] = list(range(20,30))
         >>> v
         [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-        >>> isinstance(v[0], gen)
+        >>> isinstance(v[0], Gen)
         True
         """
         cdef pari_longword i, j, l
-        cdef gen x = objtogen(y)
+        cdef Gen x = objtogen(y)
         cdef Py_ssize_t ii, jj, step
 
         sig_on()
@@ -1571,7 +1579,7 @@ cdef class gen:
         finally:
             sig_off()
 
-    def __len__(gen self):
+    def __len__(Gen self):
         return glength(self.g)
 
     def __richcmp__(left, right, int op):
@@ -1663,7 +1671,7 @@ cdef class gen:
         >>> pari("Mod(1,3)") <= pari("Mod(2,3)")
         Traceback (most recent call last):
         ...
-        cypar_src.gen.PariError: forbidden comparison t_INTMOD , t_INTMOD
+        cypar_src.Gen.PariError: forbidden comparison t_INTMOD , t_INTMOD
         >>> pari("[0]") <= pari("0")
         Traceback (most recent call last):
         ...
@@ -1677,7 +1685,7 @@ cdef class gen:
         >>> pari('O(2)') == 0
         True
         """
-        cdef gen t0, t1
+        cdef Gen t0, t1
         try:
             t0 = objtogen(left)
             t1 = objtogen(right)
@@ -1703,7 +1711,7 @@ cdef class gen:
         return r
 
     IF PYTHON_MAJOR < 3:
-        def __cmp__(gen self, gen other):
+        def __cmp__(Gen self, Gen other):
             """
             Compare ``left`` and ``right``.
     
@@ -1804,7 +1812,7 @@ cdef class gen:
             sig_off()
             return r
     ELSE:
-        def cmp_universal(gen self, gen other):
+        def cmp_universal(Gen self, Gen other):
             """
             Provide access to Pari's cmp_universal function in Python 3.  In
             Python 2 cmp_universal is used by the __cmp__ method.
@@ -1814,11 +1822,11 @@ cdef class gen:
             sig_off()
             return r
 
-    def __copy__(gen self):
+    def __copy__(Gen self):
         sig_on()
-        return P.new_gen(gcopy(self.g))
+        return new_gen(gcopy(self.g))
 
-    def list_str(gen self):
+    def list_str(Gen self):
         """
         Return str that might correctly evaluate to a Python-list.
 
@@ -1843,7 +1851,7 @@ cdef class gen:
             return eval(s)
 
     IF PYTHON_MAJOR == 2:
-        def __hex__(gen self):
+        def __hex__(Gen self):
             """
             Return the hexadecimal digits of self in lower case.
     
@@ -1874,7 +1882,7 @@ cdef class gen:
             cdef pari_longword size
             x = self.g
             if typ(x) != t_INT:
-                raise TypeError("gen must be of PARI type t_INT")
+                raise TypeError("Gen must be of PARI type t_INT")
             if not signe(x):
                 return "0"
             lx = lgefint(x)-2  # number of words
@@ -1900,7 +1908,7 @@ cdef class gen:
                 sig_free(s)
             return k
         
-    def __int__(gen self):
+    def __int__(Gen self):
         """
         Convert ``self`` to a Python integer.
 
@@ -1954,9 +1962,9 @@ cdef class gen:
         def __index__(self):
             return self.__int__()
 
-    def python_list_small(gen self):
+    def python_list_small(Gen self):
         """
-        Return a Python list of the PARI gens. This object must be of type
+        Return a Python list of the PARI Gens. This object must be of type
         t_VECSMALL, and the resulting list contains python 'int's.
 
         EXAMPLES::
@@ -1980,9 +1988,9 @@ cdef class gen:
             raise TypeError("Object (=%s) must be of type t_VECSMALL." % self)
         return [<pari_longword>self.g[n+1] for n in range(<long>glength(self.g))]
 
-    def python_list(gen self):
+    def python_list(Gen self):
         """
-        Return a Python list of the PARI gens. This object must be of type
+        Return a Python list of the PARI Gens. This object must be of type
         t_VEC or t_COL.
 
         INPUT: None
@@ -1990,7 +1998,7 @@ cdef class gen:
         OUTPUT:
 
         -  ``list`` - Python list whose elements are the
-           elements of the input gen.
+           elements of the input Gen.
 
 
         EXAMPLES::
@@ -1999,7 +2007,7 @@ cdef class gen:
             sage: w = v.python_list()
             sage: w
             [1, 2, 3, 10, 102, 10]
-            sage: isinstance(w[0], gen)
+            sage: isinstance(w[0], Gen)
             True
             sage: pari("[1,2,3]").python_list()
             [1, 2, 3]
@@ -2011,7 +2019,7 @@ cdef class gen:
         >>> w = v.python_list()
         >>> w
         [1, 2, 3, 10, 102, 10]
-        >>> isinstance(w[0], gen)
+        >>> isinstance(w[0], Gen)
         True
         >>> pari("[1,2,3]").python_list()
         [1, 2, 3]
@@ -2019,7 +2027,7 @@ cdef class gen:
         [1, 2, 3]
         """
         cdef long n
-        cdef gen t
+        cdef Gen t
 
         if typ(self.g) != t_VEC and typ(self.g) != t_COL:
             raise TypeError("Object (=%s) must be of type t_VEC or t_COL." % self)
@@ -2031,7 +2039,7 @@ cdef class gen:
 
         INPUT:
 
-        - `z` -- PARI ``gen``
+        - `z` -- PARI ``Gen``
 
         - `locals` -- optional dictionary used in fallback cases that
           involve :func:`sage_eval`
@@ -2171,12 +2179,12 @@ cdef class gen:
         IF SAGE:
             return gentoobj(self, locals)
         ELSE:
-            raise NotImplementedError("The gen.python method is not implemented in CyPari") 
+            raise NotImplementedError("The Gen.python method is not implemented in CyPari") 
         
     sage = _eval_ = python
 
     IF PYTHON_MAJOR < 3:
-        def __long__(gen self):
+        def __long__(Gen self):
             """
             Convert ``self`` to a Python ``long``.
     
@@ -2226,7 +2234,7 @@ cdef class gen:
             else:
                 return long(x)
 
-    def __float__(gen self):
+    def __float__(Gen self):
         """
         Return Python float.
         """
@@ -2304,7 +2312,7 @@ cdef class gen:
         """
         return not gequal0(self.g)
 
-    def gequal(gen a, b):
+    def gequal(Gen a, b):
         r"""
         Check whether `a` and `b` are equal using PARI's ``gequal``.
 
@@ -2351,13 +2359,13 @@ cdef class gen:
         >>> a.gequal(c)
         False
         """
-        cdef gen t0 = objtogen(b)
+        cdef Gen t0 = objtogen(b)
         sig_on()
         cdef int ret = gequal(a.g, t0.g)
         sig_off()
         return ret != 0
 
-    def gequal0(gen a):
+    def gequal0(Gen a):
         r"""
         Check whether `a` is equal to zero.
 
@@ -2388,7 +2396,7 @@ cdef class gen:
         sig_off()
         return ret != 0
 
-    def gequal_long(gen a, long b):
+    def gequal_long(Gen a, long b):
         r"""
         Check whether `a` is equal to the ``long int`` `b` using PARI's ``gequalsg``.
 
@@ -2431,7 +2439,7 @@ cdef class gen:
         sig_off()
         return ret != 0
 
-    def isprime(gen self, long flag=0):
+    def isprime(Gen self, long flag=0):
         """
         isprime(x, flag=0): Returns True if x is a PROVEN prime number, and
         False otherwise.
@@ -2487,12 +2495,12 @@ cdef class gen:
         x = gisprime(self.g, flag)
         if typ(x) != t_INT:
             # case flag=1 with prime input: x is the certificate
-            return True, P.new_gen(x)
+            return True, new_gen(x)
         else:
             sig_off()
             return signe(x) != 0
 
-    def ispseudoprime(gen self, long flag=0):
+    def ispseudoprime(Gen self, long flag=0):
         """
         ispseudoprime(x, flag=0): Returns True if x is a pseudo-prime
         number, and False otherwise.
@@ -2539,7 +2547,7 @@ cdef class gen:
         sig_off()
         return t != 0
 
-    def ispower(gen self, k=None):
+    def ispower(Gen self, k=None):
         r"""
         Determine whether or not self is a perfect k-th power. If k is not
         specified, find the largest k so that self is a k-th power.
@@ -2584,7 +2592,7 @@ cdef class gen:
         """
         cdef long n
         cdef GEN x
-        cdef gen t0
+        cdef Gen t0
 
         if k is None:
             sig_on()
@@ -2593,7 +2601,7 @@ cdef class gen:
                 sig_off()
                 return 1, self
             else:
-                return n, P.new_gen(x)
+                return n, new_gen(x)
         else:
             t0 = objtogen(k)
             sig_on()
@@ -2602,9 +2610,9 @@ cdef class gen:
                 sig_off()
                 return False, None
             else:
-                return k, P.new_gen(x)
+                return k, new_gen(x)
 
-    def isprimepower(gen self):
+    def isprimepower(Gen self):
         r"""
         Check whether ``self`` is a prime power (with an exponent >= 1).
 
@@ -2655,9 +2663,9 @@ cdef class gen:
             sig_off()
             return 0, self
         else:
-            return n, P.new_gen(x)
+            return n, new_gen(x)
 
-    def ispseudoprimepower(gen self):
+    def ispseudoprimepower(Gen self):
         r"""
         Check whether ``self`` is the power (with an exponent >= 1) of
         a pseudo-prime.
@@ -2698,7 +2706,7 @@ cdef class gen:
             sig_off()
             return 0, self
         else:
-            return n, P.new_gen(x)
+            return n, new_gen(x)
 
     def vecmax(x):
         """
@@ -2713,7 +2721,7 @@ cdef class gen:
         8.00000000000000
         """
         sig_on()
-        return P.new_gen(vecmax(x.g))
+        return new_gen(vecmax(x.g))
 
     def vecmin(x):
         """
@@ -2728,15 +2736,15 @@ cdef class gen:
         -5/3
         """
         sig_on()
-        return P.new_gen(vecmin(x.g))
+        return new_gen(vecmin(x.g))
 
-    def Col(gen x, long n = 0):
+    def Col(Gen x, long n = 0):
         """
         Transform the object `x` into a column vector with minimal size `|n|`.
 
         INPUT:
 
-        - ``x`` -- gen
+        - ``x`` -- Gen
 
         - ``n`` -- Make the column vector of minimal length `|n|`. If `n > 0`,
           append zeros; if `n < 0`, prepend zeros.
@@ -2796,16 +2804,16 @@ cdef class gen:
         and :meth:`Colrev` (create a column in reversed order).
         """
         sig_on()
-        return P.new_gen(_Vec_append(gtocol(x.g), gen_0, n))
+        return new_gen(_Vec_append(gtocol(x.g), gen_0, n))
 
-    def Colrev(gen x, long n = 0):
+    def Colrev(Gen x, long n = 0):
         """
         Transform the object `x` into a column vector with minimal size `|n|`.
         The order of the resulting vector is reversed compared to :meth:`Col`.
 
         INPUT:
 
-        - ``x`` -- gen
+        - ``x`` -- Gen
 
         - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
           prepend zeros; if `n < 0`, append zeros.
@@ -2866,16 +2874,16 @@ cdef class gen:
             R[0] = t
             L += 1
             R -= 1
-        return P.new_gen(v)
+        return new_gen(v)
 
-    def Ser(gen f, v=-1, long precision=-1):
+    def Ser(Gen f, v=-1, long precision=-1):
         """
         Return a power series or Laurent series in the variable `v`
         constructed from the object `f`.
 
         INPUT:
 
-        - ``f`` -- PARI gen
+        - ``f`` -- PARI Gen
 
         - ``v`` -- PARI variable (default: `x`)
 
@@ -2951,9 +2959,9 @@ cdef class gen:
         if typ(f.g) == t_VEC:
             # The precision flag is ignored for vectors, so we first
             # convert the vector to a polynomial.
-            return P.new_gen(gtoser(gtopolyrev(f.g, vn), vn, precision))
+            return new_gen(gtoser(gtopolyrev(f.g, vn), vn, precision))
         else:
-            return P.new_gen(gtoser(f.g, vn, precision))
+            return new_gen(gtoser(f.g, vn, precision))
 
     def Str(self):
         """
@@ -2963,13 +2971,13 @@ cdef class gen:
         INPUT:
 
 
-        -  ``self`` - gen
+        -  ``self`` - Gen
 
 
         OUTPUT:
 
 
-        -  ``gen`` - a PARI gen of type t_STR, i.e., a PARI
+        -  ``Gen`` - a PARI Gen of type t_STR, i.e., a PARI
            string
 
 
@@ -3006,11 +3014,11 @@ cdef class gen:
         sig_block()
         c = GENtostr(self.g)
         sig_unblock()
-        v = P.new_gen(strtoGENstr(c))
+        v = new_gen(strtoGENstr(c))
         pari_free(c)
         return v
 
-    def Strexpand(gen x):
+    def Strexpand(Gen x):
         """
         Concatenate the entries of the vector `x` into a single string,
         then perform tilde expansion and environment variable expansion
@@ -3018,7 +3026,7 @@ cdef class gen:
 
         INPUT:
 
-        - ``x`` -- PARI gen. Either a vector or an element which is then
+        - ``x`` -- PARI Gen. Either a vector or an element which is then
           treated like `[x]`.
 
         OUTPUT:
@@ -3045,16 +3053,16 @@ cdef class gen:
         if typ(x.g) != t_VEC:
             x = P.vector(1, [x])
         sig_on()
-        return P.new_gen(Strexpand(x.g))
+        return new_gen(Strexpand(x.g))
 
-    def Strtex(gen x):
+    def Strtex(Gen x):
         r"""
-        Strtex(x): Translates the vector x of PARI gens to TeX format and
+        Strtex(x): Translates the vector x of PARI Gens to TeX format and
         returns the resulting concatenated strings as a PARI t_STR.
 
         INPUT:
 
-        - ``x`` -- PARI gen. Either a vector or an element which is then
+        - ``x`` -- PARI Gen. Either a vector or an element which is then
           treated like `[x]`.
 
         OUTPUT:
@@ -3086,17 +3094,17 @@ cdef class gen:
         if typ(x.g) != t_VEC:
             x = P.vector(1, [x])
         sig_on()
-        return P.new_gen(Strtex(x.g))
+        return new_gen(Strtex(x.g))
 
     printtex = deprecated_function_alias(20219, Strtex)
 
-    def Vec(gen x, long n = 0):
+    def Vec(Gen x, long n = 0):
         """
         Transform the object `x` into a vector with minimal size `|n|`.
 
         INPUT:
 
-        - ``x`` -- gen
+        - ``x`` -- Gen
 
         - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
           append zeros; if `n < 0`, prepend zeros.
@@ -3175,16 +3183,16 @@ cdef class gen:
         [0, 0, 1, 2, 3, 4]
         """
         sig_on()
-        return P.new_gen(_Vec_append(gtovec(x.g), gen_0, n))
+        return new_gen(_Vec_append(gtovec(x.g), gen_0, n))
 
-    def Vecrev(gen x, long n = 0):
+    def Vecrev(Gen x, long n = 0):
         """
         Transform the object `x` into a vector with minimal size `|n|`.
         The order of the resulting vector is reversed compared to :meth:`Vec`.
 
         INPUT:
 
-        - ``x`` -- gen
+        - ``x`` -- Gen
 
         - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
           prepend zeros; if `n < 0`, append zeros.
@@ -3245,15 +3253,15 @@ cdef class gen:
         [4, 3, 2, 1, 0, 0]
         """
         sig_on()
-        return P.new_gen(_Vec_append(gtovecrev(x.g), gen_0, -n))
+        return new_gen(_Vec_append(gtovecrev(x.g), gen_0, -n))
 
-    def Vecsmall(gen x, long n = 0):
+    def Vecsmall(Gen x, long n = 0):
         """
         Transform the object `x` into a ``t_VECSMALL`` with minimal size `|n|`.
 
         INPUT:
 
-        - ``x`` -- gen
+        - ``x`` -- Gen
 
         - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
           append zeros; if `n < 0`, prepend zeros.
@@ -3302,10 +3310,10 @@ cdef class gen:
         Vecsmall([0, 0, 0, 1, 2, 3])
         """
         sig_on()
-        return P.new_gen(_Vec_append(gtovecsmall(x.g), <GEN>0, n))
+        return new_gen(_Vec_append(gtovecsmall(x.g), <GEN>0, n))
 
 
-    def bittest(gen x, long n):
+    def bittest(Gen x, long n):
         """
         bittest(x, long n): Returns bit number n (coefficient of
         `2^n` in binary) of the integer x. Negative numbers behave
@@ -3314,7 +3322,7 @@ cdef class gen:
         INPUT:
 
 
-        -  ``x`` - gen (pari integer)
+        -  ``x`` - Gen (pari integer)
 
 
         OUTPUT:
@@ -3364,17 +3372,17 @@ cdef class gen:
 
     lift_centered = gen_auto.centerlift
 
-    def padicprime(gen x):
+    def padicprime(Gen x):
         """
         The uniformizer of the p-adic ring this element lies in, as a t_INT.
 
         INPUT:
 
-        - ``x`` - gen, of type t_PADIC
+        - ``x`` - Gen, of type t_PADIC
 
         OUTPUT:
 
-        - ``p`` - gen, of type t_INT
+        - ``p`` - Gen, of type t_INT
 
         EXAMPLES::
 
@@ -3395,27 +3403,27 @@ cdef class gen:
         't_INT'
         """
         sig_on()
-        return P.new_gen(gel(x.g, 2))
+        return new_gen(gel(x.g, 2))
 
-    def precision(gen x, long n=-1):
+    def precision(Gen x, long n=-1):
         """
         Change the precision of `x` to be `n`, where `n` is an integer.
         If `n` is omitted, output the real precision of `x`.
 
         INPUT:
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         -  ``n`` - (optional) int
 
-        OUTPUT: gen
+        OUTPUT: Gen
         """
         if n <= 0:
             return <long>precision(x.g)
         sig_on()
-        return P.new_gen(precision0(x.g, n))
+        return new_gen(precision0(x.g, n))
 
-    def round(gen x, estimate=False):
+    def round(Gen x, estimate=False):
         """
         round(x,estimate=False): If x is a real number, returns x rounded
         to the nearest integer (rounding up). If the optional argument
@@ -3435,17 +3443,17 @@ cdef class gen:
         INPUT:
 
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         -  ``estimate`` - (optional) bool, False by default
 
 
         OUTPUT:
 
-        - if estimate is False, return a single gen.
+        - if estimate is False, return a single Gen.
 
         - if estimate is True, return rounded version of x and error
-          estimate in bits, both as gens.
+          estimate in bits, both as Gens.
 
         EXAMPLES::
 
@@ -3477,14 +3485,14 @@ cdef class gen:
         """
         cdef int n
         cdef long e
-        cdef gen y
+        cdef Gen y
         sig_on()
         if not estimate:
-            return P.new_gen(ground(x.g))
-        y = P.new_gen(grndtoi(x.g, <pari_longword*>&e))
+            return new_gen(ground(x.g))
+        y = new_gen(grndtoi(x.g, <pari_longword*>&e))
         return y, e
 
-    def sizeword(gen x):
+    def sizeword(Gen x):
         """
         Return the total number of machine words occupied by the
         complete tree of the object x.  A machine word is 32 or
@@ -3492,7 +3500,7 @@ cdef class gen:
 
         INPUT:
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         OUTPUT: int (a Python int)
 
@@ -3538,7 +3546,7 @@ cdef class gen:
         """
         return <long>gsizeword(x.g)
 
-    def sizebyte(gen x):
+    def sizebyte(Gen x):
         """
         Return the total number of bytes occupied by the complete tree
         of the object x. Note that this number depends on whether the
@@ -3546,7 +3554,7 @@ cdef class gen:
 
         INPUT:
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         OUTPUT: int (a Python int)
 
@@ -3562,7 +3570,7 @@ cdef class gen:
         """
         return <long>gsizebyte(x.g)
 
-    def truncate(gen x, estimate=False):
+    def truncate(Gen x, estimate=False):
         """
         truncate(x,estimate=False): Return the truncation of x. If estimate
         is True, also return the number of error bits.
@@ -3583,7 +3591,7 @@ cdef class gen:
         INPUT:
 
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         -  ``estimate`` - (optional) bool, which is False by
            default
@@ -3591,10 +3599,10 @@ cdef class gen:
 
         OUTPUT:
 
-        - if estimate is False, return a single gen.
+        - if estimate is False, return a single Gen.
 
         - if estimate is True, return rounded version of x and error
-          estimate in bits, both as gens.
+          estimate in bits, both as Gens.
 
         EXAMPLES::
 
@@ -3637,14 +3645,14 @@ cdef class gen:
         x + O(x^10)
         """
         cdef long e
-        cdef gen y
+        cdef Gen y
         sig_on()
         if not estimate:
-            return P.new_gen(gtrunc(x.g))
-        y = P.new_gen(gcvtoi(x.g, <pari_longword*>&e))
+            return new_gen(gtrunc(x.g))
+        y = new_gen(gcvtoi(x.g, <pari_longword*>&e))
         return y, e
 
-    def _valp(gen x):
+    def _valp(Gen x):
         """
         Return the valuation of x where x is a p-adic number (t_PADIC)
         or a Laurent series (t_SER).  If x is a different type, this
@@ -3719,7 +3727,7 @@ cdef class gen:
         """
         return P.bernreal(x, precision)
 
-    def besselk(gen nu, x, flag=None, unsigned long precision=0):
+    def besselk(Gen nu, x, flag=None, unsigned long precision=0):
         """
         nu.besselk(x): K-Bessel function (modified Bessel function
         of the second kind) of index nu, which can be complex, and argument
@@ -3767,11 +3775,11 @@ cdef class gen:
         """
         if flag is not None:
             deprecation(20219, 'The flag argument to besselk() is deprecated and not used anymore')
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
-        return P.new_gen(kbessel(nu.g, t0.g, prec_bits_to_words(precision)))
+        return new_gen(kbessel(nu.g, t0.g, prec_bits_to_words(precision)))
 
-    def eint1(gen x, long n=0, unsigned long precision=0):
+    def eint1(Gen x, long n=0, unsigned long precision=0):
         r"""
         x.eint1(n): exponential integral E1(x):
 
@@ -3797,13 +3805,13 @@ cdef class gen:
         """
         sig_on()
         if n <= 0:
-            return P.new_gen(eint1(x.g, prec_bits_to_words(precision)))
+            return new_gen(eint1(x.g, prec_bits_to_words(precision)))
         else:
-            return P.new_gen(veceint1(x.g, stoi(n), prec_bits_to_words(precision)))
+            return new_gen(veceint1(x.g, stoi(n), prec_bits_to_words(precision)))
 
     log_gamma = gen_auto.lngamma
 
-    def polylog(gen x, long m, long flag=0, unsigned long precision=0):
+    def polylog(Gen x, long m, long flag=0, unsigned long precision=0):
         """
         x.polylog(m,flag=0): m-th polylogarithm of x. flag is optional, and
         can be 0: default, 1: D_m -modified m-th polylog of x, 2:
@@ -3838,9 +3846,9 @@ cdef class gen:
         -0.400459056163451
         """
         sig_on()
-        return P.new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
+        return new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
 
-    def sqrtn(gen x, n, unsigned long precision=0):
+    def sqrtn(Gen x, n, unsigned long precision=0):
         r"""
         x.sqrtn(n): return the principal branch of the n-th root of x,
         i.e., the one such that
@@ -3863,7 +3871,7 @@ cdef class gen:
         INPUT:
 
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         -  ``n`` - integer
 
@@ -3871,9 +3879,9 @@ cdef class gen:
         OUTPUT:
 
 
-        -  ``gen`` - principal n-th root of x
+        -  ``Gen`` - principal n-th root of x
 
-        -  ``gen`` - root of unity z that gives the other
+        -  ``Gen`` - root of unity z that gives the other
            roots
 
 
@@ -3906,10 +3914,10 @@ cdef class gen:
         2.00000000000000 + 0.E-19*I
         """
         cdef GEN zetan
-        cdef gen t0 = objtogen(n)
+        cdef Gen t0 = objtogen(n)
         sig_on()
-        ans = P.new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision)))
-        return ans, P.new_gen(zetan)
+        ans = new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision)))
+        return ans, new_gen(zetan)
 
     phi = deprecated_function_alias(20219, gen_auto.eulerphi)
 
@@ -3943,7 +3951,7 @@ cdef class gen:
         8
         """
         sig_on()
-        return P.new_gen(ffprimroot(self.g, NULL))
+        return new_gen(ffprimroot(self.g, NULL))
 
     def fibonacci(self):
         r"""
@@ -3963,28 +3971,28 @@ cdef class gen:
         """
         return P.fibonacci(self)
 
-    def issquare(gen x, find_root=False):
+    def issquare(Gen x, find_root=False):
         """
         issquare(x,n): ``True`` if x is a square, ``False`` if not. If
         ``find_root`` is given, also returns the exact square root.
         """
         cdef GEN G
         cdef pari_longword t
-        cdef gen g
+        cdef Gen g
         sig_on()
         if find_root:
             t = itos(gissquareall(x.g, &G))
             if t:
-                return True, P.new_gen(G)
+                return True, new_gen(G)
             else:
-                P.clear_stack()
+                clear_stack()
                 return False, None
         else:
             t = itos(gissquare(x.g))
             sig_off()
             return t != 0
 
-    def issquarefree(gen self):
+    def issquarefree(Gen self):
         """
         EXAMPLES::
 
@@ -4003,7 +4011,7 @@ cdef class gen:
         sig_off()
         return t != 0
 
-    def sumdiv(gen n):
+    def sumdiv(Gen n):
         """
         Return the sum of the divisors of `n`.
 
@@ -4016,9 +4024,9 @@ cdef class gen:
         18
         """
         sig_on()
-        return P.new_gen(sumdiv(n.g))
+        return new_gen(sumdiv(n.g))
 
-    def sumdivk(gen n, long k):
+    def sumdivk(Gen n, long k):
         """
         Return the sum of the k-th powers of the divisors of n.
 
@@ -4031,9 +4039,9 @@ cdef class gen:
         130
         """
         sig_on()
-        return P.new_gen(sumdivk(n.g, k))
+        return new_gen(sumdivk(n.g, k))
 
-    def Zn_issquare(gen self, n):
+    def Zn_issquare(Gen self, n):
         """
         Return ``True`` if ``self`` is a square modulo `n`, ``False``
         if not.
@@ -4056,13 +4064,13 @@ cdef class gen:
         >>> pari(4).Zn_issquare(pari(30).factor())
         True
         """
-        cdef gen t0 = objtogen(n)
+        cdef Gen t0 = objtogen(n)
         sig_on()
         cdef pari_longword t = Zn_issquare(self.g, t0.g)
         sig_off()
         return t != 0
 
-    def Zn_sqrt(gen self, n):
+    def Zn_sqrt(Gen self, n):
         """
         Return a square root of ``self`` modulo `n`, if such a square
         root exists; otherwise, raise a ``ValueError``.
@@ -4089,14 +4097,14 @@ cdef class gen:
         >>> pari(4).Zn_sqrt(pari(30).factor())
         22
         """
-        cdef gen t0 = objtogen(n)
+        cdef Gen t0 = objtogen(n)
         cdef GEN s
         sig_on()
         s = Zn_sqrt(self.g, t0.g)
         if s == NULL:
             sig_off()
             raise ValueError("%s is not a square modulo %s" % (self, n))
-        return P.new_gen(s)
+        return new_gen(s)
 
     def ellan(self, long n, python_ints=False):
         """
@@ -4109,7 +4117,7 @@ cdef class gen:
         -  ``n`` - a long integer
 
         -  ``python_ints`` - bool (default is False); if True,
-           return a list of Python ints instead of a PARI gen wrapper.
+           return a list of Python ints instead of a PARI Gen wrapper.
 
 
         EXAMPLES::
@@ -4148,10 +4156,10 @@ cdef class gen:
         cdef GEN g = anell(self.g, n)
         if python_ints:
             v = [<pari_longword>gtolong(gel(g, i+1)) for i in range(<long>glength(g))]
-            P.clear_stack()
+            clear_stack()
             return v
         else:
-            return P.new_gen(g)
+            return new_gen(g)
 
     def ellaplist(self, long n, python_ints=False):
         r"""
@@ -4167,7 +4175,7 @@ cdef class gen:
         - ``n`` -- a long integer
 
         - ``python_ints`` -- bool (default is False); if True,
-          return a list of Python ints instead of a PARI gen wrapper.
+          return a list of Python ints instead of a PARI Gen wrapper.
 
         .. WARNING::
 
@@ -4182,7 +4190,7 @@ cdef class gen:
             sage: e = pari([0, -1, 1, -10, -20]).ellinit()
             sage: v = e.ellaplist(10); v
             [-2, -1, 1, -2]
-            sage: isinstance(v, gen)
+            sage: isinstance(v, Gen)
             True
             sage: v.type()
             't_VEC'
@@ -4207,7 +4215,7 @@ cdef class gen:
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> v = e.ellaplist(10); v
         [-2, -1, 1, -2]
-        >>> isinstance(v, gen)
+        >>> isinstance(v, Gen)
         True
         >>> v.type()
         't_VEC'
@@ -4220,7 +4228,7 @@ cdef class gen:
         >>> isinstance(v[0], int) or isinstance(v[0], long)
         True
         >>> v = e.ellaplist(1)
-        >>> v, isinstance(v, gen)
+        >>> v, isinstance(v, Gen)
         ([], True)
         >>> v = e.ellaplist(1, python_ints=True)
         >>> v, isinstance(v, list)
@@ -4231,11 +4239,11 @@ cdef class gen:
 
         if n < 2:
             sig_on()
-            return P.new_gen(zerovec(0))
+            return new_gen(zerovec(0))
 
         # 1. Make a table of primes up to n.
         P.init_primes(n+1)
-        cdef gen t0 = objtogen(n)
+        cdef Gen t0 = objtogen(n)
         sig_on()
         cdef GEN g = primes(gtolong(primepi(t0.g)))
 
@@ -4243,7 +4251,7 @@ cdef class gen:
         cdef long i
         for i from 0 <= i < <long>glength(g):
             set_gel(g, i + 1, ellap(self.g, gel(g, i + 1)))
-        return P.new_gen(g)
+        return new_gen(g)
 
     def ellisoncurve(self, x):
         """
@@ -4279,7 +4287,7 @@ cdef class gen:
         >>> e.ellisoncurve([0])
         True
         """
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
         cdef int t = oncurve(self.g, t0.g)
         sig_off()
@@ -4292,15 +4300,15 @@ cdef class gen:
         variables. INPUT:
 
 
-        -  ``e`` - gen (that defines an elliptic curve)
+        -  ``e`` - Gen (that defines an elliptic curve)
 
 
         OUTPUT:
 
 
-        -  ``gen`` - minimal model
+        -  ``Gen`` - minimal model
 
-        -  ``gen`` - change of coordinates
+        -  ``Gen`` - change of coordinates
 
 
         EXAMPLES::
@@ -4324,12 +4332,12 @@ cdef class gen:
         [1, -1, 0, 4, 3]
         """
         cdef GEN x, y
-        cdef gen model, change
+        cdef Gen model, change
         cdef pari_sp t
         sig_on()
         x = ellminimalmodel(self.g, &y)
-        change = P.new_gen_noclear(y)
-        model = P.new_gen(x)
+        change = new_gen_noclear(y)
+        model = new_gen(x)
         return model, change
 
     def elltors(self, flag=None):
@@ -4344,14 +4352,14 @@ cdef class gen:
         OUTPUT:
 
 
-        -  ``gen`` - the order of the torsion subgroup, a.k.a.
+        -  ``Gen`` - the order of the torsion subgroup, a.k.a.
            the number of points of finite order
 
-        -  ``gen`` - vector giving the structure of the torsion
+        -  ``Gen`` - vector giving the structure of the torsion
            subgroup as a product of cyclic groups, sorted in non-increasing
            order
 
-        -  ``gen`` - vector giving points on e generating these
+        -  ``Gen`` - vector giving points on e generating these
            cyclic groups
 
 
@@ -4368,7 +4376,7 @@ cdef class gen:
         if flag is not None:
             deprecation(20219, 'The flag argument to elltors() is deprecated and not used anymore')
         sig_on()
-        return P.new_gen(elltors(self.g))
+        return new_gen(elltors(self.g))
 
     def omega(self, unsigned long precision=0):
         """
@@ -4385,7 +4393,7 @@ cdef class gen:
         [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
         """
         sig_on()
-        return P.new_gen(ellR_omega(self.g, prec_bits_to_words(precision)))
+        return new_gen(ellR_omega(self.g, prec_bits_to_words(precision)))
 
     def disc(self):
         """
@@ -4406,7 +4414,7 @@ cdef class gen:
         [-1, 1; 11, 5]
         """
         sig_on()
-        return P.new_gen(member_disc(self.g))
+        return new_gen(member_disc(self.g))
 
     def j(self):
         """
@@ -4427,7 +4435,7 @@ cdef class gen:
         [-1, 1; 2, 12; 11, -5; 31, 3]
         """
         sig_on()
-        return P.new_gen(member_j(self.g))
+        return new_gen(member_j(self.g))
 
     def _eltabstorel(self, x):
         """
@@ -4462,9 +4470,9 @@ cdef class gen:
         >>> f_abs(x_rel)
         Mod(0, x^2 + 2)
         """
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
-        return P.new_gen(eltabstorel(self.g, t0.g))
+        return new_gen(eltabstorel(self.g, t0.g))
 
     def _eltabstorel_lift(self, x):
         """
@@ -4491,9 +4499,9 @@ cdef class gen:
         >>> rnfeq._eltabstorel_lift(pari('x'))
         x + Mod(-y, y^2 + 1)
         """
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
-        return P.new_gen(eltabstorel_lift(self.g, t0.g))
+        return new_gen(eltabstorel_lift(self.g, t0.g))
 
     def _eltreltoabs(self, x):
         """
@@ -4524,9 +4532,9 @@ cdef class gen:
         >>> rnfeq._eltreltoabs(pari('y'))
         1/2*x^3 + 5/2*x
         """
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
-        return P.new_gen(eltreltoabs(self.g, t0.g))
+        return new_gen(eltreltoabs(self.g, t0.g))
 
     def galoissubfields(self, long flag=0, v=-1):
         """
@@ -4570,7 +4578,7 @@ cdef class gen:
         [x^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
         """
         sig_on()
-        return P.new_gen(galoissubfields(self.g, flag, P.get_var(v)))
+        return new_gen(galoissubfields(self.g, flag, P.get_var(v)))
 
     idealintersection = deprecated_function_alias(20219, gen_auto.idealintersect)
 
@@ -4591,8 +4599,8 @@ cdef class gen:
         True
         """
         cdef pari_longword v
-        cdef gen t0 = objtogen(x)
-        cdef gen t1 = objtogen(p)
+        cdef Gen t0 = objtogen(x)
+        cdef Gen t1 = objtogen(p)
         sig_on()
         v = nfval(self.g, t0.g, t1.g)
         sig_off()
@@ -4664,7 +4672,7 @@ cdef class gen:
         >>> pari(f).nfbasis(fa=[2,p])
         [1, 1/10000000019*x]
         """
-        cdef gen t0
+        cdef Gen t0
         cdef GEN g0
         if fa is not None:
             t0 = objtogen(fa)
@@ -4674,7 +4682,7 @@ cdef class gen:
         else:
             g0 = NULL
         sig_on()
-        return P.new_gen(nfbasis(self.g, NULL, g0))
+        return new_gen(nfbasis(self.g, NULL, g0))
 
     def nfbasis_d(self, long flag=0, fa=None):
         """
@@ -4707,7 +4715,7 @@ cdef class gen:
         >>> pari([-2,0,0,1]).Polrev().nfbasis_d()
         ([1, x, x^2], -108)
         """
-        cdef gen t0
+        cdef Gen t0
         cdef GEN g0
         cdef GEN disc
         if fa is not None:
@@ -4718,8 +4726,8 @@ cdef class gen:
         else:
             g0 = NULL
         sig_on()
-        B = P.new_gen_noclear(nfbasis(self.g, &disc, g0))
-        D = P.new_gen(disc)
+        B = new_gen_noclear(nfbasis(self.g, &disc, g0))
+        D = new_gen(disc)
         return B, D
 
     def nfbasistoalg_lift(nf, x):
@@ -4761,9 +4769,9 @@ cdef class gen:
         >>> K.getattr('zk') * pari("[3/2, -5, 0]~")
         -5/3*y^2 + 5/3*y - 1/6
         """
-        cdef gen t0 = objtogen(x)
+        cdef Gen t0 = objtogen(x)
         sig_on()
-        return P.new_gen(gel(basistoalg(nf.g, t0.g), 2))
+        return new_gen(gel(basistoalg(nf.g, t0.g), 2))
 
     def nfgenerator(self):
         f = self[0]
@@ -4792,9 +4800,9 @@ cdef class gen:
         [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
 
         """
-        cdef gen t0 = objtogen(relpol)
+        cdef Gen t0 = objtogen(relpol)
         sig_on()
-        return P.new_gen(nf_rnfeq(self.g, t0.g))
+        return new_gen(nf_rnfeq(self.g, t0.g))
 
     def _nf_nfzk(self, rnfeq):
         """
@@ -4822,12 +4830,12 @@ cdef class gen:
         ([2, -x^3 + 9*x], 1/2)
         """
         cdef GEN zknf, czknf
-        cdef gen t0 = objtogen(rnfeq)
-        cdef gen zk, czk
+        cdef Gen t0 = objtogen(rnfeq)
+        cdef Gen zk, czk
         sig_on()
         nf_nfzk(self.g, t0.g, &zknf, &czknf)
-        zk = P.new_gen_noclear(zknf)
-        czk = P.new_gen(czknf)
+        zk = new_gen_noclear(zknf)
+        czk = new_gen(czknf)
         return zk, czk
 
     def _nfeltup(self, x, zk, czk):
@@ -4861,11 +4869,11 @@ cdef class gen:
         >>> nf._nfeltup('y', zk, czk)
         -1/2*x^3 + 9/2*x
         """
-        cdef gen t0 = objtogen(x)
-        cdef gen t1 = objtogen(zk)
-        cdef gen t2 = objtogen(czk)
+        cdef Gen t0 = objtogen(x)
+        cdef Gen t1 = objtogen(zk)
+        cdef Gen t2 = objtogen(czk)
         sig_on()
-        return P.new_gen(nfeltup(self.g, t0.g, t1.g, t2.g))
+        return new_gen(nfeltup(self.g, t0.g, t1.g, t2.g))
 
     reverse = deprecated_function_alias(20219, gen_auto.polrecip)
 
@@ -5096,7 +5104,7 @@ cdef class gen:
 
         """
         cdef long t = typ(self.g)
-        cdef gen t0
+        cdef Gen t0
         cdef GEN result
         cdef pari_longword arity
         cdef Py_ssize_t nargs = len(args)
@@ -5113,9 +5121,9 @@ cdef class gen:
             sig_on()
             result = closure_callgenvec(self.g, t0.g)
             if result == gnil:
-                P.clear_stack()
+                clear_stack()
                 return None
-            return P.new_gen(result)
+            return new_gen(result)
 
         # Evaluate univariate polynomials, rational functions and
         # series using *args
@@ -5131,7 +5139,7 @@ cdef class gen:
             t0 = objtogen(args[0])
             sig_on()
             if t == t_POL or t == t_RFRAC:
-                return P.new_gen(poleval(self.g, t0.g))
+                return new_gen(poleval(self.g, t0.g))
             else:  # t == t_SER
                 if isexactzero(t0.g):
                     # Work around the fact that PARI currently doesn't
@@ -5143,11 +5151,11 @@ cdef class gen:
                         sig_off()
                         raise ZeroDivisionError('substituting 0 in Laurent series with negative valuation')
                     elif valp(self.g) == 0:
-                        return P.new_gen(polcoeff0(self.g, 0, -1))
+                        return new_gen(polcoeff0(self.g, 0, -1))
                     else:
                         sig_off()
                         return P.PARI_ZERO
-                return P.new_gen(gsubst(self.g, varn(self.g), t0.g))
+                return new_gen(gsubst(self.g, varn(self.g), t0.g))
 
         # Call substvec() using **kwds
         vstr = [k for k in kwds]               # Variables as Python strings
@@ -5158,7 +5166,7 @@ cdef class gen:
         cdef long i
         for i in range(nkwds):
             set_gel(v, i+1, pol_x(P.get_var(vstr[i])))
-        return P.new_gen(gsubstvec(self.g, v, t0.g))
+        return new_gen(gsubstvec(self.g, v, t0.g))
 
     def __call__(self, *args, **kwds):
         """
@@ -5252,9 +5260,9 @@ cdef class gen:
         >>> pol.factorpadic(5,3)
         [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
         """
-        cdef gen t0 = objtogen(p)
+        cdef Gen t0 = objtogen(p)
         sig_on()
-        return P.new_gen(factorpadic(self.g, t0.g, r))
+        return new_gen(factorpadic(self.g, t0.g, r))
 
     def poldegree(self, var=-1):
         """
@@ -5274,7 +5282,7 @@ cdef class gen:
         cdef pari_longword t
         sig_on()
         t = isirreducible(self.g)
-        P.clear_stack()
+        clear_stack()
         return t != 0
 
     def polroots(self, unsigned long precision=0):
@@ -5283,12 +5291,12 @@ cdef class gen:
         as modified by Gourdon.
         """
         sig_on()
-        return P.new_gen(cleanroots(self.g, prec_bits_to_words(precision)))
+        return new_gen(cleanroots(self.g, prec_bits_to_words(precision)))
 
     def rnfisnorm(self, T, long flag=0):
-        cdef gen t0 = objtogen(T)
+        cdef Gen t0 = objtogen(T)
         sig_on()
-        return P.new_gen(rnfisnorm(t0.g, self.g, flag))
+        return new_gen(rnfisnorm(t0.g, self.g, flag))
 
     def ncols(self):
         """
@@ -5355,7 +5363,7 @@ cdef class gen:
         Mat([1, 2, 3])
         """
         sig_on()
-        return P.new_gen(gtrans(self.g)).Mat()
+        return new_gen(gtrans(self.g)).Mat()
 
     def lllgram(self):
         return self.qflllgram(0)
@@ -5391,13 +5399,13 @@ cdef class gen:
         """
         # PARI 2.7 always returns a t_VECSMALL, but for backwards
         # compatibility, we keep returning a t_VEC (unless flag & 2)
-        cdef gen t0 = objtogen(B)
+        cdef Gen t0 = objtogen(B)
         cdef GEN r
         sig_on()
         r = qfrep0(self.g, t0.g, flag & 1)
         if (flag & 2) == 0:
             r = vecsmall_to_vec(r)
-        return P.new_gen(r)
+        return new_gen(r)
 
     def matkerint(self, flag=0):
         """
@@ -5419,7 +5427,7 @@ cdef class gen:
         [1; -2]
         """
         sig_on()
-        return P.new_gen(matkerint0(self.g, flag))
+        return new_gen(matkerint0(self.g, flag))
 
     def factor(self, pari_longword limit=-1, proof=None):
         """
@@ -5508,7 +5516,7 @@ cdef class gen:
                 g = boundfact(self.g, limit)
             else:
                 g = factor(self.g)
-            return P.new_gen(g)
+            return new_gen(g)
         finally:
             factor_proven = saved_factor_proven
 
@@ -5518,7 +5526,7 @@ cdef class gen:
     def __abs__(self):
         return self.abs()
 
-    def nextprime(gen self, bint add_one=0):
+    def nextprime(Gen self, bint add_one=0):
         """
         nextprime(x): smallest pseudoprime greater than or equal to `x`.
         If ``add_one`` is non-zero, return the smallest pseudoprime
@@ -5546,8 +5554,8 @@ cdef class gen:
         """
         sig_on()
         if add_one:
-            return P.new_gen(nextprime(gaddsg(1, self.g)))
-        return P.new_gen(nextprime(self.g))
+            return new_gen(nextprime(gaddsg(1, self.g)))
+        return new_gen(nextprime(self.g))
 
     def change_variable_name(self, var):
         """
@@ -5607,7 +5615,7 @@ cdef class gen:
         if typ(self.g) != t_POL and typ(self.g) != t_SER:
             raise TypeError("set_variable() only works for polynomials or power series")
         # Copy self and then change the variable in place
-        cdef gen newg = P.new_gen_noclear(self.g)
+        cdef Gen newg = new_gen_noclear(self.g)
         setvarn(newg.g, n)
         return newg
 
@@ -5665,11 +5673,11 @@ cdef class gen:
         >>> L.bnf_get_cyc()
         [2]
         """
-        cdef gen t0 = objtogen(z)
+        cdef Gen t0 = objtogen(z)
         sig_on()
-        return P.new_gen(gsubst(self.g, gvar(self.g), t0.g))
+        return new_gen(gsubst(self.g, gvar(self.g), t0.g))
 
-    def type(gen self):
+    def type(Gen self):
         """
         Return the PARI type of self as a string.
 
@@ -5743,15 +5751,15 @@ cdef class gen:
         P(self[i]) = ya[i] for all i). Also return an error estimate on the
         returned value.
         """
-        cdef gen t0 = objtogen(ya)
-        cdef gen t1 = objtogen(x)
+        cdef Gen t0 = objtogen(ya)
+        cdef Gen t1 = objtogen(x)
         cdef GEN dy, g
         sig_on()
         g = polint(self.g, t0.g, t1.g, &dy)
-        dif = P.new_gen_noclear(dy)
-        return P.new_gen(g), dif
+        dif = new_gen_noclear(dy)
+        return new_gen(g), dif
 
-    def ellwp(gen self, z='z', long n=20, long flag=0, unsigned long precision=0):
+    def ellwp(Gen self, z='z', long n=20, long flag=0, unsigned long precision=0):
         """
         Return the value or the series expansion of the Weierstrass
         `P`-function at `z` on the lattice `self` (or the lattice
@@ -5832,7 +5840,7 @@ cdef class gen:
         >>> E.ellwp(1, flag=1)
         [13.9658695257485, 50.5619300880073]
         """
-        cdef gen t0 = objtogen(z)
+        cdef Gen t0 = objtogen(z)
         cdef GEN g0 = t0.g
 
         # Emulate toser_i() but with given precision
@@ -5841,9 +5849,9 @@ cdef class gen:
             g0 = RgX_to_ser(g0, n+4)
         elif typ(g0) == t_RFRAC:
             g0 = rfrac_to_ser(g0, n+4)
-        return P.new_gen(ellwp0(self.g, g0, flag, prec_bits_to_words(precision)))
+        return new_gen(ellwp0(self.g, g0, flag, prec_bits_to_words(precision)))
 
-    def debug(gen self, long depth = -1):
+    def debug(Gen self, long depth = -1):
         r"""
         Show the internal structure of self (like the ``\x`` command in gp).
 
@@ -5882,7 +5890,7 @@ cdef class gen:
 
         INPUT:
 
-        -  ``x`` - gen
+        -  ``x`` - Gen
 
         OUTPUT: Python integer
 
@@ -5956,7 +5964,7 @@ cdef class gen:
         """
         deprecation(15767, 'bernvec() is deprecated, use repeated calls to bernfrac() instead')
         sig_on()
-        return P.new_gen(bernvec(x))
+        return new_gen(bernvec(x))
 
     bezoutres = deprecated_function_alias(18203, gen_auto.polresultantext)
 
@@ -5973,9 +5981,9 @@ cdef class gen:
         return gen_auto.rnfpolredabs(*args, **kwds)
 
 
-cpdef gen objtogen(s):
+cpdef Gen objtogen(s):
     """
-    Convert any Sage/Python object to a PARI gen.
+    Convert any Sage/Python object to a PARI Gen.
 
     For Sage types, this uses the `_pari_()` method on the object.
     Basic Python types like ``int`` are converted directly. For other
@@ -6115,9 +6123,9 @@ cpdef gen objtogen(s):
     """
     cdef GEN g
     cdef Py_ssize_t length, i
-    cdef gen v
+    cdef Gen v
 
-    if isinstance(s, gen):
+    if isinstance(s, Gen):
         return s
     try:
         return s._pari_()
@@ -6130,9 +6138,9 @@ cpdef gen objtogen(s):
         sig_on()
         g = gp_read_str(<bytes>s.encode())
         if g == gnil:
-            P.clear_stack()
+            clear_stack()
             return None
-        return P.new_gen(g)
+        return new_gen(g)
     # This generates slightly more efficient code than
     # isinstance(s, (int, long))
     if PyInt_Check(s) | PyLong_Check(s):
@@ -6141,13 +6149,13 @@ cpdef gen objtogen(s):
         return P.PARI_ONE if s else P.PARI_ZERO
     if isinstance(s, float):
         sig_on()
-        return P.new_gen(dbltor(PyFloat_AS_DOUBLE(s)))
+        return new_gen(dbltor(PyFloat_AS_DOUBLE(s)))
     if isinstance(s, complex):
         sig_on()
         g = cgetg(3, t_COMPLEX)
         set_gel(g, 1, dbltor(PyComplex_RealAsDouble(s)))
         set_gel(g, 2, dbltor(PyComplex_ImagAsDouble(s)))
-        return P.new_gen(g)
+        return new_gen(g)
 
     if isinstance(s, iterable_types):
         length = len(s)
@@ -6166,17 +6174,17 @@ cpdef gen objtogen(s):
     return objtogen(str(s))
 
 IF SAGE:
-    cpdef gentoobj(gen z, locals={}):
+    cpdef gentoobj(Gen z, locals={}):
         """
-        Convert a PARI gen to a Sage/Python object.
+        Convert a PARI Gen to a Sage/Python object.
         
-        See the ``python`` method of :class:`gen` for documentation and
+        See the ``python`` method of :class:`Gen` for documentation and
         examples.
         """
         cdef GEN g = z.g
         cdef long t = typ(g)
         cdef long tx, ty
-        cdef gen real, imag
+        cdef Gen real, imag
         cdef Py_ssize_t i, j, nr, nc
     
         if t == t_INT:

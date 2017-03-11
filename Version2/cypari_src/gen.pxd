@@ -20,10 +20,10 @@ ELSE:
         pass
 
 @cython.final
-cdef class gen(gen_base):
+cdef class Gen(gen_base):
     pass
 
-cpdef gen objtogen(s)
+cpdef Gen objtogen(s)
 
 
 IF SAGE == False:
@@ -31,32 +31,34 @@ IF SAGE == False:
     cpdef long prec_words_to_bits(long prec_in_words)
     cpdef long default_bitprec(long bitprec=*)
 
-    cdef class PariInstance_auto:
+    cdef class Pari_auto:
         pass
-    cdef class PariInstance_base(PariInstance_auto):
+    cdef class Pari_base(Pari_auto):
         pass
     
     @cython.final
-    cdef class PariInstance(PariInstance_base):
+    cdef class Pari(Pari_base):
         cdef long _real_precision
-        cdef readonly gen PARI_ZERO, PARI_ONE, PARI_TWO
-        cpdef gen zero(self)
-        cpdef gen one(self)
-        cdef inline gen new_gen(self, GEN x)
-        cdef inline gen new_gen_noclear(self, GEN x)
-        cdef gen new_gen_from_int(self, int value)
-        cdef gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)
-        cdef inline void clear_stack(self)
-        cdef gen double_to_gen_c(self, double)
+        cdef readonly Gen PARI_ZERO, PARI_ONE, PARI_TWO
+        cpdef Gen zero(self)
+        cpdef Gen one(self)
+        cdef Gen new_gen_from_int(self, int value)
+        cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)
+        cdef Gen double_to_gen_c(self, double)
         cdef GEN double_to_GEN(self, double)
-        cdef GEN deepcopy_to_python_heap(self, GEN x, pari_sp* address)
-        cdef gen new_ref(self, GEN g, gen parent)
-        cdef gen _empty_vector(self, long n)
+        cdef Gen new_ref(self, GEN g, Gen parent)
+        cdef Gen _empty_vector(self, long n)
         cdef long get_var(self, v) except -2
         cpdef _real_coerced_to_bits_prec(self, double x, long bits)
         cdef _UI_callback
     
-    cdef PariInstance pari_instance
+    cdef Pari pari_instance
+
+    # stack.pyx
+    cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address)
+    cdef inline Gen new_gen(GEN x)
+    cdef inline Gen new_gen_noclear(GEN x)
+    cdef inline void clear_stack()
 
     cdef void _pari_init_error_handling()
     cdef int _pari_err_handle(GEN E) except 0
