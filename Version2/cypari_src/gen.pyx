@@ -178,13 +178,6 @@ cdef class Gen:
             [1, 2; 3, 4]
             sage: pari('Str(hello)')
             "hello"
-
-        >>> pari('vector(5,i,i)')
-        [1, 2, 3, 4, 5]
-        >>> pari('[1,2;3,4]')
-        [1, 2; 3, 4]
-        >>> pari('Str(hello)')
-        "hello"
         """
         cdef char *c
         sig_on()
@@ -1981,7 +1974,7 @@ cdef class Gen:
             sage: w = v.python_list_small()
             sage: w
             [1, 2, 3, 10, 102, 10]
-             sage: isinstance(w[0], int)
+            sage: isinstance(w[0], int)
             True
 
         >>> v=pari([1,2,3,10,102,10]).Vecsmall()

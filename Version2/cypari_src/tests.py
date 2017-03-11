@@ -662,7 +662,6 @@ Transcendental functions::
     Traceback (most recent call last):
     ...
     cypari_src.gen.PariError: domain error in gamma: argument = non-positive integer
-
     >>> pari(2).gammah()
     1.32934038817914
     >>> pari(5).gammah()
@@ -1543,7 +1542,6 @@ General number fields::
     Traceback (most recent call last):
     ...
     cypari_src.gen.PariError: incorrect type in checknf [please apply nfinit()] (t_REAL)
-
     >>> F = pari('y^3-2').nfinit()
     >>> G = pari('y^3-2').nfinit()
     >>> F.nfisisom(G)
