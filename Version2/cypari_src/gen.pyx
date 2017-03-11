@@ -1107,9 +1107,13 @@ cdef class Gen:
             sage: p[2]
             3
             sage: p[100]
-            0
+            Traceback (most recent call last):
+            ...
+            IndexError: index out of range
             sage: p[-1]
-            0
+            Traceback (most recent call last):
+            ...
+            IndexError: index out of range
             sage: q = pari('x^2 + 3*x^3 + O(x^6)')
             sage: q[3]
             3
@@ -1189,9 +1193,13 @@ cdef class Gen:
         >>> p[2]
         3
         >>> p[100]
-        0
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
         >>> p[-1]
-        0
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
         >>> q = pari('x^2 + 3*x^3 + O(x^6)')
         >>> q[3]
         3
