@@ -56,16 +56,16 @@ cdef extern from "longintrepr.h":
 
 cpdef integer_to_gen(x):
     """
-    Convert a Python ``int`` or ``long`` to a PARI ``gen`` of type
+    Convert a Python ``int`` or ``long`` to a PARI ``Gen`` of type
     ``t_INT``.
 
     EXAMPLES::
 
         sage: from sage.libs.pari.convert import integer_to_gen
-        sage: a = integer_to_gen(int(12345)); a; isinstance(a, gen)
+        sage: a = integer_to_gen(int(12345)); a; isinstance(a, Gen)
         12345
         True
-        sage: a = integer_to_gen(123456789012345678901234567890); a; isinstance(a, gen)
+        sage: a = integer_to_gen(123456789012345678901234567890); a; isinstance(a, Gen)
         123456789012345678901234567890
         True
         sage: integer_to_gen(float(12345))
@@ -83,21 +83,21 @@ cpdef integer_to_gen(x):
     IF PYTHON_MAJOR < 3:
         if isinstance(x, int):
             sig_on()
-            return P.new_gen(stoi(PyInt_AS_LONG(x)))
+            return new_gen(stoi(PyInt_AS_LONG(x)))
         elif isinstance(x, long):
             sig_on()
-            return P.new_gen(PyLong_AsGEN(x))
+            return new_gen(PyLong_AsGEN(x))
     ELSE:
         if isinstance(x, int):
             sig_on()
-            return P.new_gen(PyLong_AsGEN(x))
+            return new_gen(PyLong_AsGEN(x))
     
     raise TypeError("integer_to_gen() needs an int or long argument, not {}".format(type(x).__name__))
 
 
-cpdef gen_to_integer(gen x):
+cpdef gen_to_integer(Gen x):
     """
-    Convert a PARI ``gen`` to a Python ``int`` or ``long``.
+    Convert a PARI ``Gen`` to a Python ``int`` or ``long``.
 
     INPUT:
 
