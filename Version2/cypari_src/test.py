@@ -21,6 +21,8 @@ class DocTestParser(doctest.DocTestParser):
         else:
             string = regex64.sub('', string)
             string = regex32.sub('\g<1>\n', string)
+        regex_random = re.compile(r'(\n.*?)\s+# random\s*$', re.MULTILINE)
+        string = regex_random.sub('', string)
         # Adjust the name of the PariError exception
         if sys.version_info.major < 3:
             ## Why does this fail with re.MULTILINE????
@@ -46,7 +48,7 @@ for cls in (gen.Gen, gen.Pari):
     for key, value in cls.__dict__.items():
         docstring = getattr(cls.__dict__[key], '__doc__')
         if isinstance(docstring, str):
-            if docstring.find('Sage:') >= 0 and docstring.find('>>>') < 0:
+            if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 gen.__test__['%s.%s'%(cls.__name__, key)] = docstring
 
 def runtests(verbose=False):

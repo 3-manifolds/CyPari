@@ -6,17 +6,17 @@ include "sage.pxi"
 cdef class RingElement:
     pass
 
-cdef class gen_auto(RingElement):
+cdef class Gen_auto(RingElement):
     cdef GEN g
     cdef pari_sp b
     cdef dict refers_to
 
 IF SAGE:
-    cdef class gen_base(gen_auto):
+    cdef class gen_base(Gen_auto):
         cpdef int _cmp_(left, Element right) except -2
         cpdef _richcmp_(left, Element right, int op)
 ELSE:
-    cdef class gen_base(gen_auto):
+    cdef class gen_base(Gen_auto):
         pass
 
 @cython.final
@@ -36,6 +36,7 @@ IF SAGE == False:
     cdef class Pari_base(Pari_auto):
         pass
     
+    # pari_instance.pyx
     @cython.final
     cdef class Pari(Pari_base):
         cdef long _real_precision
@@ -46,12 +47,11 @@ IF SAGE == False:
         cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)
         cdef Gen double_to_gen_c(self, double)
         cdef GEN double_to_GEN(self, double)
-        cdef Gen new_ref(self, GEN g, Gen parent)
         cdef Gen _empty_vector(self, long n)
-        cdef long get_var(self, v) except -2
         cpdef _real_coerced_to_bits_prec(self, double x, long bits)
         cdef _UI_callback
-    
+
+    cdef long get_var(v) except -2
     cdef Pari pari_instance
 
     # stack.pyx

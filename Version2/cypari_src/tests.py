@@ -754,8 +754,7 @@ Linear algebra::
     >>> pari('[1,2,3; 4,5,6;  7,8,9]').matadjoint()
     [-3, 6, -3; 6, -12, 6; -3, 6, -3]
     >>> pari('[a,b,c; d,e,f; g,h,i]').matadjoint()
-    [e*i - h*f, -b*i + h*c, (f*b - e*c); -d*i + g*f, a*i - g*c, (-f*a + d*c); (h*d - g*e), (-h*a + g*b), (e*a - d*b)]
-
+    [(i*e - h*f), (-i*b + h*c), (f*b - e*c); (-i*d + g*f), i*a - g*c, -f*a + d*c; (h*d - g*e), -h*a + g*b, e*a - d*b]
     >>> pari('[1,1;1,-1]').matsolve(pari('[1;0]'))
     [1/2; 1/2]
 
@@ -1381,17 +1380,6 @@ General number fields::
     >>> G.galoisisnormal(L[2]) == 0
     True
 
-    sage: F = QuadraticField(5, 'alpha')
-    sage: nf = F._pari_()
-    sage: P = F.ideal(F.gen())
-    sage: Q = F.ideal(2)
-    sage: moduli = pari.matrix(2,2,[P.pari_prime(),4,Q.pari_prime(),4])
-    sage: residues = pari.vector(2,[0,1])
-    sage: b = F(nf.idealchinese(moduli,residues))
-    sage: b.valuation(P) >= 4
-    True
-    sage: (b-1).valuation(Q) >= 2
-    True
     >>> nf = pari('y^2 - 5').nfinit()
     >>> P = nf.idealprimedec(5)[0]
     >>> Q = nf.idealprimedec(2)[0]
@@ -1404,8 +1392,6 @@ General number fields::
     >>> nf.idealval(b-1, Q) >= 2
     True
 
-    sage: F = NumberField(x^3-2, 'alpha')
-    sage: nf = F._pari_()
     >>> nf = pari('x^3 - 2').nfinit()
     >>> x = pari('[2, -2, 2]~')
     >>> y = pari('[4, -4, 4]~')
@@ -1416,9 +1402,6 @@ General number fields::
     >>> nf.idealcoprime(x, y)
     [-1/2, 0, 1/2]~
 
-    sage: R.<x> = PolynomialRing(QQ)
-    sage: K.<a> = NumberField(x^2 + 1)
-    sage: L = K.pari_nf().ideallist(100)
     >>> K = pari('x^2 + 1').nfinit()
     >>> L = K.ideallist(100)
     >>> L[0]   # One ideal of norm 1.
@@ -1426,34 +1409,24 @@ General number fields::
     >>> L[64]  # 4 ideals of norm 65.
     [[65, 8; 0, 1], [65, 47; 0, 1], [65, 18; 0, 1], [65, 57; 0, 1]]
 
-    sage: F = NumberField(x^3-2, 'alpha')
-    sage: nf = F._pari_()
-    >>> nf = pari('x^3-2').nfinit()
+     >>> nf = pari('x^3-2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> bid = nf.idealstar(I)
     >>> nf.ideallog(5, bid)
     [25]~
 
-    sage: K.<i> = QuadraticField(-1)
-    sage: F = pari(K).idealprimedec(5); F
-    >>> K = pari('x^2 + 1').nfinit()
+     >>> K = pari('x^2 + 1').nfinit()
     >>> F = K.idealprimedec(5); F
     [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]]]
     >>> F[0].pr_get_p()
     5
 
-    sage: x = polygen(ZZ)
-    sage: F = NumberField(x^3 - 2, 'alpha')
-    sage: nf = F._pari_()
-    >>> nf = pari('x^3 - 2').nfinit()
+     >>> nf = pari('x^3 - 2').nfinit()
     >>> I = pari('[1, -1, 2]~')
     >>> nf.idealstar(I)
     [[[43, 9, 5; 0, 1, 0; 0, 0, 1], [0]], [42, [42]], Mat([[43, [9, 1, 0]~, 1, 1, [-5, 2, -18; -9, -5, 2; 1, -9, -5]], 1]), [[[[[42], [3], [3], [Vecsmall([])], 1, [43, 9, 5; 0, 1, 0; 0, 0, 1]]]], [[], [], [], Vecsmall([])], Vecsmall([0])], Mat(1)]
 
-    sage: x = polygen(QQ)
-    sage: K.<a> = NumberField(x^3 - 17)
-    sage: Kpari = K.pari_nf()
-    >>> Kpari = pari('y^3 - 17').nfinit()
+     >>> Kpari = pari('y^3 - 17').nfinit()
     >>> Kpari.getattr('zk')
     [1, 1/3*y^2 - 1/3*y + 1/3, y]
     >>> Kpari.nfbasistoalg(42)
@@ -1469,15 +1442,6 @@ General number fields::
     >>> y = a + 1
     >>> k.nfeltdiveuc(x, y)
     [2, -2]~
-
-    sage: x = polygen(ZZ)
-    sage: k.<a> = NumberField(x^2 + 5)
-    sage: I = k.ideal(a)
-    sage: kp = pari(k)
-    sage: kp.nfeltreduce(12, I.pari_hnf())
-    [2, 0]~
-    sage: 12 - k(kp.nfeltreduce(12, I.pari_hnf())) in I
-    True
 
     >>> x = pari('x')
     >>> kp = pari('x^2 + 5').nfinit()
@@ -1508,9 +1472,6 @@ General number fields::
     >>> P = K.idealprimedec(23)[0] # Prime ideal above 23, ramified
     >>> pari(K).nfhilbert(t, t + 2, P) == 1
     True
-
-    sage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
-    sage: Fp.nfhnf([pari(A),[pari(P) for P in I]])
 
     >>> Fp = pari('a^2-a-1').nfinit()
     >>> a = pari('a')
