@@ -36,7 +36,6 @@ include "sage.pxi"
 
 from cpython.int cimport PyInt_AS_LONG
 from libc.limits cimport LONG_MIN, LONG_MAX
-from libc.math cimport INFINITY
 IF SAGE:
     pass
     # comment these out to avoid Cython 0.25 bug
@@ -627,9 +626,9 @@ cpdef gen_to_python(Gen z):
         return [[gen_to_python(z[i,j]) for j in range(nc)] for i in range(nr)]
     elif t == t_INFINITY:
         if inf_get_sign(g) >= 0:
-            return INFINITY
+            return float('inf')
         else:
-            return -INFINITY
+            return -float('inf')
     elif t == t_STR:
         return str(z)
     else:
