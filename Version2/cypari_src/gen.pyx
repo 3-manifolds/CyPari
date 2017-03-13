@@ -216,6 +216,13 @@ cdef class Gen(gen_base):
         """
         Iterate over the components of ``self``.
 
+        The items in the iteration are of type :class:`Gen` with the
+        following exceptions:
+
+        - items of a ``t_VECSMALL`` are of type ``int``
+
+        - items of a ``t_STR`` are of type ``str``
+
         EXAMPLES:
 
         We can iterate over PARI vectors or columns::
@@ -270,6 +277,20 @@ cdef class Gen(gen_base):
             ...
             PariError: incorrect type in gtovec (t_CLOSURE)
 
+        For ``t_VECSMALL``, the items are Python integers::
+
+            sage: v = pari("Vecsmall([1,2,3,4,5,6])")
+            sage: list(v)
+            [1, 2, 3, 4, 5, 6]
+            sage: type(list(v)[0]).__name__
+            'int'
+
+        For ``t_STR``, the items are Python strings::
+
+            sage: v = pari('"hello"')
+            sage: list(v)
+            ['h', 'e', 'l', 'l', 'o']
+
         TESTS:
 
         The following are deprecated::
@@ -281,7 +302,9 @@ cdef class Gen(gen_base):
             doctest:...: DeprecationWarning: iterating a PARI 't_COMPLEX' is deprecated
             (1, 5)
         """
+        cdef long i
         cdef long t = typ(self.g)
+        cdef GEN x
 
         # First convert self to a vector type
         cdef Gen v
@@ -300,11 +323,19 @@ cdef class Gen(gen_base):
         elif is_scalar_t(t):
             msg = "PARI object of type {0} is not iterable".format(self.type())
             raise TypeError(msg)
+        elif t == t_VECSMALL:
+            # Special case: items of type int
+            x = self.g
+            return (x[i] for i in range(1, lg(x)))
+        elif t == t_STR:
+            # Special case: convert to str
+            return iter(String(GSTR(self.g)))
         else:
             v = self.Vec()
 
         # Now iterate over the vector v
-        return (new_ref(gel(v.g, i), v) for i in range(1, lg(v.g)))
+        x = v.g
+        return (new_ref(gel(x, i), v) for i in range(1, lg(x)))
 
     def list(self):
         """
