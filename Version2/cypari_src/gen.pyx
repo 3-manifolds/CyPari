@@ -139,7 +139,7 @@ cdef class Gen(gen_base):
     Cython extension class that models the PARI GEN type.
     """
     def __init__(self):
-        raise RuntimeError("PARI objects cannot be instantiated directly; use pari(x) to convert x to PARI")
+        raise RuntimeError("PARI objects cannot be instantiated directly; use Pari(x) to convert x to PARI")
 
     def __dealloc__(self):
         sig_free(<void*>self.b)
@@ -223,8 +223,8 @@ cdef class Gen(gen_base):
             [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
             sage: type(L)
             <... 'list'>
-            sage: type(L[0])
-            <type 'sage.libs.cypari2.gen.Gen'>
+            sage: isinstance(L[0], Gen)
+            True
 
         For polynomials, list() returns the list of coefficients::
 
@@ -259,6 +259,7 @@ cdef class Gen(gen_base):
         """
         EXAMPLES::
 
+            sage: from pickle import loads, dumps
             sage: f = pari('x^3 - 3')
             sage: loads(dumps(f)) == f
             True
@@ -431,9 +432,9 @@ cdef class Gen(gen_base):
 
             sage: pari(25) >> 3
             3
-            sage: pari(25/2) >> 2
+            sage: pari('25/2') >> 2
             25/8
-            sage: pari("x") >> 3
+            sage: pari('x') >> 3
             1/8*x
             sage: pari(1.0) >> 100
             7.88860905221012 E-31
@@ -452,9 +453,9 @@ cdef class Gen(gen_base):
 
             sage: pari(25) << 3
             200
-            sage: pari(25/32) << 2
+            sage: pari('25/32') << 2
             25/8
-            sage: pari("x") << 3
+            sage: pari('x') << 3
             8*x
             sage: pari(1.0) << 100
             1.26765060022823 E30
@@ -555,7 +556,7 @@ cdef class Gen(gen_base):
         polynomial::
 
             sage: y = pari.varhigher('y')
-            sage: L = K.rnfinit(y^2 - 5)
+            sage: L = K.rnfinit(y**2 - 5)
             sage: L.nf_get_pol()
             y^2 - 5
 
@@ -860,9 +861,13 @@ cdef class Gen(gen_base):
             sage: p[2]
             3
             sage: p[100]
-            0
+            Traceback (most recent call last):
+            ...
+            IndexError: index out of range
             sage: p[-1]
-            0
+            Traceback (most recent call last):
+            ...
+            IndexError: index out of range
             sage: q = pari('x^2 + 3*x^3 + O(x^6)')
             sage: q[3]
             3
@@ -1139,7 +1144,7 @@ cdef class Gen(gen_base):
 
             sage: v = pari(list(range(10))) ; v
             [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: v[:] = [20..29]
+            sage: v[:] = list(range(20, 30))
             sage: v
             [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
             sage: isinstance(v[0], Gen)
@@ -1383,7 +1388,7 @@ cdef class Gen(gen_base):
 
             sage: pari.primes(5).list_str()
             doctest:...: DeprecationWarning: the method list_str() is deprecated
-            See http://trac.sagemath.org/20219 for details.
+            doctest:...: See http://trac.sagemath.org/20219 for details.
             [2, 3, 5, 7, 11]
         """
         deprecation(20219, "the method list_str() is deprecated")
@@ -1420,9 +1425,9 @@ cdef class Gen(gen_base):
                 -36bb1e3929d1a8fe2802f083
             """
             cdef GEN x
-            cdef pari_longword lx
+            cdef int lx
             cdef GEN xp
-            cdef pari_longword w
+            cdef pari_ulongword w
             cdef char *s
             cdef char *sp
             cdef char *hexdigits
@@ -1435,9 +1440,9 @@ cdef class Gen(gen_base):
             if not signe(x):
                 return "0"
             lx = lgefint(x)-2  # number of words
-            size = lx*2*sizeof(pari_longword)
+            size = lx*2*sizeof(pari_ulongword)
             s = <char *>sig_malloc(size+2) # 1 char for sign, 1 char for '\0'
-            sp = s + size+1
+            sp = s + size + 1
             sp[0] = 0
             xp = int_LSW(x)
             for i from 0 <= i < lx:
@@ -1446,15 +1451,15 @@ cdef class Gen(gen_base):
                     sp = sp-1
                     sp[0] = hexdigits[w & 15]
                     w = w>>4
-                    xp = int_nextW(xp)
-                    # remove leading zeros!
+                xp = int_nextW(xp)
+            # remove leading zeros!
             while sp[0] == c'0':
                 sp = sp+1
             if signe(x) < 0:
                 sp = sp-1
                 sp[0] = c'-'
-                k = <object>sp
-                sig_free(s)
+            k = <object>sp
+            sig_free(s)
             return k
         
     def __int__(self):
@@ -1472,10 +1477,10 @@ cdef class Gen(gen_base):
             10
             sage: int(pari(-10))
             -10
-            sage: int(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            sage: int(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
+            sage: str(int(pari(123456789012345678901234567890)))
+            '123456789012345678901234567890'
+            sage: str(int(pari(-123456789012345678901234567890)))
+            '-123456789012345678901234567890'
             sage: int(pari(2**31-1))
             2147483647
             sage: int(pari(-2**31))
@@ -1486,7 +1491,7 @@ cdef class Gen(gen_base):
             2
             sage: int(pari(2**63-1)) == 9223372036854775807
             True
-            sage: int(pari(2^63+2)) == 9223372036854775810
+            sage: int(pari(2**63+2)) == 9223372036854775810
             True
         """
         return gen_to_integer(self)
@@ -1500,14 +1505,14 @@ cdef class Gen(gen_base):
  
             >>> from operator import index
             >>> i = pari(2)
-            >>> index(i)
+            >>> i.__index__()
             2
             >>> L = [0, 1, 2, 3, 4]
             >>> L[i]
             2
-            >>> print(index(pari("2^100")))
-            1267650600228229401496703205376
-            >>> index(pari("2.5"))
+            >>> pari("2^100").__index__() == 1267650600228229401496703205376
+            True
+            >>> pari("2.5").__index__()
             Traceback (most recent call last):
             ...
             TypeError: cannot coerce 2.50000000000000 (type t_REAL) to integer
@@ -1591,18 +1596,18 @@ cdef class Gen(gen_base):
 
         EXAMPLES::
 
-            sage: pari('389/17').python()
+            |sage: pari('389/17').python()
             389/17
-            sage: f = pari('(2/3)*x^3 + x - 5/7 + y'); f
+            |sage: f = pari('(2/3)*x^3 + x - 5/7 + y'); f
             2/3*x^3 + x + (y - 5/7)
-            sage: var('x,y')
+            |sage: var('x,y')
             (x, y)
-            sage: f.python({'x':x, 'y':y})
+            |sage: f.python({'x':x, 'y':y})
             2/3*x^3 + x + y - 5/7
 
         You can also use :meth:`.sage`, which is an alias::
 
-            sage: f.sage({'x':x, 'y':y})
+            |sage: f.sage({'x':x, 'y':y})
             2/3*x^3 + x + y - 5/7
 
         """
@@ -2725,6 +2730,7 @@ cdef class Gen(gen_base):
             -2
             sage: pari('O(2^10)')._valp()
             10
+
             sage: pari('x')._valp()   # random
             -35184372088832
         """
@@ -2758,7 +2764,7 @@ cdef class Gen(gen_base):
             sage: pari(18).bernreal()
             54.9711779448622
             sage: old_prec = pari.set_real_precision(192)
-            sage: pari(18).bernreal(precision=192).sage()
+            sage: pari(18).bernreal(precision=192)
             54.97117794486215538847117794486215538847117794486215538...
             sage: pari.set_real_precision(old_prec)
             192
@@ -4405,7 +4411,7 @@ cdef class Gen(gen_base):
 
         EXAMPLE::
 
-            sage: pari('[1/2, 1.0*I]').debug()  # random addresses
+            sage: pari('[1/2, 1.0*I]').debug()  # random
             [&=0000000004c5f010] VEC(lg=3):2200000000000003 0000000004c5eff8 0000000004c5efb0
               1st component = [&=0000000004c5eff8] FRAC(lg=3):0800000000000003 0000000004c5efe0 0000000004c5efc8
                 num = [&=0000000004c5efe0] INT(lg=3):0200000000000003 (+,lgefint=3):4000000000000003 0000000000000001
@@ -4499,7 +4505,7 @@ cdef Gen list_of_Gens_to_Gen(list s):
     TESTS::
 
         sage: from six.moves import range
-        sage: from sage.libs.cypari2.gen import objtogen
+        sage: from cypari.gen import objtogen
         sage: objtogen(range(10))
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         sage: objtogen(i**2 for i in range(5))
@@ -4582,14 +4588,17 @@ cpdef Gen objtogen(s):
         -5
         sage: pari(2**150)
         1427247692705959881058285969449495136382746624
+        sage: one = pari(complex(1,0)); one == pari('1')
+        True
+        sage: one.type()
+        't_COMPLEX'
+        sage: pari(complex(0, 1)) == pari('I')
+        True
+        sage: from math import sin, cos, pi
         sage: pari(float(pi))
         3.14159265358979
-        sage: one = pari(complex(1,0)); one, one.type()
-        (1.00000000000000, 't_COMPLEX')
-        sage: pari(complex(0, 1))
-        1.00000000000000*I
-        sage: pari(complex(exp(pi*I/4)))
-        0.707106781186548 + 0.707106781186548*I
+        sage: pari(complex(cos(pi/4), sin(pi/4)))
+        0.707106781186548 + 0.707106781186547*I
         sage: pari(False)
         0
         sage: pari(True)
@@ -4598,8 +4607,8 @@ cpdef Gen objtogen(s):
     Some commands are just executed without returning a value::
 
         sage: pari("dummy = 0; kill(dummy)")
-        sage: type(pari("dummy = 0; kill(dummy)"))
-        <type 'NoneType'>
+        sage: type(pari("dummy = 0; kill(dummy)")) == type(None)
+        True
 
     TESTS::
 

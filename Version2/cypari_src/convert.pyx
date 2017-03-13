@@ -61,7 +61,7 @@ cpdef integer_to_gen(x):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.convert import integer_to_gen
+        sage: from cypari.gen import integer_to_gen
         sage: a = integer_to_gen(int(12345)); a; isinstance(a, Gen)
         12345
         True
@@ -107,7 +107,7 @@ cpdef gen_to_integer(Gen x):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.convert import gen_to_integer
+        sage: from cypari.gen import gen_to_integer
         sage: a = gen_to_integer(pari("12345")); a; isinstance(a, int)
         12345
         True
@@ -144,6 +144,7 @@ cpdef gen_to_integer(Gen x):
         ....:     x = 3**i
         ....:     if int(pari(x)) != int(x):
         ....:         print(x)
+
         sage: gen_to_integer(pari("1.0 - 2^64")) == -18446744073709551615
         True
         sage: gen_to_integer(pari("1 - 2^64")) == -18446744073709551615
@@ -173,14 +174,14 @@ cpdef gen_to_integer(Gen x):
     cdef pari_ulongword u
     cdef pari_longword l
     if lgefint(g) == 3:  # abs(x) fits in a ulong
-        u = g[2]         # u = abs(x)
+        u = g[2]     # u = abs(x)
         # Check that <long>(u) or <long>(-u) does not overflow
         if signe(g) >= 0:
             if u <= LONG_MAX:
-                return <long>u
+                return <long>(u)
         else:
-            if u <= -<float>LONG_MIN:
-                return -<long>u
+            if u <= -<ulong>LONG_MIN:
+                return <long>(-u)
         # Result does not fit in a C long or we are in Python 3
     return PyLong_FromGEN(g)
 
