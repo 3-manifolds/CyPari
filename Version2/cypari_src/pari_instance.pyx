@@ -28,23 +28,11 @@ AUTHORS:
 - Jeroen Demeyer (2015-03-17): automatically generate methods from
   ``pari.desc`` (:trac:`17631` and :trac:`17860`)
 
-- Marc Culler and Nathan Dunfield (2016): adaptation for the standalone
-  CyPari module.
+- Luca De Feo (2016-09-06): Separate Sage-specific components from
+  generic C-interface in ``Pari`` (:trac:`20241`)
 
-#*****************************************************************************
-#       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
-#                     ???? Justin Walker
-#                     ???? Gonzalo Tornaria
-#                     2010 Robert Bradshaw <robertwb@math.washington.edu>
-#                     2013 Peter Bruin
-#                     2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
-#                     2016 Marc Culler and Nathan Dunfield
-#
-#  Distributed under the terms of the GNU General Public License (GPL)
-#  as published by the Free Software Foundation; either version 2 of
-#  the License, or (at your option) any later version.
-#                  http://www.gnu.org/licenses/
-#*****************************************************************************
+- Marc Culler and Nathan Dunfield (2016-2017): adaptation for the standalone
+  CyPari module.
 
 EXAMPLES::
 
@@ -62,102 +50,167 @@ EXAMPLES::
 
 Arithmetic operations cause all arguments to be converted to PARI::
 
-    sage: isinstance(pari(1) + 1, gen)
-    True
-    sage: isinstance(1 + pari(1), gen)
-    True
+    sage: type(pari(1) + 1)
+    <type 'sage.libs.cypari2.gen.Gen'>
+    sage: type(1 + pari(1))
+    <type 'sage.libs.cypari2.gen.Gen'>
 
-GUIDE TO REAL PRECISION AND THE PARI LIBRARY
+Guide to real precision in the PARI interface
+=============================================
 
-The default real precision in communicating with the PARI library
-is the same as the default Sage real precision, which is 53 bits.
-Inexact Pari objects are therefore printed by default to 15 decimal
-digits (even if they are actually more precise).
+In the PARI interface, "real precision" refers to the precision of real
+numbers, so it is the floating-point precision. This is a non-trivial
+issue, since there are various interfaces for different things.
 
-Default precision example (53 bits, 15 significant decimals)::
+Internal representation of floating-point numbers in PARI
+---------------------------------------------------------
 
-    sage: a = pari(1.23); a
-    1.23000000000000
-    sage: a.sin()
-    0.942488801931698
+Real numbers in PARI have a precision associated to them, which is
+always a multiple of the CPU wordsize. So, it is a multiple of 32
+of 64 bits. When converting a ``float`` from Python to PARI, the
+``float`` has 53 bits of precision which is rounded up to 64 bits
+in PARI::
 
-Example with custom precision of 200 bits (60 significant
-decimals)::
+    sage: x = 1.0
+    sage: pari(x)
+    1.00000000000000
+    sage: pari(x).bitprecision()
+    64
 
-    sage: R = RealField(200)
-    sage: a = pari(R(1.23)); a   # only 15 significant digits printed    
-    1.23000000000000
-    sage: R(a)         # but the number is known to precision of 200 bits
-    1.2300000000000000000000000000000000000000000000000000000000
-    sage: a.sin()      # only 15 significant digits printed
-    0.942488801931698
-    sage: R(a.sin())   # but the number is known to precision of 200 bits
-    0.94248880193169751002382356538924454146128740562765030213504
+It is possible to change the precision of a PARI object with the
+:meth:`Gen.bitprecision` method::
 
-It is possible to change the number of printed decimals::
-
-    sage: R = RealField(200)    # 200 bits of precision in computations
-    sage: old_prec = pari.set_real_precision(60)  # 60 decimals printed
-    sage: a = pari(R(1.23)); a
-    1.23000000000000000000000000000000000000000000000000000000000
-    sage: a.sin()
-    0.942488801931697510023823565389244541461287405627650302135038
-    sage: pari.set_real_precision(old_prec)  # restore the default printing behavior
-    60
-
-Unless otherwise indicated in the docstring, most Pari functions
-that return inexact objects use the precision of their arguments to
-decide the precision of the computation. However, if some of these
-arguments happen to be exact numbers (integers, rationals, etc.),
-an optional parameter indicates the precision (in bits) to which
-these arguments should be converted before the computation. If this
-precision parameter is missing, the default precision of 53 bits is
-used. The following first converts 2 into a real with 53-bit
-precision::
-
-    sage: R = RealField()
-    sage: R(pari(2).sin())
-    0.909297426825682
-
-We can ask for a better precision using the optional parameter::
-
-    sage: R = RealField(150)
-    sage: R(pari(2).sin(precision=150))
-    0.90929742682568169539601986591174484270225497
-
-Warning regarding conversions Sage - Pari - Sage: Some care must be
-taken when juggling inexact types back and forth between Sage and
-Pari. In theory, calling p=pari(s) creates a Pari object p with the
-same precision as s; in practice, the Pari library's precision is
-word-based, so it will go up to the next word. For example, a
-default 53-bit Sage real s will be bumped up to 64 bits by adding
-bogus 11 bits. The function p.python() returns a Sage object with
-exactly the same precision as the Pari object p. So
-pari(s).python() is definitely not equal to s, since it has 64 bits
-of precision, including the bogus 11 bits. The correct way of
-avoiding this is to convert pari(s).python() back into a domain with
-the right precision. This has to be done by the user (or by Sage
-functions that use Pari library functions in gen.pyx). For
-instance, if we want to use the Pari library to compute sqrt(pi)
-with a precision of 100 bits::
-
-    sage: R = RealField(100)
-    sage: s = R(pi); s
-    3.1415926535897932384626433833
-    sage: p = pari(s).sqrt()
-    sage: x = p.python(); x  # wow, more digits than I expected!
-    1.7724538509055160272981674833410973484
-    sage: x.prec()           # has precision 'improved' from 100 to 128?
+    sage: p = pari(1.0)
+    sage: p.bitprecision()
+    64
+    sage: p = p.bitprecision(100)
+    sage: p.bitprecision()   # Rounded up to a multiple of the wordsize
     128
-    sage: x == RealField(128)(pi).sqrt()  # sadly, no!
-    False
-    sage: R(x)               # x should be brought back to precision 100
-    1.7724538509055160272981674833
-    sage: R(x) == s.sqrt()
-    True
 
-Elliptic curves and precision: If you are working with elliptic
-curves, you should set the precision for each method::
+Beware that these extra bits are just bogus. For example, this will not
+give a more precision approximation of ``math.pi``:
+
+    sage: p = pari(math.pi)
+    sage: pari("Pi") - p
+    1.225148... E-16
+    sage: p = p.bitprecision(1000)
+    sage: pari("Pi") - p
+    1.225148... E-16
+
+Another way to create numbers with many bits is to use a string with
+many digits::
+
+    sage: p = pari("3.1415926535897932384626433832795028842")
+    sage: p.bitprecision()
+    128
+
+.. _pari_output_precision:
+
+Output precision for printing
+-----------------------------
+
+Even though PARI reals have a precision, not all significant bits are
+printed by default. The maximum number of digits when printing a PARI
+real can be set using the methods
+:meth:`Pari.set_real_precision_bits` or
+:meth:`Pari.set_real_precision`.
+Note that this will also change the input precision for strings,
+see :ref:`pari_input_precision`.
+
+We create a very precise approximation of pi and see how it is printed
+in PARI::
+
+    sage: pi = pari.pi(precision=1024)
+
+The default precision is 15 digits::
+
+    sage: pi
+    3.14159265358979
+
+With a different precision, we see more digits. Note that this does not
+affect the object ``pi`` at all, it only affects how it is printed::
+
+    sage: _ = pari.set_real_precision(50)
+    sage: pi
+    3.1415926535897932384626433832795028841971693993751
+
+Back to the default::
+
+    sage: _ = pari.set_real_precision(15)
+    sage: pi
+    3.14159265358979
+
+.. _pari_input_precision:
+
+Input precision for function calls
+----------------------------------
+
+When we talk about precision for PARI functions, we need to distinguish
+three kinds of calls:
+
+1. Using the string interface, for example ``pari("sin(1)")``.
+
+2. Using the library interface with exact inputs, for example
+   ``pari(1).sin()``.
+
+3. Using the library interface with inexact inputs, for example
+   ``pari(1.0).sin()``.
+
+In the first case, the relevant precision is the one set by the methods
+:meth:`Pari.set_real_precision_bits` or
+:meth:`Pari.set_real_precision`::
+
+    sage: pari.set_real_precision_bits(150)
+    sage: pari("sin(1)")
+    0.841470984807896506652502321630298999622563061
+    sage: pari.set_real_precision_bits(53)
+    sage: pari("sin(1)")
+    0.841470984807897
+
+In the second case, the precision can be given as the argument
+``precision`` in the function call, with a default of 53 bits.
+The real precision set by
+:meth:`Pari.set_real_precision_bits` or
+:meth:`Pari.set_real_precision` does not affect the call
+(but it still affects printing).
+
+As explained before, the precision increases to a multiple of the
+wordsize. ::
+
+    sage: a = pari(1).sin(precision=180); a
+    0.841470984807897
+    sage: a.bitprecision()
+    192
+    sage: b = pari(1).sin(precision=40); b
+    0.841470984807897
+    sage: b.bitprecision()
+    64
+    sage: c = pari(1).sin(); c
+    0.841470984807897
+    sage: c.bitprecision()
+    64
+    sage: pari.set_real_precision_bits(90)
+    sage: print(a); print(b); print(c)
+    0.841470984807896506652502322
+    0.8414709848078965067
+    0.8414709848078965067
+
+In the third case, the precision is determined only by the inexact
+inputs and the ``precision`` argument is ignored::
+
+    sage: pari(1.0).sin(precision=180).bitprecision()
+    64
+    sage: pari(1.0).sin(precision=40).bitprecision()
+    64
+    sage: pari("1.0000000000000000000000000000000000000").sin().bitprecision()
+    128
+
+Elliptic curve functions
+------------------------
+
+An elliptic curve given with exact `a`-invariants is considered an
+exact object. Therefore, you should set the precision for each method
+call individually::
 
     sage: e = pari([0,0,0,-82,0]).ellinit()
     sage: eta1 = e.elleta(precision=100)[0]
@@ -166,8 +219,6 @@ curves, you should set the precision for each method::
     sage: eta1 = e.elleta(precision=180)[0]
     sage: eta1.sage()
     3.60546360143265208591582056420772677481026899659802474544
-
-Number fields and precision: TODO
 
 TESTS:
 
@@ -201,26 +252,6 @@ Check that ``default()`` works properly::
 
     sage: pari('print("test")')
     test
-
->>> pari.default("debug")
-0
->>> pari.default("debug", "3")
->>> pari('2^67+1').factor()
-IFAC: cracking composite
-        49191317529892137643
-IFAC: factor 6713103182899
-        is prime
-IFAC: factor 7327657
-        is prime
-IFAC: prime 7327657
-        appears with exponent = 1
-IFAC: prime 6713103182899
-        appears with exponent = 1
-IFAC: found 2 large prime (power) factors.
-[3, 1; 7327657, 1; 6713103182899, 1]
->>> pari.default("debug", "0")
->>> pari('2^67+1').factor()
-[3, 1; 7327657, 1; 6713103182899, 1]
 """
 
 #*****************************************************************************
@@ -429,10 +460,7 @@ def prec_words_to_dec(long prec_in_words):
 
 
 # The unique running Pari instance.
-cdef Pari pari_instance, P
-pari_instance = Pari()
-P = pari_instance   # shorthand notation
-
+cdef Pari pari_instance = Pari()
 # Also a copy of PARI accessible from external pure python code.
 pari = pari_instance
 
@@ -1540,7 +1568,7 @@ cdef class Pari(Pari_base):
         sig_on()
         plist = new_gen(polsubcyclo(n, d, get_var(v)))
         if typ(plist.g) != t_VEC:
-            return pari.vector(1, [plist])
+            return self.vector(1, [plist])
         else:
             return plist
 
@@ -1630,7 +1658,7 @@ cdef class Pari(Pari_base):
             A.refers_to = {}
             for i from 0 <= i < m:
                 for j from 0 <= j < n:
-                    x = pari(entries[k])
+                    x = self(entries[k])
                     A.refers_to[(i,j)] = x
                     (<GEN>(A.g)[j+1])[i+1] = <pari_longword>(x.g)
                     k = k + 1
