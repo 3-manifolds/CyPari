@@ -72,6 +72,7 @@ else:
 from builtins import range
 
 cimport cython
+
 from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.bytes cimport PyBytes_Check
@@ -133,13 +134,14 @@ ELSE:
 
 include 'auto_gen.pxi'
 
+
 @cython.final
 cdef class Gen(gen_base):
     """
     Cython extension class that models the PARI GEN type.
     """
     def __init__(self):
-        raise RuntimeError("PARI objects cannot be instantiated directly; use Pari(x) to convert x to PARI")
+        raise RuntimeError("PARI objects cannot be instantiated directly; use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
         sig_free(<void*>self.b)
@@ -1576,46 +1578,20 @@ cdef class Gen(gen_base):
             raise TypeError("Object (=%s) must be of type t_VEC or t_COL." % self)
         return [self[n] for n in range(<long>glength(self.g))]
 
-    def python(self, locals=None):
+    def python(self):
         """
-        Return the closest Python/Sage equivalent of the given PARI object.
+        Return the closest Python equivalent of the given PARI object.
 
-        INPUT:
-
-        - `z` -- PARI ``Gen``
-
-        - `locals` -- optional dictionary used in fallback cases that
-          involve :func:`sage_eval`
-
-        .. NOTE::
-
-            If ``self`` is a real (type ``t_REAL``), then the result
-            will be a RealField element of the equivalent precision;
-            if ``self`` is a complex (type ``t_COMPLEX``), then the
-            result will be a ComplexField element of precision the
-            maximal precision of the real and imaginary parts.
+        See :func:`~sage.libs.cypari.convert.gen_to_python` for more informations.
 
         EXAMPLES::
 
-            |sage: pari('389/17').python()
-            389/17
-            |sage: f = pari('(2/3)*x^3 + x - 5/7 + y'); f
-            2/3*x^3 + x + (y - 5/7)
-            |sage: var('x,y')
-            (x, y)
-            |sage: f.python({'x':x, 'y':y})
-            2/3*x^3 + x + y - 5/7
-
-        You can also use :meth:`.sage`, which is an alias::
-
-            |sage: f.sage({'x':x, 'y':y})
-            2/3*x^3 + x + y - 5/7
-
+            sage: pari('1.2').python()
+            1.2
+            sage: pari('389/17').python()
+            Fraction(389, 17)
         """
-        IF SAGE:
-            return gentoobj(self, locals)
-        ELSE:
-            raise NotImplementedError("The Gen.python method is not implemented in CyPari") 
+        return gen_to_python(self)
         
     sage = _eval_ = python
 
@@ -2731,7 +2707,6 @@ cdef class Gen(gen_base):
             -2
             sage: pari('O(2^10)')._valp()
             10
-
             sage: pari('x')._valp()   # random
             -35184372088832
         """
@@ -3162,7 +3137,6 @@ cdef class Gen(gen_base):
             <... 'list'>
             sage: type(v[0])
             <... 'int'>
-
 
         TESTS::
 
@@ -4643,14 +4617,9 @@ cpdef Gen objtogen(s):
     if PyInt_Check(s) | PyLong_Check(s):
         return integer_to_gen(s)
     if isinstance(s, float):
-        sig_on()
-        return new_gen(dbltor(PyFloat_AS_DOUBLE(s)))
+        return new_gen_from_double(PyFloat_AS_DOUBLE(s))
     if isinstance(s, complex):
-        sig_on()
-        g = cgetg(3, t_COMPLEX)
-        set_gel(g, 1, dbltor(PyComplex_RealAsDouble(s)))
-        set_gel(g, 2, dbltor(PyComplex_ImagAsDouble(s)))
-        return new_gen(g)
+        return new_t_COMPLEX_from_double(PyComplex_RealAsDouble(s), PyComplex_ImagAsDouble(s))
 
     # A list is iterable, but we handle the common case of a list
     # separately as an optimization

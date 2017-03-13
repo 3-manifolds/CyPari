@@ -25,6 +25,8 @@ cdef class Gen(gen_base):
 
 cpdef Gen objtogen(s)
 
+cdef Gen new_gen_from_double(double)
+cdef Gen new_t_POL_from_int_star(int* vals, unsigned long length, long varnum)
 
 IF SAGE == False:
     cpdef long prec_bits_to_words(unsigned long prec_in_bits)
@@ -44,7 +46,6 @@ IF SAGE == False:
         cpdef Gen zero(self)
         cpdef Gen one(self)
         cdef Gen new_gen_from_int(self, int value)
-        cdef Gen new_t_POL_from_int_star(self, int *vals, int length, long varnum)
         cdef Gen double_to_gen_c(self, double)
         cdef GEN double_to_GEN(self, double)
         cdef Gen _empty_vector(self, long n)

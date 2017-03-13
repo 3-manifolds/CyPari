@@ -716,7 +716,7 @@ Transcendental functions::
     >>> pari(1).tanh()
     0.761594155955765
     >>> z = pari(1j); z
-    0.E-307 + 1.00000000000000*I
+    1.00000000000000*I
     >>> result = z.tanh()
     >>> result.real() <= 1e-18
     True
