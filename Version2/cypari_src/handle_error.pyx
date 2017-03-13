@@ -78,6 +78,7 @@ class PariError(RuntimeError):
             ....:     pari('Mod(2,6)^-1')
             ....: except PariError as e:
             ....:     E = e.errdata()
+
             sage: E
             error("impossible inverse in Fp_inv: Mod(2, 6).")
             sage: E.component(2)
@@ -114,7 +115,7 @@ class PariError(RuntimeError):
             sage: pari('!@#$%^&*()')
             Traceback (most recent call last):
             ...
-            cypari_src.gen.PariError: syntax error, unexpected $undefined
+            PariError: syntax error, unexpected $undefined
         """
         return self.errtext().rstrip(" .:")
 

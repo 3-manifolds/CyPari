@@ -336,7 +336,7 @@ cpdef long prec_bits_to_words(unsigned long prec_in_bits):
 
     EXAMPLES::
 
-        sage: cypari.gen import prec_bits_to_words
+        sage: from cypari.gen import prec_bits_to_words
         sage: prec_bits_to_words(70)
         5   # 32-bit
         4   # 64-bit
@@ -381,7 +381,7 @@ cpdef long default_bitprec(long bitprec=-1):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.pari_instance import default_bitprec
+        sage: from cypari.gen import default_bitprec
         sage: default_bitprec()
         64
     """
@@ -399,7 +399,7 @@ def prec_dec_to_words(long prec_in_dec):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.pari_instance import prec_dec_to_words
+        sage: from cypari.gen import prec_dec_to_words
         sage: prec_dec_to_words(38)
         6   # 32-bit
         4   # 64-bit
@@ -417,7 +417,7 @@ def prec_words_to_dec(long prec_in_words):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.pari_instance import prec_words_to_dec
+        sage: from cypari.gen import prec_words_to_dec
         sage: prec_words_to_dec(5)
         28   # 32-bit
         57   # 64-bit
@@ -720,7 +720,7 @@ cdef class Pari(Pari_base):
            PARI C library. In Sage, instead of the PARI stack
            holding the results of all computations, it *only* holds
            the results of an individual computation. Each time a new
-           Python/PARI object is computed, it it copied to its own
+           Python/PARI object is computed, it is copied to its own
            space in the Python heap, and the memory it occupied on the
            PARI stack is freed. Thus it is not necessary to make the
            stack very large. Also, unlike in PARI, if the stack does
@@ -1124,6 +1124,7 @@ cdef class Pari(Pari_base):
         to at least the given precision.  The resulting gen object
         will have word length (not including codewords) which is large
         enough to provide the requested number of bits, but no larger.
+
         >>> from cypari.gen import prec_bits_to_words
         >>> old_precision = pari.set_real_precision(64)
         >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
@@ -1232,7 +1233,7 @@ cdef class Pari(Pari_base):
 
         EXAMPLES::
 
-            sage: pari.stacksize()
+            sage: pari.stacksize() # random
             1000000
             sage: pari.allocatemem(2**18, silent=True)
             sage: pari.stacksize()
@@ -1272,7 +1273,7 @@ cdef class Pari(Pari_base):
         maximum size which is set by ``sizemax``.
 
         The PARI stack is never automatically shrunk.  You can use the
-        command ``pari.allocatemem(10^6)`` to reset the size to `10^6`,
+        command ``pari.allocatemem(10**6)`` to reset the size to `10^6`,
         which is the default size at startup.  Note that the results of
         computations using Sage's PARI interface are copied to the
         Python heap, so they take up no space in the PARI stack.
@@ -1295,13 +1296,13 @@ cdef class Pari(Pari_base):
         EXAMPLES::
 
             sage: pari.allocatemem(10**7)
-            PARI stack size set to 10000000 bytes, maximum size set to 67108864
+            PARI stack size set to 10000000 bytes, maximum size set to ...
             sage: pari.allocatemem()  # Double the current size
-            PARI stack size set to 20000000 bytes, maximum size set to 67108864
+            PARI stack size set to 20000000 bytes, maximum size set to ...
             sage: pari.stacksize()
             20000000
             sage: pari.allocatemem(10**6)
-            PARI stack size set to 1000000 bytes, maximum size set to 67108864
+            PARI stack size set to 1000000 bytes, maximum size set to ...
 
         The following computation will automatically increase the PARI
         stack size::
@@ -1318,7 +1319,7 @@ cdef class Pari(Pari_base):
         Setting a small maximum size makes this fail::
 
             sage: pari.allocatemem(10**6, 2**22)
-            PARI stack size set to 1000000 bytes, maximum size set to 4194304
+            PARI stack size set to 1000000 bytes, maximum size set to ...
             sage: a = pari('2^100000000')
             Traceback (most recent call last):
             ...
@@ -1331,7 +1332,7 @@ cdef class Pari(Pari_base):
         from a very small stack size::
 
             sage: pari.allocatemem(1, 2**26)
-            PARI stack size set to 1024 bytes, maximum size set to 67108864
+            PARI stack size set to 1024 bytes, maximum size set to ...
             sage: a = pari(2)**100000000
             sage: pari.stacksize()  # random
             12500024
@@ -1596,16 +1597,6 @@ cdef class Pari(Pari_base):
             Traceback (most recent call last):
             ...
             PariError: incorrect type in setrand (t_POL)
-
-        >>> pari.setrand(50)
-        >>> a = pari.getrand()
-        >>> pari.setrand(a)
-        >>> a == pari.getrand()
-        True
-        >>> pari.setrand("foobar")
-        Traceback (most recent call last):
-        ...
-        cypari_src.gen.PariError: incorrect type in setrand (t_POL)
         """
         cdef Gen t0 = self(seed)
         sig_on()
