@@ -176,12 +176,12 @@ cpdef gen_to_integer(Gen x):
     if lgefint(g) == 3:  # abs(x) fits in a ulong
         u = g[2]     # u = abs(x)
         # Check that <long>(u) or <long>(-u) does not overflow
-        if signe(g) >= 0:
-            if u <= LONG_MAX:
+        # I'm assuming LONG_MIN <= -LONG_MAX
+        if u < LONG_MAX:  # Let's not sweat the edge case.
+            if signe(g) >= 0:
                 return <long>(u)
-        else:
-            if u <= -<ulong>LONG_MIN:
-                return <long>(-u)
+            else:
+                return -<long>u
         # Result does not fit in a C long or we are in Python 3
     return PyLong_FromGEN(g)
 
