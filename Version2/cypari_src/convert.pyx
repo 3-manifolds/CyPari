@@ -36,6 +36,7 @@ include "sage.pxi"
 
 from cpython.int cimport PyInt_AS_LONG
 from libc.limits cimport LONG_MIN, LONG_MAX
+from libc.math cimport INFINITY
 IF SAGE:
     pass
     # comment these out to avoid Cython 0.25 bug
@@ -373,3 +374,263 @@ cdef PyLong_FromGEN(GEN g):
 
     return <object>L
 
+
+####################################
+# Other basic types
+####################################
+
+cdef Gen new_t_POL_from_int_star(int* vals, unsigned long length, long varnum):
+    """
+    Note that degree + 1 = length, so that recognizing 0 is easier.
+
+    varnum = 0 is the general choice (creates a variable in x).
+    """
+    cdef GEN z
+    cdef unsigned long i
+
+    sig_on()
+    z = cgetg(length + 2, t_POL)
+    if length == 0:
+        # Polynomial is zero
+        z[1] = evalvarn(varnum) + evalsigne(0)
+    else:
+        z[1] = evalvarn(varnum) + evalsigne(1)
+        for i in range(length):
+            set_gel(z, i+2, stoi(vals[i]))
+
+    return new_gen(z)
+
+cdef Gen new_gen_from_double(double x):
+    # Pari has an odd concept where it attempts to track the accuracy
+    # of floating-point 0; a floating-point zero might be 0.0e-20
+    # (meaning roughly that it might represent any number in the
+    # range -1e-20 <= x <= 1e20).
+
+    # Pari's dbltor converts a floating-point 0 into the Pari real
+    # 0.0e-307; Pari treats this as an extremely precise 0.  This
+    # can cause problems; for instance, the Pari incgam() function can
+    # be very slow if the first argument is very precise.
+
+    # So we translate 0 into a floating-point 0 with 53 bits
+    # of precision (that's the number of mantissa bits in an IEEE
+    # double).
+    cdef GEN g
+
+    sig_on()
+    if x == 0:
+        g = real_0_bit(-53)
+    else:
+        g = dbltor(x)
+    return new_gen(g)
+
+
+cdef Gen new_t_COMPLEX_from_double(double re, double im):
+    sig_on()
+    cdef GEN g = cgetg(3, t_COMPLEX)
+    if re == 0:
+        set_gel(g, 1, gen_0)
+    else:
+        set_gel(g, 1, dbltor(re))
+    if im == 0:
+        set_gel(g, 2, gen_0)
+    else:
+        set_gel(g, 2, dbltor(im))
+    return new_gen(g)
+
+
+####################################
+# Conversion of Gen to Python type #
+####################################
+
+cpdef gen_to_python(Gen z):
+    r"""
+    Convert the PARI element ``z`` to a Python object.
+
+    OUTPUT:
+
+    - a Python integer for integers (type ``t_INT``)
+
+    - a ``Fraction`` (``fractions`` module) for rationals (type ``t_FRAC``)
+
+    - a ``float`` for real numbers (type ``t_REAL``)
+
+    - a ``complex`` for complex numbers (type ``t_COMPLEX``)
+
+    - a ``list`` for vectors (type ``t_VEC`` or ``t_COL``). The function
+      ``gen_to_python`` is then recursively applied on the entries.
+
+    - a ``list`` of Python integers for small vectors (type ``t_VECSMALL``)
+
+    - a ``list`` of ``list``s for matrices (type ``t_MAT``). The function
+      ``gen_to_python`` is then recursively applied on the entries.
+
+    - the floating point ``inf`` or ``-inf`` for infinities (type ``t_INFINITY``)
+
+    - a string for strings (type ``t_STR``)
+
+    - other PARI types are not supported and the function will raise a
+      ``NotImplementedError``
+
+    EXAMPLES::
+
+        sage: from cypari.gen import gen_to_python
+
+    Converting integers::
+
+        sage: z = pari('42'); z
+        42
+        sage: a = gen_to_python(z); a
+        42
+        sage: from builtins import int
+        sage: isinstance(a, int)
+        True
+        sage: a = gen_to_python(pari('3^50'))
+        sage: isinstance(a, int)
+        True
+
+    Converting rational numbers::
+
+        sage: z = pari('2/3'); z
+        2/3
+        sage: a = gen_to_python(z); a
+        Fraction(2, 3)
+        sage: type(a)
+        <class 'fractions.Fraction'>
+
+    Converting real numbers (and infinities)::
+
+        sage: z = pari('1.2'); z
+        1.20000000000000
+        sage: a = gen_to_python(z); a
+        1.2
+        sage: type(a)
+        <... 'float'>
+
+        sage: z = pari('oo'); z
+        +oo
+        sage: a = gen_to_python(z); a
+        inf
+        sage: type(a)
+        <... 'float'>
+
+        sage: z = pari('-oo'); z
+        -oo
+        sage: a = gen_to_python(z); a
+        -inf
+        sage: type(a)
+        <... 'float'>
+
+    Converting complex numbers::
+
+        sage: z = pari('1 + I'); z
+        1 + I
+        sage: a = gen_to_python(z); a
+        (1+1j)
+        sage: type(a)
+        <... 'complex'>
+
+        sage: z = pari('2.1 + 3.03*I'); z
+        2.10000000000000 + 3.03000000000000*I
+        sage: a = gen_to_python(z); a
+        (2.1+3.03j)
+
+    Converting vectors::
+
+        sage: z1 = pari('Vecsmall([1,2,3])'); z1
+        Vecsmall([1, 2, 3])
+        sage: z2 = pari('[1, 3.4, [-5, 2], oo]'); z2
+        [1, 3.40000000000000, [-5, 2], +oo]
+        sage: z3 = pari('[1, 5.2]~'); z3
+        [1, 5.20000000000000]~
+        sage: z1.type(), z2.type(), z3.type()
+        ('t_VECSMALL', 't_VEC', 't_COL')
+
+        sage: a1 = gen_to_python(z1); a1
+        [1, 2, 3]
+        sage: type(a1)
+        <... 'list'>
+        sage: list(map(type, a1))
+        [<... 'int'>, <... 'int'>, <... 'int'>]
+
+        sage: a2 = gen_to_python(z2); a2
+        [1, 3.4, [-5, 2], inf]
+        sage: type(a2)
+        <... 'list'>
+        sage: list(map(type, a2))
+        [<... 'int'>, <... 'float'>, <... 'list'>, <... 'float'>]
+
+        sage: a3 = gen_to_python(z3); a3
+        [1, 5.2]
+        sage: type(a3)
+        <... 'list'>
+        sage: list(map(type, a3))
+        [<... 'int'>, <... 'float'>]
+
+    Converting matrices::
+
+        sage: z = pari('[1,2;3,4]')
+        sage: gen_to_python(z)
+        [[1, 2], [3, 4]]
+
+        sage: z = pari('[[1, 3], [[2]]; 3, [4, [5, 6]]]')
+        sage: gen_to_python(z)
+        [[[1, 3], [[2]]], [3, [4, [5, 6]]]]
+
+    Converting strings::
+
+        sage: z = pari('"Hello"')
+        sage: a = gen_to_python(z); a
+        'Hello'
+        sage: type(a)
+        <... 'str'>
+
+    Some currently unsupported types::
+
+        sage: z = pari('x')
+        sage: z.type()
+        't_POL'
+        sage: gen_to_python(z)
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: conversion not implemented for t_POL
+
+        sage: z = pari('12 + O(2^13)')
+        sage: z.type()
+        't_PADIC'
+        sage: gen_to_python(z)
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: conversion not implemented for t_PADIC
+    """
+    cdef GEN g = z.g
+    cdef long t = typ(g)
+    cdef Py_ssize_t i, j, nr, nc
+
+    if t == t_INT:
+        return gen_to_integer(z)
+    elif t == t_FRAC:
+        from fractions import Fraction
+        num = gen_to_integer(z.numerator())
+        den = gen_to_integer(z.denominator())
+        return Fraction(num, den)
+    elif t == t_REAL:
+        return rtodbl(g)
+    elif t == t_COMPLEX:
+        return complex(gen_to_python(z.real()), gen_to_python(z.imag()))
+    elif t == t_VEC or t == t_COL:
+        return [gen_to_python(x) for x in z.python_list()]
+    elif t == t_VECSMALL:
+        return z.python_list_small()
+    elif t == t_MAT:
+        nc = lg(g)-1
+        nr = 0 if nc == 0 else lg(gel(g,1))-1
+        return [[gen_to_python(z[i,j]) for j in range(nc)] for i in range(nr)]
+    elif t == t_INFINITY:
+        if inf_get_sign(g) >= 0:
+            return INFINITY
+        else:
+            return -INFINITY
+    elif t == t_STR:
+        return str(z)
+    else:
+        raise NotImplementedError("conversion not implemented for {}".format(z.type()))
