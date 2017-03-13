@@ -2727,7 +2727,8 @@ cdef class Gen(gen_base):
             sage: [pari(n).bernfrac() for n in range(10)]
             [1, -1/2, 1/6, 0, -1/30, 0, 1/42, 0, -1/30, 0]
         """
-        return P.bernfrac(self)
+        sig_on()
+        return new_gen(bernfrac(self))
 
     def bernreal(self, unsigned long precision=0):
         r"""
@@ -2745,7 +2746,8 @@ cdef class Gen(gen_base):
             sage: pari.set_real_precision(old_prec)
             192
         """
-        return P.bernreal(self, precision)
+        sig_on()
+        return new_gen(bernreal(self, prec_bits_to_words(precision)))
 
     def besselk(Gen nu, x, flag=None, unsigned long precision=0):
         """
