@@ -1206,7 +1206,7 @@ cdef class Pari(Pari_base):
         Gen with (at most) precision *bits* of precision.
         """
         cdef unsigned long old_prec
-        old_prec = GP_DATA.fmt.sigd
+        old_prec = <unsigned long>GP_DATA.fmt.sigd
         precision = prec_bits_to_dec(precision)
         if not precision:
             precision = old_prec
@@ -1782,7 +1782,7 @@ cdef long get_var(v) except -2:
     cdef long varno
     if isinstance(v, Gen):
         sig_on()
-        varno = gvar((<Gen>v).g)
+        varno = <long>gvar((<Gen>v).g)
         sig_off()
         if varno < 0:
             return -1
@@ -1791,6 +1791,6 @@ cdef long get_var(v) except -2:
     if v == -1:
         return -1
     sig_on()
-    varno = fetch_user_var(v.encode('ascii'))
+    varno = <long>fetch_user_var(v.encode('ascii'))
     sig_off()
     return varno

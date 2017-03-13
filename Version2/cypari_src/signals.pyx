@@ -109,7 +109,9 @@ cdef public int sig_raise_exception "sig_raise_exception"(int sig, const char* m
             raise AlarmInterrupt
         if sig == SIGBUS:
             raise SignalError(s or "Bus error")
-
+    ELSE:
+        if sig == 128:  # Used for signals that map to FPE
+            raise RuntimeError(s or "Pari Error")
     raise SystemError("unknown signal number %s"%sig)
 
 
