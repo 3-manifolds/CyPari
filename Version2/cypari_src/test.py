@@ -1,3 +1,4 @@
+from __future__ import print_function
 import doctest, re, getopt, sys
 from . import tests
 from . import gen
@@ -32,14 +33,7 @@ class DocTestParser(doctest.DocTestParser):
         string = re.sub('\.\.\.\.:', '...', string)
         # Remove lines containing :: which confuse doctests
         string = re.sub(' ::', '                  ', string)
-        # Get the examples
-        result = doctest.DocTestParser.parse(self, string, name)
-        # For Python3, patch up "wants" that refer to PariError
-        #if sys.version_info.major > 2:
-        #    for item in result:
-        #        if isinstance(item, doctest.Example):
-        #            item.want = re.sub('PariError:', 'cypari_src.gen.PariError:', item.want)
-        return result
+        return doctest.DocTestParser.parse(self, string, name)
 
 extra_globals = dict([('pari', gen.pari)])    
 modules_to_test = [
@@ -58,13 +52,12 @@ for cls in (gen.Gen, gen.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 gen.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
-print('Found %s docstrings with sage: tests only.'%len(gen.__test__))
-
 def runtests(verbose=False):
     parser = DocTestParser()
     finder = doctest.DocTestFinder(parser=parser)
     failed, attempted = 0, 0
     for module, extra_globals in modules_to_test:
+        print('Running doctests in %s:'%module.__name__)
         runner = doctest.DocTestRunner(
             verbose=verbose,
             optionflags=doctest.ELLIPSIS|doctest.IGNORE_EXCEPTION_DETAIL)
@@ -72,11 +65,11 @@ def runtests(verbose=False):
         for test in finder.find(module, extraglobs=extra_globals):
             count += 1
             runner.run(test)
-        print('Parsed %s docstrings in %s.'%(count, module))
         result = runner.summarize()
         failed += result.failed
         attempted += result.attempted
         print(result)
+        print()
     print('\nAll doctests:\n   %s failures out of %s tests.' % (failed, attempted))
     return failed
 
