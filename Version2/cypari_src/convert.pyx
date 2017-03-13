@@ -54,6 +54,31 @@ cdef extern from "longintrepr.h":
     cdef long PyLong_SHIFT
     cdef digit PyLong_MASK
 
+# Constants used in converting pari integers to Python integers
+cdef pari_ulongword pos_max  # The largest pari_ulongword that fits in long
+cdef pari_ulongword neg_max  # The largest pari_ulongword whose negative fits 
+IF WIN64:
+    # Cython uses the wrong values on 64 bit Windows :^(
+    pos_max = 0x7fffffff
+    neg_max = 0x80000000
+ELSE:
+    pos_max = <pari_ulongword>LONG_MAX
+    neg_max = -(<pari_ulongword>LONG_MIN + 1) + 1
+
+cdef pari_longword_to_int(pari_longword x):
+    """
+    Convert a pari_longword to a Python int (or long, in Python 2.7)
+    The special case, of course, is Python 2.7 on 64 bit Windows,
+    where a 64 bit pari_longword does not fit into a 32-bit Python int.
+    """
+    IF WIN64 and PYTHON_MAJOR == 2:
+        if -<pari_longword>neg_max <= x <= <pari_longword>pos_max:
+            return int(x)
+        else:
+            return long(x)
+    ELSE:
+        return int(x)
+
 cpdef integer_to_gen(x):
     """
     Convert a Python ``int`` or ``long`` to a PARI ``Gen`` of type
@@ -172,17 +197,16 @@ cpdef gen_to_integer(Gen x):
     # Try converting to a C long first. Note that we cannot use itos()
     # from PARI since that does not deal with LONG_MIN correctly.
     cdef pari_ulongword u
-    cdef pari_longword l
-    if lgefint(g) == 3:  # abs(x) fits in a ulong
-        u = g[2]     # u = abs(x)
+    if lgefint(g) == 3:  # abs(x) fits in a pari_longword
+        u = <pari_ulongword>g[2]     # u = abs(x)
         # Check that <long>(u) or <long>(-u) does not overflow
-        # I'm assuming LONG_MIN <= -LONG_MAX
-        if u < LONG_MAX:  # Let's not sweat the edge case.
-            if signe(g) >= 0:
-                return <long>(u)
-            else:
-                return -<long>u
-        # Result does not fit in a C long or we are in Python 3
+        if signe(g) >= 0:
+            if u <= pos_max:
+                return <long>u
+        else:
+            if u <= neg_max:
+                 return -<long>u
+    # Result does not fit in a C long or we are in Python 3
     return PyLong_FromGEN(g)
 
 

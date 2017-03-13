@@ -621,7 +621,7 @@ cdef class Gen(gen_base):
         r1 = itos(gel(sign, 1))
         r2 = itos(gel(sign, 2))
         sig_off()
-        return [r1, r2]
+        return [int(r1), int(r2)]
 
     def nf_get_zk(self):
         """
@@ -752,7 +752,7 @@ cdef class Gen(gen_base):
         sig_on()
         e = pr_get_e(self.g)
         sig_off()
-        return e
+        return pari_longword_to_int(e)
 
     def pr_get_f(self):
         """
@@ -776,7 +776,7 @@ cdef class Gen(gen_base):
         sig_on()
         f = pr_get_f(self.g)
         sig_off()
-        return f
+        return pari_longword_to_int(f)
 
     def pr_get_gen(self):
         """
@@ -1036,7 +1036,7 @@ cdef class Gen(gen_base):
 
         elif pari_type == t_VECSMALL:
             #t_VECSMALL: vec. small ints  [ code ] [ x_1 ] ... [ x_k ]
-            return <pari_longword>self.g[n+1]
+            return pari_longword_to_int(self.g[n+1])
 
         elif pari_type == t_STR:
             #t_STR    : string            [ code ] [ man_1 ] ... [ man_k ]
@@ -1539,7 +1539,8 @@ cdef class Gen(gen_base):
         cdef long n
         if typ(self.g) != t_VECSMALL:
             raise TypeError("Object (=%s) must be of type t_VECSMALL." % self)
-        return [<pari_longword>self.g[n+1] for n in range(<long>glength(self.g))]
+        return [pari_longword_to_int(self.g[n+1])
+                for n in range(<long>glength(self.g))]
 
     def python_list(self):
         """
@@ -1906,13 +1907,13 @@ cdef class Gen(gen_base):
             sage: pari(2).ispower()
             (1, 2)
         """
-        cdef int n
+        cdef long n
         cdef GEN x
         cdef Gen t0
 
         if k is None:
             sig_on()
-            n = gisanypower(self.g, &x)
+            n = <long>gisanypower(self.g, &x)
             if n == 0:
                 sig_off()
                 return 1, self
@@ -1921,7 +1922,7 @@ cdef class Gen(gen_base):
         else:
             t0 = objtogen(k)
             sig_on()
-            n = ispower(self.g, t0.g, &x)
+            n = <long>ispower(self.g, t0.g, &x)
             if n == 0:
                 sig_off()
                 return False, None
@@ -1965,7 +1966,7 @@ cdef class Gen(gen_base):
         cdef long n
 
         sig_on()
-        n = isprimepower(self.g, &x)
+        n = <long>isprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2002,7 +2003,7 @@ cdef class Gen(gen_base):
         cdef long n
 
         sig_on()
-        n = ispseudoprimepower(self.g, &x)
+        n = <long>ispseudoprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2194,9 +2195,9 @@ cdef class Gen(gen_base):
 
         """
         if precision < 0:
-            precision = precdl  # Global PARI series precision
+            precision = <long>precdl  # Global PARI series precision
         sig_on()
-        cdef long vn = get_var(v)
+        cdef long vn = <long>get_var(v)
         if typ(f.g) == t_VEC:
             # The precision flag is ignored for vectors, so we first
             # convert the vector to a polynomial.
@@ -2493,7 +2494,7 @@ cdef class Gen(gen_base):
             [True, False, True, True, True, True, True, True, True, True]
         """
         sig_on()
-        cdef long b = bittest(x.g, n)
+        cdef long b = <long>bittest(x.g, n)
         sig_off()
         return b != 0
 
@@ -2536,7 +2537,7 @@ cdef class Gen(gen_base):
         OUTPUT: gen
         """
         if n <= 0:
-            return precision(x.g)
+            return <long>precision(x.g)
         sig_on()
         return new_gen(precision0(x.g, n))
 
@@ -2588,13 +2589,13 @@ cdef class Gen(gen_base):
             2.40000000000000*x
         """
         cdef int n
-        cdef long e
+        cdef pari_longword e
         cdef Gen y
         sig_on()
         if not estimate:
             return new_gen(ground(x.g))
         y = new_gen(grndtoi(x.g, &e))
-        return y, e
+        return y, int(e)
 
     def sizeword(x):
         """
@@ -2629,7 +2630,7 @@ cdef class Gen(gen_base):
             sage: pari('[x, I]').sizeword()
             20
         """
-        return gsizeword(x.g)
+        return <long>gsizeword(x.g)
 
     def sizebyte(x):
         """
@@ -2649,7 +2650,7 @@ cdef class Gen(gen_base):
             12           # 32-bit
             24           # 64-bit
         """
-        return gsizebyte(x.g)
+        return <long>gsizebyte(x.g)
 
     def truncate(x, estimate=False):
         """
@@ -2706,13 +2707,13 @@ cdef class Gen(gen_base):
             sage: pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
             x + O(x^10)
         """
-        cdef long e
+        cdef pari_longword e
         cdef Gen y
         sig_on()
         if not estimate:
             return new_gen(gtrunc(x.g))
         y = new_gen(gcvtoi(x.g, &e))
-        return y, e
+        return y, pari_longword_to_int(e)
 
     def _valp(x):
         """
@@ -2976,14 +2977,14 @@ cdef class Gen(gen_base):
         cdef Gen g
         sig_on()
         if find_root:
-            t = itos(gissquareall(x.g, &G))
+            t = <long>itos(gissquareall(x.g, &G))
             if t:
                 return True, new_gen(G)
             else:
                 clear_stack()
                 return False, None
         else:
-            t = itos(gissquare(x.g))
+            t = <long>itos(gissquare(x.g))
             sig_off()
             return t != 0
 
@@ -2997,7 +2998,7 @@ cdef class Gen(gen_base):
             False
         """
         sig_on()
-        cdef long t = issquarefree(self.g)
+        cdef long t = <long>issquarefree(self.g)
         sig_off()
         return t != 0
 
@@ -3046,7 +3047,7 @@ cdef class Gen(gen_base):
         """
         cdef Gen t0 = objtogen(n)
         sig_on()
-        cdef long t = Zn_issquare(self.g, t0.g)
+        cdef long t = <long>Zn_issquare(self.g, t0.g)
         sig_off()
         return t != 0
 
@@ -3113,7 +3114,8 @@ cdef class Gen(gen_base):
         sig_on()
         cdef GEN g = anell(self.g, n)
         if python_ints:
-            v = [<pari_longword>gtolong(gel(g, i+1)) for i in range(<long>glength(g))]
+            v = [pari_longword_to_int(gtolong(gel(g, i+1)))
+                 for i in range(<long>glength(g))]
             clear_stack()
             return v
         else:
@@ -3463,7 +3465,7 @@ cdef class Gen(gen_base):
         cdef Gen t0 = objtogen(x)
         cdef Gen t1 = objtogen(p)
         sig_on()
-        v = nfval(self.g, t0.g, t1.g)
+        cdef long v = <long>nfval(self.g, t0.g, t1.g)
         sig_off()
         return v
 
@@ -3939,7 +3941,7 @@ cdef class Gen(gen_base):
         Return the degree of this polynomial.
         """
         sig_on()
-        n = poldegree(self.g, get_var(var))
+        cdef long n = <long>poldegree(self.g, get_var(var))
         sig_off()
         return n
 
@@ -3949,7 +3951,7 @@ cdef class Gen(gen_base):
         non-constant polynomial, or False if f is reducible or constant.
         """
         sig_on()
-        t = isirreducible(self.g)
+        cdef long t = <long>isirreducible(self.g)
         clear_stack()
         return t != 0
 
@@ -3977,7 +3979,7 @@ cdef class Gen(gen_base):
         """
         cdef long n
         sig_on()
-        n = glength(self.g)
+        n = <long>glength(self.g)
         sig_off()
         return n
 
@@ -3997,7 +3999,7 @@ cdef class Gen(gen_base):
         if self.ncols() == 0:
             sig_off()
             return 0
-        n = glength(<GEN>(self.g[1]))
+        n = <long>glength(<GEN>(self.g[1]))
         sig_off()
         return n
 
@@ -4598,7 +4600,7 @@ cpdef Gen objtogen(s):
         sage: pari(float(pi))
         3.14159265358979
         sage: pari(complex(cos(pi/4), sin(pi/4)))
-        0.707106781186548 + 0.707106781186547*I
+        0.70710678118654... + 0.70710678118654...*I
         sage: pari(False)
         0
         sage: pari(True)
