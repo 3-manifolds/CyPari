@@ -136,7 +136,7 @@ cpdef Gen objtoclosure(f):
 
     EXAMPLES::
 
-        sage: from cypari.gen import objtoclosure
+        sage: from cypari._pari import objtoclosure
         sage: mul = objtoclosure(lambda i,j: i*j)
         sage: mul
         (v1,v2,v3,v4,v5)->call_python(v1,v2,v3,v4,v5,...)

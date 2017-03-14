@@ -235,7 +235,7 @@ def test_signal(int sig):
     block.
 
     >>> from signal import *
-    >>> from cypari.gen import test_signal
+    >>> from cypari._pari import test_signal
     >>> test_signal(SIGFPE)
     Traceback (most recent call last):
         ...

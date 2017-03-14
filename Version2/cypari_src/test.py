@@ -1,8 +1,8 @@
 from __future__ import print_function
 import doctest, re, getopt, sys
 from . import tests
-from . import gen
-from .gen import Pari
+from . import _pari
+from ._pari import Pari
 import sys
 if sys.version_info.major == 2:
     from . import py2tests
@@ -35,22 +35,22 @@ class DocTestParser(doctest.DocTestParser):
         string = re.sub(' ::', '                  ', string)
         return doctest.DocTestParser.parse(self, string, name)
 
-extra_globals = dict([('pari', gen.pari)])    
+extra_globals = dict([('pari', _pari.pari)])    
 modules_to_test = [
-    (gen, extra_globals),
+    (_pari, extra_globals),
     (tests, extra_globals),
 ]
 
-# Cython adds a docstring to gen.__test__ *only* if it contains '>>>'.
+# Cython adds a docstring to _pari.__test__ *only* if it contains '>>>'.
 # To enable running Sage doctests, with prompt 'sage:', we need to add
-# docstrings containing no '>>>' prompt to gen.__test__ ourselves.
+# docstrings containing no '>>>' prompt to _pari.__test__ ourselves.
 # Unfortunately, line numbers are not readily available to us.
-for cls in (gen.Gen, gen.Pari):
+for cls in (_pari.Gen, _pari.Pari):
     for key, value in cls.__dict__.items():
         docstring = getattr(cls.__dict__[key], '__doc__')
         if isinstance(docstring, str):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
-                gen.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
+                _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
 def runtests(verbose=False):
     parser = DocTestParser()

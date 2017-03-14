@@ -51,9 +51,9 @@ EXAMPLES::
 Arithmetic operations cause all arguments to be converted to PARI::
 
     sage: type(pari(1) + 1)
-    <type 'sage.libs.cypari2.gen.Gen'>
+    <type 'cypari._pari.Gen'>
     sage: type(1 + pari(1))
-    <type 'sage.libs.cypari2.gen.Gen'>
+    <type 'cypari._pari.Gen'>
 
 Guide to real precision in the PARI interface
 =============================================
@@ -333,7 +333,7 @@ def prec_bits_to_dec(unsigned long prec_in_bits):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_bits_to_dec
+        sage: from cypari._pari import prec_bits_to_dec
         sage: prec_bits_to_dec(53)
         15
         sage: [(32*n, prec_bits_to_dec(32*n)) for n in range(1, 9)]
@@ -349,7 +349,7 @@ def prec_dec_to_bits(unsigned long prec_in_dec):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_dec_to_bits
+        sage: from cypari._pari import prec_dec_to_bits
         sage: prec_dec_to_bits(15)
         49
         sage: [(n, prec_dec_to_bits(n)) for n in range(10, 100, 10)]
@@ -367,7 +367,7 @@ cpdef long prec_bits_to_words(unsigned long prec_in_bits):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_bits_to_words
+        sage: from cypari._pari import prec_bits_to_words
         sage: prec_bits_to_words(70)
         5   # 32-bit
         4   # 64-bit
@@ -393,7 +393,7 @@ cpdef long prec_words_to_bits(long prec_in_words):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_words_to_bits
+        sage: from cypari._pari import prec_words_to_bits
         sage: prec_words_to_bits(10)
         256   # 32-bit
         512   # 64-bit
@@ -412,7 +412,7 @@ cpdef long default_bitprec(long bitprec=-1):
 
     EXAMPLES::
 
-        sage: from cypari.gen import default_bitprec
+        sage: from cypari._pari import default_bitprec
         sage: default_bitprec()
         64
     """
@@ -430,7 +430,7 @@ def prec_dec_to_words(long prec_in_dec):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_dec_to_words
+        sage: from cypari._pari import prec_dec_to_words
         sage: prec_dec_to_words(38)
         6   # 32-bit
         4   # 64-bit
@@ -448,7 +448,7 @@ def prec_words_to_dec(long prec_in_words):
 
     EXAMPLES::
 
-        sage: from cypari.gen import prec_words_to_dec
+        sage: from cypari._pari import prec_words_to_dec
         sage: prec_words_to_dec(5)
         28   # 32-bit
         57   # 64-bit
@@ -1131,7 +1131,7 @@ cdef class Pari(Pari_base):
         will have word length (not including codewords) which is large
         enough to provide the requested number of bits, but no larger.
 
-        >>> from cypari.gen import prec_bits_to_words
+        >>> from cypari._pari import prec_bits_to_words
         >>> old_precision = pari.set_real_precision(64)
         >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
         >>> x
