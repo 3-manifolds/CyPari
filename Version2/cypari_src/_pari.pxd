@@ -29,16 +29,16 @@ cdef Gen new_gen_from_double(double)
 cdef Gen new_t_POL_from_int_star(int* vals, unsigned long length, long varnum)
 
 IF SAGE == False:
+    # pari_instance.pyx
     cpdef long prec_bits_to_words(unsigned long prec_in_bits)
     cpdef long prec_words_to_bits(long prec_in_words)
-    cpdef long default_bitprec(long bitprec=*)
+    cpdef long default_bitprec()
 
     cdef class Pari_auto:
         pass
     cdef class Pari_base(Pari_auto):
         pass
     
-    # pari_instance.pyx
     @cython.final
     cdef class Pari(Pari_base):
         cdef long _real_precision
