@@ -32,7 +32,7 @@ cimporting from here.
 
 cimport cython
 from libc.stdlib cimport malloc, calloc, realloc, free
-from .gen cimport sig_block, sig_unblock
+from ._pari cimport sig_block, sig_unblock
 
 cdef extern from *:
     int unlikely(int) nogil  # Defined by Cython

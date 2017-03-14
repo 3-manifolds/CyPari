@@ -110,8 +110,8 @@ class CyPariClean(Command):
                 pass
         junkfiles = (glob('cypari_src/*.so*') +
                      glob('cypari_src/*.pyc') +
-                     glob('cypari_src/gen.c') +
-                     glob('cypari_src/gen*.h') +
+                     glob('cypari_src/_pari.c') +
+                     glob('cypari_src/_pari*.h') +
                      glob('cypari_src/auto*.pxi')
         )
         for file in junkfiles:
@@ -162,7 +162,7 @@ class CyPariRelease(Command):
             shutil.rmtree('build')
         if os.path.exists('dist'):
             shutil.rmtree('dist')
-        for filename in glob('cypari_src/gen*.c'):
+        for filename in glob('cypari_src/_pari*.c'):
             os.remove(filename)
 
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
@@ -171,11 +171,11 @@ class CyPariRelease(Command):
             check_call([python, 'setup.py', 'clean'])
             check_call([python, 'setup.py', 'build'])
             check_call([python, 'setup.py', 'test'])
-            # Save a copy of the gen.c file for each major version of Python.
-            gen_c_name = 'gen_py%s.c'%python_major(python)
-            gen_c_path = os.path.join('cypari_src', gen_c_name)
-            if not os.path.exists(gen_c_path):
-                os.rename(os.path.join('cypari_src', 'gen.c'), gen_c_path)
+            # Save a copy of the _pari.c file for each major version of Python.
+            _pari_c_name = '_pari_py%s.c'%python_major(python)
+            _pari_c_path = os.path.join('cypari_src', _pari_c_name)
+            if not os.path.exists(_pari_c_path):
+                os.rename(os.path.join('cypari_src', '_pari.c'), _pari_c_path)
             if sys.platform.startswith('linux'):
                 plat = get_platform().replace('linux', 'manylinux1')
                 plat = plat.replace('-', '_')
@@ -208,10 +208,10 @@ class CyPariBuildExt(build_ext):
                 os.mkdir('build')
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
-            # Find the correct gen.c for our version of Python.
-            gen_c_name = 'gen_py%d.c'%sys.version_info.major
-            os.rename(os.path.join('cypari_src', gen_c_name),
-                      os.path.join('cypari_src', 'gen.c'))
+            # Find the correct _pari.c for our version of Python.
+            _pari_c_name = '_pari_py%d.c'%sys.version_info.major
+            os.rename(os.path.join('cypari_src', _pari_c_name),
+                      os.path.join('cypari_src', '_pari.c'))
             building_sdist = True
         
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
@@ -262,10 +262,10 @@ class CyPariBuildExt(build_ext):
         # If have Cython, check that .c files are up to date
         try: 
             from Cython.Build import cythonize
-            cythonize([os.path.join('cypari_src', 'gen.pyx')])
+            cythonize([os.path.join('cypari_src', '_pari.pyx')])
         except ImportError:
-            if not os.path.exists(os.path.join('cypari_src', 'gen.c')):
-                sys.exit("***Cython needed to create cypari_src/gen.c***")
+            if not os.path.exists(os.path.join('cypari_src', '_pari.c')):
+                sys.exit("***Cython needed to create cypari_src/_pari.c***")
 
         build_ext.run(self)
 
@@ -318,8 +318,8 @@ if sys.platform.startswith('linux'):
 
 include_dirs = []
 include_dirs=[pari_include_dir]
-pari_gen = Extension('cypari.gen',
-                     sources=['cypari_src/gen.c'],
+pari_gen = Extension('cypari._pari',
+                     sources=['cypari_src/_pari.c'],
                      include_dirs=include_dirs,
                      extra_link_args=link_args,
                      extra_compile_args=compile_args)

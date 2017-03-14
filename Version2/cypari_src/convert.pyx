@@ -86,7 +86,7 @@ cpdef integer_to_gen(x):
 
     EXAMPLES::
 
-        sage: from cypari.gen import integer_to_gen
+        sage: from cypari._pari import integer_to_gen
         sage: a = integer_to_gen(int(12345)); a; isinstance(a, Gen)
         12345
         True
@@ -132,7 +132,7 @@ cpdef gen_to_integer(Gen x):
 
     EXAMPLES::
 
-        sage: from cypari.gen import gen_to_integer
+        sage: from cypari._pari import gen_to_integer
         sage: a = gen_to_integer(pari("12345")); a; isinstance(a, int)
         12345
         True
@@ -472,7 +472,7 @@ cpdef gen_to_python(Gen z):
 
     EXAMPLES::
 
-        sage: from cypari.gen import gen_to_python
+        sage: from cypari._pari import gen_to_python
 
     Converting integers::
 
