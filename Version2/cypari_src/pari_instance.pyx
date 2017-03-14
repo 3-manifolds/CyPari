@@ -456,249 +456,16 @@ cdef void sage_puts(const char* s):
 cdef void sage_flush():
     sys.stdout.flush()
 
+cdef void swallow_ch(char ch):
+    return
+
+cdef void swallow_s(const char* s):
+    return
 
 include 'auto_instance.pxi'
 
-IF SAGE:
-   cdef class Pari_base(Pari_auto):
-       """
-       Base class which defines methods used only in Sage.
-       """
-       cpdef _coerce_map_from_(self, x):
-           """
-           Return ``True`` if ``x`` admits a coercion map into the
-           PARI interface.
-
-           This currently always returns ``True``.
-
-           EXAMPLES::
-
-               sage: pari._coerce_map_from_(ZZ)
-               True
-               sage: pari.coerce_map_from(ZZ)
-               Call morphism:
-                 From: Integer Ring
-                 To:   Interface to the PARI C library
-           """
-           return True
-
-       cdef Gen new_gen_from_mpz_t(self, mpz_t value):
-           """
-           Create a new Gen from a given MPIR-integer ``value``.
-
-           EXAMPLES::
-
-               sage: pari(42)       # indirect doctest
-               42
-
-           TESTS:
-
-           Check that the hash of an integer does not depend on existing
-           garbage on the stack (:trac:`11611`)::
-
-               sage: foo = pari(2^(32*1024));  #Create large integer to put PARI stack in known state
-               sage: a5 = pari(5);
-               sage: foo = pari(0xDEADBEEF * (2^(32*1024)-1)//(2^32 - 1));  # nDirty PARI stack
-               sage: b5 = pari(5);
-               sage: a5.__hash__() == b5.__hash__()
-               True
-           """
-           sig_on()
-           return new_gen(self._new_GEN_from_mpz_t(value))
-
-       cdef inline GEN _new_GEN_from_mpz_t(self, mpz_t value):
-           r"""
-           Create a new PARI ``t_INT`` from a ``mpz_t``.
-
-           For internal use only; this directly uses the PARI stack.
-           One should call ``sig_on()`` before and ``sig_off()`` after.
-           """
-           cdef unsigned long limbs = mpz_size(value)
-
-           cdef GEN z = cgeti(limbs + 2)
-           #Set sign and "effective length"
-           z[1] = evalsigne(mpz_sgn(value)) + evallgefint(limbs + 2)
-           mpz_export(int_LSW(z), NULL, -1, sizeof(long), 0, 0, value)
-
-           return z
-
-       cdef inline GEN _new_GEN_from_fmpz_t(self, fmpz_t value):
-           r"""
-           Create a new PARI ``t_INT`` from a ``fmpz_t``.
-
-           For internal use only; this directly uses the PARI stack.
-           One should call ``sig_on()`` before and ``sig_off()`` after.
-           """
-           if COEFF_IS_MPZ(value[0]):
-               return self._new_GEN_from_mpz_t(COEFF_TO_PTR(value[0]))
-           else:
-               return stoi(value[0])
-
-       cdef Gen new_gen_from_mpq_t(self, mpq_t value):
-           """
-           Create a new Gen from a given MPIR-rational ``value``.
-
-           EXAMPLES::
-
-               sage: pari(-2/3)
-               -2/3
-               sage: pari(QQ(42))
-               42
-               sage: pari(QQ(42)).type()
-               't_INT'
-               sage: pari(QQ(1/42)).type()
-               't_FRAC'
-
-           TESTS:
-
-           Check that the hash of a rational does not depend on existing
-           garbage on the stack (:trac:`11854`)::
-
-               sage: foo = pari(2^(32*1024));  # Create large integer to put PARI stack in known state
-               sage: a5 = pari(5/7);
-               sage: foo = pari(0xDEADBEEF * (2^(32*1024)-1)//(2^32 - 1));  #Dirty PARI stack
-               sage: b5 = pari(5/7);
-               sage: a5.__hash__() == b5.__hash__()
-               True
-           """
-           sig_on()
-           return new_gen(self._new_GEN_from_mpq_t(value))
-
-       cdef inline GEN _new_GEN_from_mpq_t(self, mpq_t value):
-           r"""
-           Create a new PARI ``t_INT`` or ``t_FRAC`` from a ``mpq_t``.
-
-           For internal use only; this directly uses the PARI stack.
-           One should call ``sig_on()`` before and ``sig_off()`` after.
-           """
-           cdef GEN num = self._new_GEN_from_mpz_t(mpq_numref(value))
-           if mpz_cmpabs_ui(mpq_denref(value), 1) == 0:
-               # Denominator is 1, return the numerator (an integer)
-               return num
-           cdef GEN denom = self._new_GEN_from_mpz_t(mpq_denref(value))
-           return mkfrac(num, denom)
-
-       cdef Gen new_gen_from_padic(self, long ordp, long relprec,
-                                   mpz_t prime, mpz_t p_pow, mpz_t unit):
-           cdef GEN z
-           sig_on()
-           z = cgetg(5, t_PADIC)
-           z[1] = evalprecp(relprec) + evalvalp(ordp)
-           set_gel(z, 2, self._new_GEN_from_mpz_t(prime))
-           set_gel(z, 3, self._new_GEN_from_mpz_t(p_pow))
-           set_gel(z, 4, self._new_GEN_from_mpz_t(unit))
-           return new_gen(z)
-
-       cdef GEN _new_GEN_from_fmpz_mat_t(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc):
-           r"""
-           Create a new PARI ``t_MAT`` with ``nr`` rows and ``nc`` columns
-           from a ``mpz_t**``.
-
-           For internal use only; this directly uses the PARI stack.
-           One should call ``sig_on()`` before and ``sig_off()`` after.
-           """
-           cdef GEN x
-           cdef GEN A = zeromatcopy(nr, nc)
-           cdef Py_ssize_t i, j
-           for i in range(nr):
-               for j in range(nc):
-                   x = self._new_GEN_from_fmpz_t(fmpz_mat_entry(B,i,j))
-                   set_gcoeff(A, i+1, j+1, x)  # A[i+1, j+1] = x (using 1-based indexing)
-           return A
-
-       cdef GEN _new_GEN_from_fmpz_mat_t_rotate90(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc):
-           r"""
-           Create a new PARI ``t_MAT`` with ``nr`` rows and ``nc`` columns
-           from a ``mpz_t**`` and rotate the matrix 90 degrees
-           counterclockwise.  So the resulting matrix will have ``nc`` rows
-           and ``nr`` columns.  This is useful for computing the Hermite
-           Normal Form because Sage and PARI use different definitions.
-
-           For internal use only; this directly uses the PARI stack.
-           One should call ``sig_on()`` before and ``sig_off()`` after.
-           """
-           cdef GEN x
-           cdef GEN A = zeromatcopy(nc, nr)
-           cdef Py_ssize_t i, j
-           for i in range(nr):
-               for j in range(nc):
-                   x = self._new_GEN_from_fmpz_t(fmpz_mat_entry(B,i,nc-j-1))
-                   set_gcoeff(A, j+1, i+1, x)  # A[j+1, i+1] = x (using 1-based indexing)
-           return A
-
-       cdef Gen integer_matrix(self, fmpz_mat_t B, Py_ssize_t nr, Py_ssize_t nc, bint permute_for_hnf):
-           """
-           EXAMPLES::
-
-               sage: matrix(ZZ,2,[1..6])._pari_()   # indirect doctest
-               [1, 2, 3; 4, 5, 6]
-           """
-           sig_on()
-           cdef GEN g
-           if permute_for_hnf:
-               g = self._new_GEN_from_fmpz_mat_t_rotate90(B, nr, nc)
-           else:
-               g = self._new_GEN_from_fmpz_mat_t(B, nr, nc)
-           return new_gen(g)
-
-       cdef GEN _new_GEN_from_mpq_t_matrix(self, mpq_t** B, Py_ssize_t nr, Py_ssize_t nc):
-           cdef GEN x
-           # Allocate zero matrix
-           cdef GEN A = zeromatcopy(nr, nc)
-           cdef Py_ssize_t i, j
-           for i in range(nr):
-               for j in range(nc):
-                   x = self._new_GEN_from_mpq_t(B[i][j])
-                   set_gcoeff(A, i+1, j+1, x)  # A[i+1, j+1] = x (using 1-based indexing)
-           return A
-
-       cdef Gen rational_matrix(self, mpq_t** B, Py_ssize_t nr, Py_ssize_t nc):
-           """
-           EXAMPLES::
-
-               sage: matrix(QQ,2,[1..6])._pari_()   # indirect doctest
-               [1, 2, 3; 4, 5, 6]
-           """
-           sig_on()
-           cdef GEN g = self._new_GEN_from_mpq_t_matrix(B, nr, nc)
-           return new_gen(g)
-
-       cdef _coerce_c_impl(self, x):
-           """
-           Implicit canonical coercion into a PARI object.
-           """
-           try:
-               return self(x)
-           except (TypeError, AttributeError):
-               raise TypeError("no canonical coercion of %s into PARI" % x)
-
-       cdef _an_element_c_impl(self):  # override this in Cython
-           return self.PARI_ZERO
-
-ELSE:
-    cdef void swallow_s(const char* s):
-        return
-
-    cdef void swallow_ch(char ch):
-        return
-
-    cdef class Pari_base(Pari_auto):
-        """
-        Base class for CyPari.
-        """
-
-        def shut_up(self):
-            global pariErr
-            pariErr.putch = swallow_ch
-            pariErr.puts = swallow_s
-
-        def speak_up(self):
-            global pariErr
-            pariErr.putch = sage_putchar
-            pariErr.puts = sage_puts
-
 @cython.final
-cdef class Pari(Pari_base):
+cdef class Pari(Pari_auto):
     
     def __init__(self, long size=1000000, unsigned long maxprime=500000):
         """
@@ -826,6 +593,16 @@ cdef class Pari(Pari_base):
         self.PARI_TWO = new_gen_noclear(gen_2)
         sig_off()
 
+    def shut_up(self):
+        global pariErr
+        pariErr.putch = swallow_ch
+        pariErr.puts = swallow_s
+
+    def speak_up(self):
+        global pariErr
+        pariErr.putch = sage_putchar
+        pariErr.puts = sage_puts
+        
     @property
     def UI_callback(self):
         return self._UI_callback
