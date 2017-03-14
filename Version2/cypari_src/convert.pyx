@@ -1,6 +1,13 @@
 # cython: cdivision = True
 """
-Convert PARI objects to/from Python integers
+Convert PARI objects to/from Python/C native types
+
+This modules contains the following conversion routines:
+
+- integers, long integers <-> PARI integers
+- list of integegers -> PARI polynomials
+- doubles -> PARI reals
+- pairs of doubles -> PARI complex numbers
 
 PARI integers are stored as an array of limbs of type ``pari_ulong``
 (which are 32-bit or 64-bit integers). Depending on the kernel
@@ -21,7 +28,9 @@ some bit shuffling.
 
 #*****************************************************************************
 #       Copyright (C) 2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
-#                     2016 Marc Culler and Nathan Dunfield
+#       Copyright (C) 2016 Luca De Feo <luca.defeo@polytechnique.edu>
+#       Copyright (C) 2016 Vincent Delecroix <vincent.delecroix@u-bordeaux.fr>
+#       Copyright (C) 2016-2017 Marc Culler and Nathan Dunfield
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,30 +38,34 @@ some bit shuffling.
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-#from __future__ import print_function
 
-# Define the conditional compilation variable SAGE
-include "sage.pxi"
+""" Sage header -- not used by the standalone CyPari
+from __future__ import absolute_import, division, print_function
 
+include "cysignals/signals.pxi"
+
+from .paridecl cimport *
+from .stack cimport new_gen
+"""
+cdef extern from *:
+    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
+
+from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG
+from cpython.longintrepr cimport (_PyLong_New, PyLongObject,
+        digit, PyLong_SHIFT, PyLong_MASK)
 from libc.limits cimport LONG_MIN, LONG_MAX
-IF SAGE:
-    pass
-    # comment these out to avoid Cython 0.25 bug
-#    include "cysignals/signals.pxi"
-#    from .paridecl cimport *
-#    from .pari_instance cimport pari_instance as P
 
-cdef extern from "longintrepr.h":
-    cdef PyLongObject* _PyLong_New(Py_ssize_t s)
-    ctypedef unsigned int digit
-    ctypedef struct PyLongObject:
-        digit* ob_digit
-    ctypedef struct PyVarObject:
-        Py_ssize_t ob_size
+# cdef extern from "longintrepr.h":
+#     cdef PyLongObject* _PyLong_New(Py_ssize_t s)
+#     ctypedef unsigned int digit
+#     ctypedef struct PyLongObject:
+#         digit* ob_digit
+#     ctypedef struct PyVarObject:
+#         Py_ssize_t ob_size
 
-    cdef long PyLong_SHIFT
-    cdef digit PyLong_MASK
+#     cdef long PyLong_SHIFT
+#     cdef digit PyLong_MASK
 
 # Constants used in converting pari integers to Python integers
 cdef pari_ulongword pos_max  # The largest pari_ulongword that fits in long
@@ -79,9 +92,13 @@ cdef pari_longword_to_int(pari_longword x):
     ELSE:
         return int(x)
 
+####################################
+# Integers
+####################################
+
 cpdef integer_to_gen(x):
     """
-    Convert a Python ``int`` or ``long`` to a PARI ``Gen`` of type
+    Convert a Python ``int`` or ``long`` to a PARI ``gen`` of type
     ``t_INT``.
 
     EXAMPLES::
@@ -232,10 +249,9 @@ cdef GEN gtoi(GEN g0) except NULL:
             sig_error()
         sig_off()
     except RuntimeError:
-        error = stack_sprintf(
+        raise TypeError(stack_sprintf(
             "unable to convert PARI object %Ps of type %s to an integer",
-            g0, type_name(typ(g0)))
-        raise TypeError(String(error))
+            g0, type_name(typ(g0))))
     return g
 
 
@@ -250,16 +266,14 @@ cdef GEN PyLong_AsGEN(x):
         cdef long long sgn
     ELSE:
         cdef long sgn
-    # IMPORTANT this ob_size must be the same type as PyVarObject->ob_size,
-    # namely Py_ssize_t, since we need to test its sign.
-    cdef Py_ssize_t ob_size = (<PyVarObject*>L).ob_size
-    if ob_size == 0:
+
+    if Py_SIZE(x) == 0:
         return gen_0
-    elif ob_size > 0:
-        sizedigits = ob_size
+    elif Py_SIZE(x) > 0:
+        sizedigits = Py_SIZE(x)
         sgn = evalsigne(1)
     else:
-        sizedigits = -ob_size
+        sizedigits = -Py_SIZE(x)
         sgn = evalsigne(-1)
 
     # Size of the output, in bits and in words
@@ -326,6 +340,7 @@ cdef GEN PyLong_AsGEN(x):
 
     return g
 
+
 cdef PyLong_FromGEN(GEN g):
     # Size of input in words, bits and Python digits. The size in
     # digits might be a small over-estimation, but that is not a
@@ -337,8 +352,8 @@ cdef PyLong_FromGEN(GEN g):
     # Actual correct computed size
     cdef Py_ssize_t sizedigits_final = 0
 
-    cdef PyLongObject* L = _PyLong_New(<Py_ssize_t>sizedigits) 
-    cdef digit* D = L.ob_digit
+    x = _PyLong_New(sizedigits) 
+    cdef digit* D = (<PyLongObject*>x).ob_digit
 
     cdef digit d
     cdef ulong w
@@ -365,13 +380,15 @@ cdef PyLong_FromGEN(GEN g):
         if d:
             sizedigits_final = i+1
 
-    # Set correct size
+    # Set correct size (use a pointer to hack around Cython's
+    # non-support for lvalues).
+    cdef Py_ssize_t* sizeptr = Py_SIZE_PTR(x)
     if signe(g) > 0:
-        (<PyVarObject*>L).ob_size = sizedigits_final
+        sizeptr[0] = sizedigits_final
     else:
-        (<PyVarObject*>L).ob_size = -sizedigits_final
+        sizeptr[0] = -sizedigits_final
 
-    return <object>L
+    return x
 
 
 ####################################
@@ -398,6 +415,7 @@ cdef Gen new_t_POL_from_int_star(int* vals, unsigned long length, long varnum):
             set_gel(z, i+2, stoi(vals[i]))
 
     return new_gen(z)
+
 
 cdef Gen new_gen_from_double(double x):
     # Pari has an odd concept where it attempts to track the accuracy
