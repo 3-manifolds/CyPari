@@ -291,20 +291,12 @@ from .handle_error cimport _pari_init_error_handling
 from .closure cimport _pari_init_closure
 """
 
+cdef extern from *:
+    int sig_on_count "cysigs.sig_on_count"
+
 # Default precision (in PARI words) for the PARI library interface,
 # when no explicit precision is given and the inputs are exact.
 cdef long prec = prec_bits_to_words(53)
-
-
-IF not SAGE:
-    cdef deprecation(int id, char* message):
-        # Decide how to handle this in CyPari
-        pass
-    cdef deprecated_function_alias(id, alias):
-        return alias
-
-cdef extern from *:
-    int sig_on_count "cysigs.sig_on_count"
 
 #################################################################
 # conversions between various real precision models
@@ -466,96 +458,30 @@ include 'auto_instance.pxi'
 
 @cython.final
 cdef class Pari(Pari_auto):
-    
-    def __init__(self, long size=1000000, unsigned long maxprime=500000):
+    def __cinit__(self):
+        r"""
+        (Re)-initialize the PARI library.
+
+        TESTS::
+
+            sage: from cypari._pari import Pari
+            sage: Pari.__new__(Pari)
+            Interface to the PARI C library
         """
-        Initialize the PARI system.
-
-        INPUT:
-
-
-        -  ``size`` -- long, the number of bytes for the initial
-           PARI stack (see note below)
-
-        -  ``maxprime`` -- unsigned long, upper limit on a
-           precomputed prime number table (default: 500000)
-
-
-        .. note::
-
-           In Sage, the PARI stack is different than in GP or the
-           PARI C library. In Sage, instead of the PARI stack
-           holding the results of all computations, it *only* holds
-           the results of an individual computation. Each time a new
-           Python/PARI object is computed, it is copied to its own
-           space in the Python heap, and the memory it occupied on the
-           PARI stack is freed. Thus it is not necessary to make the
-           stack very large. Also, unlike in PARI, if the stack does
-           overflow, in most cases the PARI stack is automatically
-           increased and the relevant step of the computation rerun.
-
-           This design obviously involves some performance penalties
-           over the way PARI works, but it scales much better and is
-           far more robust for large projects.
-
-        .. note::
-
-           If you do not want prime numbers, put ``maxprime=2``, but be
-           careful because many PARI functions require this table. If
-           you get the error message "not enough precomputed primes",
-           increase this parameter.
-        """
+        # PARI is already initialized, nothing to do...
         if avma:
-            return  # pari already initialized.
-
-        # PARI has a "real" stack size (parisize) and a "virtual" stack
-        # size (parisizemax). The idea is that the real stack will be
-        # used if possible, but the stack might be increased up to
-        # the complete virtual stack. Therefore, it is not a problem to
-        # set the virtual stack size to a large value. There are two
-        # constraints for the virtual stack size:
-        # 1) on 32-bit systems, even virtual memory can be a scarce
-        #    resource since it is limited by 4GB (of which the kernel
-        #    needs a significant part)
-        # 2) the system should actually be able to handle a stack size
-        #    as large as the complete virtual stack.
-        # As a simple heuristic, we set the virtual stack to 1/4 of the
-        # virtual memory.
-
-        pari_init_opts(size, maxprime, INIT_DFTm)
-        IF SAGE:
-            from sage.misc.memory_info import MemoryInfo
-            mem = MemoryInfo()
-            sizemax = mem.virtual_memory_limit() // 4
-            
-            if CYGWIN_VERSION and CYGWIN_VERSION < (2, 5, 2):
-                # Cygwin's mmap is broken for large NORESERVE mmaps (>~ 4GB) See
-                # http://trac.sagemath.org/ticket/20463 So we set the max stack
-                # size to a little below 4GB (putting it right on the margin proves
-                # too fragile)
-                #
-                # The underlying issue is fixed in Cygwin v2.5.2
-                sizemax = min(sizemax, 0xf0000000)
- 
-            paristack_setsize(size, sizemax)
-        ELSE:
-            from memory import total_ram
-            if cpu_width == '32bit':
-                sizemax = min(total_ram() // 4, 2**30)
-            else:
-                sizemax = total_ram() // 4
-            paristack_setsize(size, sizemax)
+            return
         
+        # Take 1MB as minimal stack. Use maxprime=0, which PARI will
+        # internally increase to some small value like 65537.
+        pari_init_opts(1000000, 0, INIT_DFTm)
+
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.
         pari_stackcheck_init(NULL)
 
         _pari_init_error_handling()
-
-        # pari_init_opts() overrides MPIR's memory allocation functions,
-        # so we need to reset them.
-        IF SAGE:
-           init_memory_functions()
+        _pari_init_closure()
 
         # Set printing functions
         global pariOut, pariErr
@@ -565,7 +491,7 @@ cdef class Pari(Pari_auto):
         pariOut.puts = sage_puts
         pariOut.flush = sage_flush
 
-        # Use 15 decimal digits as default precision
+        # Use 53 bits as default precision
         self.set_real_precision_bits(53)
 
         # Disable pretty-printing
@@ -586,12 +512,117 @@ cdef class Pari(Pari_auto):
         global factor_proven
         factor_proven = 1
 
+    def __init__(self, size_t size=8000000, size_t sizemax=0, unsigned long maxprime=500000):
+        """
+        (Re)-Initialize the PARI system.
+
+        INPUT:
+
+        - ``size`` -- (default: 8000000) the number of bytes for the
+          initial PARI stack (see notes below)
+
+        - ``sizemax`` -- the maximal number of bytes for the
+          dynamically increasing PARI stack. The default ``0`` means
+          to use the same value as ``size`` (see notes below)
+
+        - ``maxprime`` -- (default: 500000) limit on the primes in the
+          precomputed prime number table which is used for sieving
+          algorithms
+
+        When the PARI system is already initialized, the PARI stack is only
+        grown if ``size`` is greater than the current stack, and the table
+        of primes is only computed if ``maxprime`` is larger than the current
+        bound.
+
+        EXAMPLES::
+
+            sage: from cypari._pari import Pari
+            sage: pari2 = Pari(10**7)
+            sage: pari2
+            Interface to the PARI C library
+            sage: pari2 is pari
+            False
+            sage: pari2.PARI_ZERO == pari.PARI_ZERO
+            True
+            sage: pari2 = Pari(10**6)
+            sage: pari.stacksize(), pari2.stacksize()
+            (10000000, 10000000)
+
+        For more information about how precision works in the PARI
+        interface, see :mod:`sage.libs.cypari2.pari_instance`.
+
+        .. NOTE::
+
+            PARI has a "real" stack size (``size``) and a "virtual"
+            stack size (``sizemax``). The idea is that the real stack
+            will be used if possible, but that the stack might be
+            increased up to ``sizemax`` bytes. Therefore, it is not a
+            problem to set ``sizemax`` to a large value. On the other
+            hand, it also makes no sense to set this to a value larger
+            than what your system can handle.
+
+        .. NOTE::
+
+           In CyPari, the PARI stack is different than in GP or the
+           PARI C library. In CyPari, instead of the PARI stack
+           holding the results of all computations, it *only* holds
+           the results of an individual computation. Each time a new
+           Python/PARI object is computed, it is copied to its own
+           space in the Python heap, and the memory it occupied on the
+           PARI stack is freed. Thus it is not necessary to make the
+           stack very large.
+
+           This design obviously involves some performance penalties
+           over the way PARI works, but it scales much better and is
+           far more robust for large projects.
+        """
+        # Increase (but don't decrease) size and sizemax to the
+        # requested value
+        size = max(size, pari_mainstack.rsize)
+        sizemax = max(max(size, pari_mainstack.vsize), sizemax)
+        paristack_setsize(size, sizemax)
+
+        # Increase the table of primes if needed
+        self.init_primes(maxprime)
+
         # Initialize some constants
         sig_on()
         self.PARI_ZERO = new_gen_noclear(gen_0)
         self.PARI_ONE = new_gen_noclear(gen_1)
         self.PARI_TWO = new_gen_noclear(gen_2)
         sig_off()
+
+    def _close(self):
+        """
+        Deallocate the PARI library.
+
+        If you want to reallocate the PARI library again, construct
+        a new instance of :class:`Pari`.
+
+        EXAMPLES::
+
+            sage: from cypari._pari import Pari
+            sage: pari2 = Pari(10**7)
+            sage: pari2._close()
+            sage: pari2 = Pari(10**6)
+            sage: pari.stacksize()
+            1000000
+
+        .. WARNING::
+
+            Calling this method is dangerous since any further use of
+            PARI (by this :class:`Pari` or another
+            :class:`Pari` or even another non-Python library)
+            will result in a segmentation fault after calling
+            ``_close()``.
+
+            For this reason, the :class:`Pari` class never
+            deallocates PARI memory automatically.
+        """
+        global avma
+        if avma:
+            pari_close()
+            avma = 0
 
     def shut_up(self):
         global pariErr
@@ -628,27 +659,11 @@ cdef class Pari(Pari_auto):
         # chances that something goes wrong here (for example, if we
         # are out of memory).
         printf("top =  %p\navma = %p\nbot =  %p\nsize = %lu\n",
-               <void *>pari_mainstack.top, <void *>avma, <void *>pari_mainstack.bot,
-               <unsigned long>pari_mainstack.rsize)
+            <void*>pari_mainstack.top,
+            <void*>avma,
+            <void*>pari_mainstack.bot,
+            <unsigned long>pari_mainstack.rsize)
         fflush(stdout)
-
-    def __dealloc__(self):
-        """
-        Deallocation of the Pari instance.
-
-        NOTE:
-
-        Usually this deallocation happens only when Sage quits.
-        We do not provide a direct test, since usually there
-        is only one Pari instance, and when artificially creating
-        another instance, C-data are shared.
-
-        The fact that Sage does not crash when quitting is an
-        indirect doctest. See the discussion at :trac:`13741`.
-
-        """
-        if avma:
-            pari_close()
 
     def __repr__(self):
         return "Interface to the PARI C library"
@@ -728,31 +743,33 @@ cdef class Pari(Pari_auto):
 
     def set_real_precision(self, long n):
         """
-        Sets the PARI default real precision in bits.
+        Sets the PARI default real precision in decimal digits.
 
-        This is used both for creation of new objects from strings and
-        for printing. It determines the number of digits in which real
-        numbers numbers are printed. It also determines the precision
-        of objects created by parsing strings (e.g. pari('1.2')), which
-        is *not* the normal way of creating new pari objects in Sage.
-        It has *no* effect on the precision of computations within the
-        PARI library.
+        This is used both for creation of new objects from strings and for
+        printing. It is the number of digits *IN DECIMAL* in which real
+        numbers are printed. It also determines the precision of objects
+        created by parsing strings (e.g. pari('1.2')), which is *not* the
+        normal way of creating new PARI objects in CyPari2. It has *no*
+        effect on the precision of computations within the pari library.
 
-        .. seealso:: :meth:`set_real_precision` to set the
-           precision in decimal digits.
+        Returns the previous PARI real precision.
+
+        .. seealso:: :meth:`set_real_precision_bits` to set the
+           precision in bits.
 
         EXAMPLES::
 
-            sage: pari.set_real_precision_bits(200)
+            sage: pari.set_real_precision(60)
+            15
             sage: pari('1.2')
             1.20000000000000000000000000000000000000000000000000000000000
-            sage: pari.set_real_precision_bits(53)
+            sage: pari.set_real_precision(15)
+            60
         """
         old = self.get_real_precision()
         self.set_real_precision_bits(prec_dec_to_bits(n))
         return old
 
-    
     def get_real_precision(self):
         """
         Returns the current PARI default real precision.
@@ -761,14 +778,17 @@ cdef class Pari(Pari_auto):
         printing. It is the number of digits *IN DECIMAL* in which real
         numbers are printed. It also determines the precision of objects
         created by parsing strings (e.g. pari('1.2')), which is *not* the
-        normal way of creating new pari objects in Sage. It has *no*
+        normal way of creating new PARI objects in CyPari2. It has *no*
         effect on the precision of computations within the pari library.
+
+        .. seealso:: :meth:`get_real_precision_bits` to get the
+           precision in bits.
 
         EXAMPLES::
 
             sage: pari.get_real_precision()
             15
-         """
+        """
         cdef long r
         sig_on()
         r = itos(sd_realprecision(NULL, d_RETURN))
@@ -782,106 +802,28 @@ cdef class Pari(Pari_auto):
     def get_series_precision(self):
         return <int>precdl
 
-    # def get_default_bit_precision(self):
-    #     return default_bitprec()
-        
-    # def set_default_bit_precision(self, int n):
-    #     """
-    #     Set the default bit precision for real and complex Gens.
-
-    #     >>> pari.get_default_bit_precision()
-    #     64
-    #     >>> pari.pi()
-    #     3.14159265358979
-    #     >>> pari.pi().precision()
-    #     3  # 64-bit
-    #     4  # 32-bit
-    #     >>> pari.set_default_bit_precision(212)
-    #     64
-    #     >>> pari.get_default_bit_precision()
-    #     256 # 64-bit
-    #     224 # 32-bit
-    #     >>> pari.pi()
-    #     3.14159265358979
-    #     >>> pari.pi().precision()
-    #     6  # 64-bit
-    #     9  # 32-bit
-    #     >>> old_real_precision = pari.set_real_precision(50)
-    #     >>> pari.pi()
-    #     3.1415926535897932384626433832795028841971693993751
-    #     >>> pari.set_default_bit_precision(64)
-    #     256 # 64-bit
-    #     224 # 32-bit
-    #     >>> pari.pi()
-    #     3.141592653589793239
-    #     >>> pari.set_real_precision(old_real_precision)
-    #     50
-    #     >>> pari.pi()
-    #     3.14159265358979
-    #     >>> pari.set_real_precision_bits(53)
-    #     50
-    #     """
-    #     return default_bitprec(n)
-
-    cdef Gen new_gen_from_int(self, int value):
-        sig_on()
-        return new_gen(stoi(value))
-
     def double_to_gen(self, x):
-        cdef double dx
-        dx = float(x)
-        return self.double_to_gen_c(dx)
-
-    cdef Gen double_to_gen_c(self, double x):
         """
-        Create a new gen with the value of the double x, using Pari's
+        Create a new Gen with the value of the double x, using Pari's
         dbltor.
 
         EXAMPLES::
 
             sage: pari.double_to_gen(1)
+            doctest:...: DeprecationWarning: pari.double_to_gen(x) is deprecated, use pari(x) instead
             1.00000000000000
             sage: pari.double_to_gen(1e30)
             1.00000000000000 E30
             sage: pari.double_to_gen(0)
             0.E-15
-            sage: pari.double_to_gen(-sqrt(RDF(2)))
+            sage: import math
+            sage: pari.double_to_gen(-math.sqrt(2))
             -1.41421356237310
-
-        >>> pari.double_to_gen(1)
-        1.00000000000000
-        >>> pari.double_to_gen(1e30)
-        1.00000000000000 E30
-        >>> pari.double_to_gen(0)
-        0.E-15
-        >>> pari.double_to_gen(-sqrt(RDF(2)))
-        -1.41421356237310
         """
-        # Pari has an odd concept where it attempts to track the accuracy
-        # of floating-point 0; a floating-point zero might be 0.0e-20
-        # (meaning roughly that it might represent any number in the
-        # range -1e-20 <= x <= 1e20).
-
-        # Pari's dbltor converts a floating-point 0 into the Pari real
-        # 0.0e-307; Pari treats this as an extremely precise 0.  This
-        # can cause problems; for instance, the Pari incgam() function can
-        # be very slow if the first argument is very precise.
-
-        # So we translate 0 into a floating-point 0 with 53 bits
-        # of precision (that's the number of mantissa bits in an IEEE
-        # double).
-
-        sig_on()
-        if x == 0:
-            return new_gen(real_0_bit(-53))
-        else:
-            return new_gen(dbltor(x))
-
-    cdef GEN double_to_GEN(self, double x):
-        if x == 0:
-            return real_0_bit(-53)
-        else:
-            return dbltor(x)
+        # Deprecated in https://trac.sagemath.org/ticket/20241
+        from warnings import warn
+        warn("pari.double_to_gen(x) is deprecated, use pari(x) instead", DeprecationWarning)
+        return new_gen_from_double(x)
 
     cpdef _real_coerced_to_bits_prec(self, double x, long bits):
         r""" 
@@ -950,9 +892,6 @@ cdef class Pari(Pari_auto):
 
             sage: pari.zero()
             0
-
-        >>> pari.zero()
-        0
         """
         return self.PARI_ZERO
 
@@ -1230,14 +1169,6 @@ cdef class Pari(Pari_auto):
         sig_on()
         return new_gen(primes_interval(t0.g, t1.g))
 
-    def primes_up_to_n(self, n):
-        deprecation(20216, "pari.primes_up_to_n(n) is deprecated, use pari.primes(end=n) instead")
-        return self.primes(end=n)
-
-    prime_list = deprecated_function_alias(20216, primes)
-
-    nth_prime = deprecated_function_alias(20216, Pari_auto.prime)
-
     euler = Pari_auto.Euler
     pi = Pari_auto.Pi
 
@@ -1254,24 +1185,13 @@ cdef class Pari(Pari_auto):
             64*z^7 - 112*z^5 + 56*z^3 - 7*z
             sage: pari.polchebyshev(0)
             1
-
-        >>> pari.polchebyshev(7)
-        64*x^7 - 112*x^5 + 56*x^3 - 7*x
-        >>> pari.polchebyshev(7, 'z')
-        64*z^7 - 112*z^5 + 56*z^3 - 7*z
-        >>> pari.polchebyshev(0)
-        1
         """
         sig_on()
         return new_gen(polchebyshev1(n, get_var(v)))
 
-    # Deprecated by upstream PARI: do not remove this deprecated alias
-    # as long as it exists in PARI.
-    poltchebi = deprecated_function_alias(18203, polchebyshev)
-
     def factorial(self, long n):
         """
-        Return the factorial of the integer n as a PARI Gen.
+        Return the factorial of the integer n as a PARI gen.
 
         EXAMPLES::
 
@@ -1283,15 +1203,6 @@ cdef class Pari(Pari_auto):
             120
             sage: pari.factorial(25)
             15511210043330985984000000
-
-        >>> pari.factorial(0)
-        1
-        >>> pari.factorial(1)
-        1
-        >>> pari.factorial(5)
-        120
-        >>> pari.factorial(25)
-        15511210043330985984000000
         """
         sig_on()
         return new_gen(mpfact(n))
@@ -1313,15 +1224,6 @@ cdef class Pari(Pari_auto):
             [x - 1]
             sage: pari.polsubcyclo(8, 3)
             []
-
-        >>> pari.polsubcyclo(8, 4)
-        [x^4 + 1]
-        >>> pari.polsubcyclo(8, 2, 'z')
-        [z^2 + 2, z^2 - 2, z^2 + 1]
-        >>> pari.polsubcyclo(8, 1)
-        [x - 1]
-        >>> pari.polsubcyclo(8, 3)
-        []
         """
         cdef Gen plist
         sig_on()
@@ -1330,8 +1232,6 @@ cdef class Pari(Pari_auto):
             return self.vector(1, [plist])
         else:
             return plist
-
-    polcyclo_eval = deprecated_function_alias(20217, Pari_auto.polcyclo)
 
     def setrand(self, seed):
         """
@@ -1403,6 +1303,11 @@ cdef class Pari(Pari_auto):
         """
         matrix(long m, long n, entries=None): Create and return the m x n
         PARI matrix with given list of entries.
+
+        EXAMPLES::
+
+            sage: pari.matrix(3,3,range(9))
+            [0, 1, 2; 3, 4, 5; 6, 7, 8]
         """
         cdef long i, j, k
         cdef Gen A
@@ -1469,32 +1374,6 @@ cdef class Pari(Pari_auto):
         sig_on()
         return new_gen(gtolist(t0.g))
 
-IF SAGE:
-    cdef inline void INT_to_mpz(mpz_ptr value, GEN g):
-        """
-        Store a PARI ``t_INT`` as an ``mpz_t``.
-        """
-        if typ(g) != t_INT:
-            pari_err(e_TYPE, <char*>"conversion to mpz", g)
-
-        cdef long size = lgefint(g) - 2
-        mpz_import(value, size, -1, sizeof(long), 0, 0, int_LSW(g))
-
-        if signe(g) < 0:
-            mpz_neg(value, value)
-
-    cdef void INTFRAC_to_mpq(mpq_ptr value, GEN g):
-        """
-        Store a PARI ``t_INT`` or ``t_FRAC`` as an ``mpq_t``.
-        """
-        if typ(g) == t_FRAC:
-            INT_to_mpz(mpq_numref(value), gel(g, 1))
-            INT_to_mpz(mpq_denref(value), gel(g, 2))
-        elif typ(g) == t_INT:
-            INT_to_mpz(mpq_numref(value), g)
-            mpz_set_ui(mpq_denref(value), 1)
-        else:
-            pari_err(e_TYPE, <char*>"conversion to mpq", g)
 
 cdef long get_var(v) except -2:
     """

@@ -754,7 +754,7 @@ Linear algebra::
     >>> pari('[1,2,3; 4,5,6;  7,8,9]').matadjoint()
     [-3, 6, -3; 6, -12, 6; -3, 6, -3]
     >>> pari('[a,b,c; d,e,f; g,h,i]').matadjoint()
-    [e*i - h*f, -b*i + h*c, (f*b - e*c); -d*i + g*f, a*i - g*c, (-f*a + d*c); (h*d - g*e), (-h*a + g*b), (e*a - d*b)]
+    [(i*e - h*f), (-i*b + h*c), (f*b - e*c); (-i*d + g*f), i*a - g*c, -f*a + d*c; (h*d - g*e), -h*a + g*b, e*a - d*b]
     >>> pari('[1,1;1,-1]').matsolve(pari('[1;0]'))
     [1/2; 1/2]
 
@@ -1661,5 +1661,18 @@ General number fields::
     Traceback (most recent call last):
     ...
     PariError: domain error in quadray: isfundamental(D) = 0
+
+    # Closures
+
+    >>> def the_answer():
+    ...     return 42
+    >>> f = pari(the_answer)
+    >>> f()
+    42
+
+    >>> cube = pari(lambda i: i**3)
+    >>> cube.apply(range(10))
+    [0, 1, 8, 27, 64, 125, 216, 343, 512, 729]
+
 """
 

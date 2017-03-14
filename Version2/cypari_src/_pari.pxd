@@ -43,9 +43,6 @@ IF SAGE == False:
         cdef readonly Gen PARI_ZERO, PARI_ONE, PARI_TWO
         cpdef Gen zero(self)
         cpdef Gen one(self)
-        cdef Gen new_gen_from_int(self, int value)
-        cdef Gen double_to_gen_c(self, double)
-        cdef GEN double_to_GEN(self, double)
         cdef Gen _empty_vector(self, long n)
         cpdef _real_coerced_to_bits_prec(self, double x, long bits)
         cdef _UI_callback

@@ -15,7 +15,7 @@ EXAMPLES::
     sage: f()
     42
 
-    sage: cube = pari(lambda i: i^3)
+    sage: cube = pari(lambda i: i**3)
     sage: cube.apply(range(10))
     [0, 1, 8, 27, 64, 125, 216, 343, 512, 729]
 """
@@ -30,27 +30,27 @@ EXAMPLES::
 # (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-# Define the conditional compilation variable SAGE
-include "sage.pxi"
+
+"""  Sage header -- not used by the standalone CyPari
+from __future__ import absolute_import, division, print_function
+
+include "cysignals/signals.pxi"
+
+from .paridecl cimport *
+from .stack cimport new_gen, new_gen_noclear
+from .gen cimport objtogen
+"""
 
 from cpython.tuple cimport *
 from cpython.object cimport PyObject_Call
 from cpython.ref cimport Py_INCREF
-
-IF SAGE:
-    pass
-    # Comment these out to avoid Cython 0.25 bug.
-#    include "cysignals/signals.pxi"
-#    from .paridecl cimport *
-#    from .pari_instance cimport pari_instance
-#    from .gen cimport objtogen
 
 cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_func) except NULL:
     """
     Call ``py_func(*args)`` where ``py_func`` is a Python function
     and ``args`` is an array of ``GEN``s terminated by ``NULL``.
 
-    The arguments are converted from ``GEN`` to a Sage ``Gen`` before
+    The arguments are converted from ``GEN`` to a Sage ``gen`` before
     calling ``py_func``. The result is converted back to a PARI ``GEN``.
     """
     # How many arguments are there?
@@ -115,8 +115,11 @@ cdef GEN call_python(GEN arg1, GEN arg2, GEN arg3, GEN arg4, GEN arg5, ulong py_
     return r
 
 # Install the function "call_python" for use in the PARI library.
-cdef entree* ep_call_python = install(<void*>call_python, "call_python", "DGDGDGDGDGU")
+cdef entree* ep_call_python
 
+cdef void _pari_init_closure():
+    global ep_call_python
+    ep_call_python = install(<void*>call_python, "call_python", "DGDGDGDGDGU")
 
 cpdef Gen objtoclosure(f):
     """
