@@ -36,11 +36,9 @@ IF SAGE == False:
 
     cdef class Pari_auto:
         pass
-    cdef class Pari_base(Pari_auto):
-        pass
     
     @cython.final
-    cdef class Pari(Pari_base):
+    cdef class Pari(Pari_auto):
         cdef long _real_precision
         cdef readonly Gen PARI_ZERO, PARI_ONE, PARI_TWO
         cpdef Gen zero(self)
