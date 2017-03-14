@@ -108,7 +108,7 @@ include "signals.pyx"
 init_cysignals()
 include "stack.pyx"
 include "pari_instance.pyx"
-# Instantiate a unique instance of the Pari class
+# Instantiate an instance of the Pari class
 cdef Pari pari_instance = Pari()
 # and make it accessible from python as `pari`.
 pari = pari_instance
