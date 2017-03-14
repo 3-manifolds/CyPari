@@ -140,6 +140,17 @@ Back to the default::
     sage: pi
     3.14159265358979
 
+Note, however, that setting the real precision to 15 digits only
+provides 50 bits of precision, rather than the default bit precision
+of 53, which is chosen to match the precision of a standard 64 bit
+floating point number.
+
+sage: pari.set_real_precision(15)
+15
+sage: pari.get_real_precision_bits()
+50
+sage: pari.set_real_precision_bits(53)
+
 .. _pari_input_precision:
 
 Input precision for function calls
@@ -233,7 +244,7 @@ Check that ``default()`` works properly::
     sage: pari.default("debug")
     0
     sage: pari.default("debug", 3)
-    sage: pari('2^67+1').factor()
+    sage: pari(2**67+1).factor()
     IFAC: cracking composite
             49191317529892137643
     IFAC: factor 6713103182899
@@ -247,11 +258,8 @@ Check that ``default()`` works properly::
     IFAC: found 2 large prime (power) factors.
     [3, 1; 7327657, 1; 6713103182899, 1]
     sage: pari.default("debug", 0)
-    sage: pari('2^67+1').factor()
+    sage: pari(2**67+1).factor()
     [3, 1; 7327657, 1; 6713103182899, 1]
-
-    sage: pari('print("test")')
-    test
 """
 
 #*****************************************************************************
@@ -265,32 +273,30 @@ Check that ``default()`` works properly::
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-import sys
-cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
+""" Sage header -- not used by the standalone CyPari
+from __future__ import absolute_import, division
 
-IF SAGE:
-    pass
-#    cimport libc.stdlib
-#    from libc.stdio cimport *
-#    cimport cython
-#    from .paridecl cimport *
-#    from .paripriv cimport *
-# These include directives cause Cython 0.25.* to crash.  Apparently
-# it tries to find the files even though it should ignore them, since
-# SAGE is false.  Cython 0.24.1 did not have this problem.
-#    include "signals.pxi"
-#    include "memory.pxi"
-# The others just generate garbage errors, for the same reason.
-#   from sage.ext.memory import init_memory_functions
-#    from sage.structure.parent cimport Parent
-#    from sage.libs.gmp.all cimport *
-#    from sage.libs.flint.fmpz cimport fmpz_get_mpz, COEFF_IS_MPZ, COEFF_TO_PTR
-#    from sage.libs.flint.fmpz_mat cimport *
-#    from sage.libs.pari.gen cimport Gen, objtogen
-#    from sage.libs.pari.handle_error cimport _pari_init_error_handling
-#    from sage.misc.superseded import deprecation, deprecated_function_alias
-#    from sage.env import CYGWIN_VERSION
-ELSE:
+include "cysignals/signals.pxi"
+
+import sys
+from libc.stdio cimport *
+cimport cython
+
+from .paridecl cimport *
+from .paripriv cimport *
+from .gen cimport Gen, objtogen
+from .stack cimport new_gen, new_gen_noclear, clear_stack
+from .convert cimport new_gen_from_double
+from .handle_error cimport _pari_init_error_handling
+from .closure cimport _pari_init_closure
+"""
+
+# Default precision (in PARI words) for the PARI library interface,
+# when no explicit precision is given and the inputs are exact.
+cdef long prec = prec_bits_to_words(53)
+
+
+IF not SAGE:
     cdef deprecation(int id, char* message):
         # Decide how to handle this in CyPari
         pass
@@ -300,33 +306,11 @@ ELSE:
 cdef extern from *:
     int sig_on_count "cysigs.sig_on_count"
 
-# real precision in decimal digits: see documentation for
-# get_real_precision() and set_real_precision().  This variable is used
-# in gp to set the precision of input quantities (e.g. sqrt(2)), and for
-# determining the number of digits to be printed.  It is *not* used as
-# a "default precision" for internal computations, which always use
-# the actual precision of arguments together (where relevant) with a
-# "prec" parameter.  In ALL cases (for real computations) the prec
-# parameter is a WORD precision and NOT decimal precision.  Pari reals
-# with word precision w have bit precision (of the mantissa) equal to
-# 32*(w-2) or 64*(w-2).
-#
-# Hence the only relevance of this parameter in Sage is (1) for the
-# output format of components of objects of type
-# 'sage.libs.pari.gen.gen'; (2) for setting the precision of pari
-# variables created from strings (e.g. via sage: pari('1.2')).
-#
-# WARNING: Many pari library functions take a last parameter "prec"
-# which should be a words precision.  In many cases this is redundant
-# and is simply ignored.  In our wrapping of these functions we use
-# the variable prec here for convenience only.
-cdef long prec
-
 #################################################################
 # conversions between various real precision models
 #################################################################
 
-def prec_bits_to_dec(unsigned long prec_in_bits):
+def prec_bits_to_dec(long prec_in_bits):
     r"""
     Convert from precision expressed in bits to precision expressed in
     decimal.
@@ -336,13 +320,12 @@ def prec_bits_to_dec(unsigned long prec_in_bits):
         sage: from cypari._pari import prec_bits_to_dec
         sage: prec_bits_to_dec(53)
         15
-        sage: [(32*n, prec_bits_to_dec(32*n)) for n in range(1, 9)]
-        [(32, 9), (64, 19), (96, 28), (128, 38), (160, 48), (192, 57), (224, 67), (256, 77)]
+        sage: [prec_bits_to_dec(32*n) for n in range(1, 9)]
+        [9, 19, 28, 38, 48, 57, 67, 77]
     """
-    cdef double log_2 = 0.301029995663981
-    return int(prec_in_bits*log_2)
+    return nbits2ndec(prec_in_bits)
 
-def prec_dec_to_bits(unsigned long prec_in_dec):
+def prec_dec_to_bits(long prec_in_dec):
     r"""
     Convert from precision expressed in decimal to precision expressed
     in bits.
@@ -351,12 +334,12 @@ def prec_dec_to_bits(unsigned long prec_in_dec):
 
         sage: from cypari._pari import prec_dec_to_bits
         sage: prec_dec_to_bits(15)
-        49
-        sage: [(n, prec_dec_to_bits(n)) for n in range(10, 100, 10)]
-        [(10, 33), (20, 66), (30, 99), (40, 132), (50, 166), (60, 199), (70, 232), (80, 265), (90, 298)]
+        50
+        sage: [prec_dec_to_bits(n) for n in range(10, 100, 10)]
+        [34, 67, 100, 133, 167, 200, 233, 266, 299]
     """
     cdef double log_10 = 3.32192809488736
-    return int(prec_in_dec*log_10)
+    return int(prec_in_dec*log_10 + 1.0)  # Add one to round up
 
 cpdef long prec_bits_to_words(unsigned long prec_in_bits):
     r"""
@@ -404,11 +387,9 @@ cpdef long prec_words_to_bits(long prec_in_words):
     # see user's guide to the pari library, page 10
     return (prec_in_words - 2) * BITS_IN_LONG
 
-cpdef long default_bitprec(long bitprec=-1):
+cpdef long default_bitprec():
     r"""
-    Set the default precision in bits, or return the current value if no argument is
-    supplied.  WARNING: The value will be rounded up to the nearest multiple of the
-    pari word size (32 or 64 bits).
+    Return the default precision in bits.
 
     EXAMPLES::
 
@@ -416,11 +397,7 @@ cpdef long default_bitprec(long bitprec=-1):
         sage: default_bitprec()
         64
     """
-    global prec
-    cdef long old_prec = prec
-    if bitprec >= 0:
-        prec = prec_bits_to_words(bitprec)
-    return (old_prec - 2) * BITS_IN_LONG
+    return (prec - 2) * BITS_IN_LONG
 
 def prec_dec_to_words(long prec_in_dec):
     r"""
@@ -458,11 +435,6 @@ def prec_words_to_dec(long prec_in_words):
     """
     return prec_bits_to_dec(prec_words_to_bits(prec_in_words))
 
-
-# The unique running Pari instance.
-cdef Pari pari_instance = Pari()
-# Also a copy of PARI accessible from external pure python code.
-pari = pari_instance
 
 # Callbacks from PARI to print stuff using sys.stdout.write() instead
 # of C library functions like puts().
@@ -827,17 +799,13 @@ cdef class Pari(Pari_base):
         pariOut.flush = sage_flush
 
         # Use 15 decimal digits as default precision
-        self.set_real_precision(15)
-
-        # Init global prec variable with the precision in words
-        global prec
-        prec = prec_bits_to_words(64)
+        self.set_real_precision_bits(53)
 
         # Disable pretty-printing
         GP_DATA.fmt.prettyp = 0
 
         # This causes PARI/GP to use output independent of the terminal
-        # (which is want we want for the PARI library interface).
+        # (which is what we want for the PARI library interface).
         GP_DATA.flags = gpd_TEST
 
         # Ensure that Galois groups are represented in a sane way,
@@ -923,43 +891,91 @@ cdef class Pari(Pari_base):
         """
         return int(self.default('debug'))
 
-    def set_real_precision(self, long n):
+    def set_real_precision_bits(self, n):
         """
-        Sets the PARI default real precision in decimal digits.
+        Sets the PARI default real precision in bits.
 
-        This is used both for creation of new objects from strings and for
-        printing. It is the number of digits *IN DECIMAL* in which real
-        numbers are printed. It also determines the precision of objects
-        created by parsing strings (e.g. pari('1.2')), which is *not* the
-        normal way of creating new pari objects in Sage. It has *no*
-        effect on the precision of computations within the pari library.
+        This is used both for creation of new objects from strings and
+        for printing. It determines the number of digits in which real
+        numbers numbers are printed. It also determines the precision
+        of objects created by parsing strings (e.g. pari('1.2')), which
+        is *not* the normal way of creating new pari objects in Sage.
+        It has *no* effect on the precision of computations within the
+        PARI library.
 
-        Returns the previous PARI real precision.
+        .. seealso:: :meth:`set_real_precision` to set the
+           precision in decimal digits.
 
         EXAMPLES::
 
-            sage: pari.set_real_precision(60)
-            15
+            sage: pari.set_real_precision_bits(200)
             sage: pari('1.2')
             1.20000000000000000000000000000000000000000000000000000000000
-            sage: pari.set_real_precision(15)
-            60
-
-        >>> pari.set_real_precision(60)
-        15
-        >>> pari('1.2')
-        1.20000000000000000000000000000000000000000000000000000000000
-        >>> pari.set_real_precision(15)
-        60
+            sage: pari.set_real_precision_bits(53)
         """
-        prev = self._real_precision
-        cdef bytes strn = bytes(str(n).encode())
+        cdef bytes strn = str(n).encode("ascii")
         sig_on()
-        sd_realprecision(strn, d_SILENT)
+        sd_realbitprecision(strn, d_SILENT)
         sig_off()
-        self._real_precision = n
-        return prev
 
+    def get_real_precision_bits(self):
+        """
+        Return the current PARI default real precision in bits.
+
+        This is used both for creation of new objects from strings and
+        for printing. It determines the number of digits in which real
+        numbers numbers are printed. It also determines the precision
+        of objects created by parsing strings (e.g. pari('1.2')), which
+        is *not* the normal way of creating new pari objects in Sage.
+        It has *no* effect on the precision of computations within the
+        PARI library.
+
+        .. seealso:: :meth:`get_real_precision` to get the
+           precision in decimal digits.
+
+        EXAMPLES::
+
+            sage: pari.set_real_precision(15)
+            15
+            sage: pari.get_real_precision_bits()
+            50
+            sage: pari.set_real_precision_bits(53)
+            sage: pari.get_real_precision_bits()
+            53
+        """
+        cdef long r
+        sig_on()
+        r = itos(sd_realbitprecision(NULL, d_RETURN))
+        sig_off()
+        return r
+
+    def set_real_precision(self, long n):
+        """
+        Sets the PARI default real precision in bits.
+
+        This is used both for creation of new objects from strings and
+        for printing. It determines the number of digits in which real
+        numbers numbers are printed. It also determines the precision
+        of objects created by parsing strings (e.g. pari('1.2')), which
+        is *not* the normal way of creating new pari objects in Sage.
+        It has *no* effect on the precision of computations within the
+        PARI library.
+
+        .. seealso:: :meth:`set_real_precision` to set the
+           precision in decimal digits.
+
+        EXAMPLES::
+
+            sage: pari.set_real_precision_bits(200)
+            sage: pari('1.2')
+            1.20000000000000000000000000000000000000000000000000000000000
+            sage: pari.set_real_precision_bits(53)
+        """
+        old = self.get_real_precision()
+        self.set_real_precision_bits(prec_dec_to_bits(n))
+        return old
+
+    
     def get_real_precision(self):
         """
         Returns the current PARI default real precision.
@@ -975,11 +991,12 @@ cdef class Pari(Pari_base):
 
             sage: pari.get_real_precision()
             15
- 
-        >>> pari.get_real_precision()
-        15
-        """
-        return self._real_precision
+         """
+        cdef long r
+        sig_on()
+        r = itos(sd_realprecision(NULL, d_RETURN))
+        sig_off()
+        return r
 
     def set_series_precision(self, int n):
         global precdl
@@ -988,81 +1005,46 @@ cdef class Pari(Pari_base):
     def get_series_precision(self):
         return <int>precdl
 
-    def get_default_bit_precision(self):
-        return default_bitprec()
+    # def get_default_bit_precision(self):
+    #     return default_bitprec()
         
-    def set_default_bit_precision(self, int n):
-        """
-        Set the default bit precision for real and complex Gens.
+    # def set_default_bit_precision(self, int n):
+    #     """
+    #     Set the default bit precision for real and complex Gens.
 
-        >>> pari.get_default_bit_precision()
-        64
-        >>> pari.pi()
-        3.14159265358979
-        >>> pari.pi().precision()
-        3  # 64-bit
-        4  # 32-bit
-        >>> pari.set_default_bit_precision(212)
-        64
-        >>> pari.get_default_bit_precision()
-        256 # 64-bit
-        224 # 32-bit
-        >>> pari.pi()
-        3.14159265358979
-        >>> pari.pi().precision()
-        6  # 64-bit
-        9  # 32-bit
-        >>> old_real_precision = pari.set_real_precision(50)
-        >>> pari.pi()
-        3.1415926535897932384626433832795028841971693993751
-        >>> pari.set_default_bit_precision(64)
-        256 # 64-bit
-        224 # 32-bit
-        >>> pari.pi()
-        3.141592653589793239
-        >>> pari.set_real_precision(old_real_precision)
-        50
-        >>> pari.pi()
-        3.14159265358979
-        """
-        return default_bitprec(n)
-
-    # cdef inline void clear_stack(self):
+    #     >>> pari.get_default_bit_precision()
+    #     64
+    #     >>> pari.pi()
+    #     3.14159265358979
+    #     >>> pari.pi().precision()
+    #     3  # 64-bit
+    #     4  # 32-bit
+    #     >>> pari.set_default_bit_precision(212)
+    #     64
+    #     >>> pari.get_default_bit_precision()
+    #     256 # 64-bit
+    #     224 # 32-bit
+    #     >>> pari.pi()
+    #     3.14159265358979
+    #     >>> pari.pi().precision()
+    #     6  # 64-bit
+    #     9  # 32-bit
+    #     >>> old_real_precision = pari.set_real_precision(50)
+    #     >>> pari.pi()
+    #     3.1415926535897932384626433832795028841971693993751
+    #     >>> pari.set_default_bit_precision(64)
+    #     256 # 64-bit
+    #     224 # 32-bit
+    #     >>> pari.pi()
+    #     3.141592653589793239
+    #     >>> pari.set_real_precision(old_real_precision)
+    #     50
+    #     >>> pari.pi()
+    #     3.14159265358979
+    #     >>> pari.set_real_precision_bits(53)
+    #     50
     #     """
-    #     Call ``sig_off()``. If we are leaving the outermost
-    #     ``sig_on() ... sig_off()`` block, then clear the PARI stack.
-    #     """
-    #     global avma
-    #     if sig_on_count <= 1:
-    #         avma = pari_mainstack.top
-    #     sig_off()
-
-    # cdef inline Gen new_gen(self, GEN x):
-    #     """
-    #     Create a new Gen wrapping `x`, then call ``clear_stack()``.
-    #     Except if `x` is ``gnil``, then we return ``None`` instead.
-    #     """
-    #     cdef Gen g
-    #     if x is gnil:
-    #         g = None
-    #     else:
-    #         g = new_gen_noclear(x)
-    #     self.clear_stack()
-    #     return g
-
-    # cdef inline Gen new_gen_noclear(self, GEN x):
-    #     """
-    #     Create a new Gen, but don't free any memory on the stack and don't
-    #     call sig_off().
-    #     """
-    #     cdef pari_sp address
-    #     cdef Gen y = Gen.__new__(Gen)
-    #     y.g = self.deepcopy_to_python_heap(x, &address)
-    #     y.b = address
-    #     IF SAGE:
-    #        y._parent = self
-    #     # y.refers_to (a dict which is None now) is initialised as needed
-    #     return y
+    #     return default_bitprec(n)
 
     cdef Gen new_gen_from_int(self, int value):
         sig_on()

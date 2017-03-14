@@ -117,7 +117,7 @@ cpdef integer_to_gen(x):
             sig_on()
             return new_gen(PyLong_AsGEN(x))
     
-    raise TypeError("integer_to_gen() needs an int or long argument, not {}".format(type(x).__name__))
+    raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
 
 
 cpdef gen_to_integer(Gen x):
@@ -632,4 +632,4 @@ cpdef gen_to_python(Gen z):
     elif t == t_STR:
         return str(z)
     else:
-        raise NotImplementedError("conversion not implemented for {}".format(z.type()))
+        raise NotImplementedError(f"conversion not implemented for {z.type()}")

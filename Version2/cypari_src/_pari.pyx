@@ -46,13 +46,7 @@ AUTHORS:
 """
 
 #*****************************************************************************
-#       Copyright (C) 2006,2010 William Stein <wstein@gmail.com>
-#       Copyright (C) ???? Justin Walker
-#       Copyright (C) ???? Gonzalo Tornaria
-#       Copyright (C) 2010 Robert Bradshaw <robertwb@math.washington.edu>
-#       Copyright (C) 2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
-#       Copyright (C) 2016 Luca De Feo <luca.defeo@polytechnique.edu>
-#       Copyright (C) 2016 Marc Culler and Nathan Dunfield
+#       Copyright (C) 2016-2017 Marc Culler and Nathan Dunfield
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -107,28 +101,20 @@ cdef String(x):
     else:
         raise ValueError('Neither a str nor a bytes object.')
 
-IF SAGE:
-    pass
-    # Commented these out to deal with Cython-0.25 bug
-#    include "cysignals/memory.pxi"
-#    include "cysignals/signals.pxi"
-#    from sage.misc.randstate cimport randstate, current_randstate
-#    from sage.structure.sage_object cimport rich_to_bool
-#    from sage.misc.superseded import deprecation, deprecated_function_alias
-#    from sage.libs.pari.closure cimport objtoclosure
-#    from sage.rings.integer cimport Integer
-#    from sage.rings.rational cimport Rational
-#    from sage.rings.infinity import Infinity
-#    from pari_instance cimport (Pari, pari_instance, prec_bits_to_words,
-#                                prec_words_to_bits, default_bitprec)
-#    cdef Pari P = pari_instance
-ELSE:
-    include "memory.pxi"
-    include "signals.pyx"
-    init_cysignals()
-    include "stack.pyx"
-    include "pari_instance.pyx"
-    include "convert.pyx"
-    include "handle_error.pyx"
-    include "closure.pyx"
-    include "gen.pyx"
+cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
+
+include "memory.pxi"
+include "signals.pyx"
+init_cysignals()
+include "stack.pyx"
+include "pari_instance.pyx"
+# Instantiate a unique instance of the Pari class
+cdef Pari pari_instance = Pari()
+# and make it accessible from python as `pari`.
+pari = pari_instance
+include "convert.pyx"
+include "handle_error.pyx"
+include "closure.pyx"
+include "gen.pyx"
+
+
