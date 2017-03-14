@@ -753,8 +753,8 @@ Linear algebra::
 
     >>> pari('[1,2,3; 4,5,6;  7,8,9]').matadjoint()
     [-3, 6, -3; 6, -12, 6; -3, 6, -3]
-    >>> pari('[a,b,c; d,e,f; g,h,i]').matadjoint()
-    [(i*e - h*f), (-i*b + h*c), (f*b - e*c); (-i*d + g*f), i*a - g*c, -f*a + d*c; (h*d - g*e), -h*a + g*b, e*a - d*b]
+    >>> pari('[A,B,C; D,E,F; G,H,I]').matadjoint()
+    [(I*E - H*F), (-I*B + H*C), (F*B - E*C); (-I*D + G*F), I*A - G*C, -F*A + D*C; (H*D - G*E), -H*A + G*B, E*A - D*B]
     >>> pari('[1,1;1,-1]').matsolve(pari('[1;0]'))
     [1/2; 1/2]
 

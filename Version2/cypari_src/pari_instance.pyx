@@ -315,7 +315,7 @@ def prec_bits_to_dec(long prec_in_bits):
         sage: [prec_bits_to_dec(32*n) for n in range(1, 9)]
         [9, 19, 28, 38, 48, 57, 67, 77]
     """
-    return nbits2ndec(prec_in_bits)
+    return <long>nbits2ndec(prec_in_bits)
 
 def prec_dec_to_bits(long prec_in_dec):
     r"""
@@ -737,7 +737,7 @@ cdef class Pari(Pari_auto):
         """
         cdef long r
         sig_on()
-        r = itos(sd_realbitprecision(NULL, d_RETURN))
+        r = <long>itos(sd_realbitprecision(NULL, d_RETURN))
         sig_off()
         return r
 

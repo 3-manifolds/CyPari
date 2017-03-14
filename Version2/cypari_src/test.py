@@ -52,6 +52,14 @@ for cls in (_pari.Gen, _pari.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
+# On Windows these tests segfault, presumably because the Pari stack gets
+# deallocated when the test environment is destroyed.  Running the test commands
+# by hand in the interpreter does not cause a crash.
+
+if sys.platform == 'win32':
+    _pari.__test__.pop('Pari.__init__ (line 0)')
+    _pari.__test__.pop('Pari._close (line 0)')
+    
 def runtests(verbose=False):
     parser = DocTestParser()
     finder = doctest.DocTestFinder(parser=parser)
