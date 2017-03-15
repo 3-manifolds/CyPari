@@ -11,16 +11,8 @@ cdef class Gen_auto(RingElement):
     cdef pari_sp b
     cdef dict refers_to
 
-IF SAGE:
-    cdef class gen_base(Gen_auto):
-        cpdef int _cmp_(left, Element right) except -2
-        cpdef _richcmp_(left, Element right, int op)
-ELSE:
-    cdef class gen_base(Gen_auto):
-        pass
-
 @cython.final
-cdef class Gen(gen_base):
+cdef class Gen(Gen_auto):
     pass
 
 cpdef Gen objtogen(s)

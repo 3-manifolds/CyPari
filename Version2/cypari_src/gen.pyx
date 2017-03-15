@@ -88,7 +88,7 @@ include 'auto_gen.pxi'
 
 
 @cython.final
-cdef class Gen(gen_base):
+cdef class Gen(Gen_auto):
     """
     Cython extension class that models the PARI GEN type.
     """
