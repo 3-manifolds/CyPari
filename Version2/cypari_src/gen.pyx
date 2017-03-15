@@ -289,9 +289,9 @@ cdef class Gen(Gen_auto):
 
     def list(self):
         """
-        Convert ``self`` to a Python list with :class:`Gen` components.
+        Convert self to a list of PARI gens.
 
-        EXAMPLES::
+        EXAMPLES:
 
         A PARI vector becomes a Python list::
 
@@ -1641,8 +1641,6 @@ cdef class Gen(Gen_auto):
             Fraction(389, 17)
         """
         return gen_to_python(self)
-        
-    sage = _eval_ = python
 
     IF PYTHON_MAJOR < 3:
         def __long__(self):
