@@ -379,17 +379,28 @@ cpdef long prec_words_to_bits(long prec_in_words):
     # see user's guide to the pari library, page 10
     return (prec_in_words - 2) * BITS_IN_LONG
 
-cpdef long default_bitprec():
+cpdef long default_bitprec(long bitprec=-1):
     r"""
-    Return the default precision in bits.
+    Set the default precision in bits, or return the current value if no argument is
+    supplied.  WARNING: The value will be rounded up to the nearest multiple of the
+    pari word size (32 or 64 bits).
 
     EXAMPLES::
 
-        sage: from cypari._pari import default_bitprec
+        sage: from sage.libs.pari.pari_instance import default_bitprec
         sage: default_bitprec()
         64
+
+
+    >>> import cypari; from cypari.gen import default_bitprec
+    >>> default_bitprec()
+    64
     """
-    return (prec - 2) * BITS_IN_LONG
+    global prec
+    cdef long old_prec = prec
+    if bitprec >= 0:
+        prec = prec_bits_to_words(bitprec)
+    return (old_prec - 2) * BITS_IN_LONG
 
 def prec_dec_to_words(long prec_in_dec):
     r"""
@@ -798,6 +809,45 @@ cdef class Pari(Pari_auto):
     def set_series_precision(self, int n):
         global precdl
         precdl = n
+
+    def get_default_bit_precision(self):
+        return default_bitprec()
+        
+    def set_default_bit_precision(self, int n):
+        """
+        Set the default bit precision for real and complex gens.
+
+        >>> pari.get_default_bit_precision()
+        64
+        >>> pari.pi()
+        3.14159265358979
+        >>> pari.pi().precision()
+        3  # 64-bit
+        4  # 32-bit
+        >>> pari.set_default_bit_precision(212)
+        64
+        >>> pari.get_default_bit_precision()
+        256 # 64-bit
+        224 # 32-bit
+        >>> pari.pi()
+        3.14159265358979
+        >>> pari.pi().precision()
+        6  # 64-bit
+        9  # 32-bit
+        >>> old_real_precision = pari.set_real_precision(50)
+        >>> pari.pi()
+        3.1415926535897932384626433832795028841971693993751
+        >>> pari.set_default_bit_precision(64)
+        256 # 64-bit
+        224 # 32-bit
+        >>> pari.pi()
+        3.141592653589793239
+        >>> pari.set_real_precision(old_real_precision)
+        50
+        >>> pari.pi()
+        3.14159265358979
+        """
+        return default_bitprec(n)
 
     def get_series_precision(self):
         return <int>precdl

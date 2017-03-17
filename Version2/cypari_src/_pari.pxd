@@ -24,7 +24,7 @@ IF SAGE == False:
     # pari_instance.pyx
     cpdef long prec_bits_to_words(unsigned long prec_in_bits)
     cpdef long prec_words_to_bits(long prec_in_words)
-    cpdef long default_bitprec()
+    cpdef long default_bitprec(long bitprec=*)
 
     cdef class Pari_auto:
         pass
