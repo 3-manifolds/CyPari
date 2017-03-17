@@ -231,6 +231,29 @@ call individually::
     sage: eta1.sage()
     3.60546360143265208591582056420772677481026899659802474544
 
+Setting the default precision
+------------------------------
+
+The method pari.set_default_bit_precision can be used to change the
+default precision for converted floats as well as the default
+precision for computing transcendental functions.  For example, to
+work in an environmental where inexact quantities default to 128 bits
+instead of 64::
+
+    sage: pari.set_real_precision_bits(128)
+    sage: pari.set_default_bit_precision(128)
+    64
+    sage: p = pari(1.5)
+    sage: p
+    1.5000000000000000000000000000000000000
+    sage: p.bitprecision()
+    128
+    sage: pari.pi()
+    3.1415926535897932384626433832795028842
+    sage: pari.pi().bitprecision()
+    128
+
+
 TESTS:
 
 Check that output from PARI's print command is actually seen by
@@ -387,14 +410,9 @@ cpdef long default_bitprec(long bitprec=-1):
 
     EXAMPLES::
 
-        sage: from sage.libs.pari.pari_instance import default_bitprec
+        sage: from cypari._pari import default_bitprec
         sage: default_bitprec()
         64
-
-
-    >>> import cypari; from cypari.gen import default_bitprec
-    >>> default_bitprec()
-    64
     """
     global prec
     cdef long old_prec = prec

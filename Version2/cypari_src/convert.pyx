@@ -431,19 +431,23 @@ cdef Gen new_gen_from_double(double x):
     # So we translate 0 into a floating-point 0 with 53 bits
     # of precision (that's the number of mantissa bits in an IEEE
     # double).
-    cdef GEN g
-
+    cdef GEN g, G
+    global prec
+    
     sig_on()
     if x == 0:
         g = real_0_bit(-53)
     else:
         g = dbltor(x)
-    return new_gen(g)
-
+    if prec - 2 == 64 / BITS_IN_LONG:
+        return new_gen(g)
+    else:
+        G = bitprecision0(g, (prec - 2)*BITS_IN_LONG)
+        return new_gen(G)
 
 cdef Gen new_t_COMPLEX_from_double(double re, double im):
     sig_on()
-    cdef GEN g = cgetg(3, t_COMPLEX)
+    cdef GEN g = cgetg(3, t_COMPLEX), G
     if re == 0:
         set_gel(g, 1, gen_0)
     else:
@@ -452,7 +456,11 @@ cdef Gen new_t_COMPLEX_from_double(double re, double im):
         set_gel(g, 2, gen_0)
     else:
         set_gel(g, 2, dbltor(im))
-    return new_gen(g)
+    if prec - 2 == 64 / BITS_IN_LONG:
+        return new_gen(g)
+    else:
+        G = bitprecision0(g, (prec - 2)*BITS_IN_LONG)
+        return new_gen(G)
 
 
 ####################################
