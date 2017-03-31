@@ -89,6 +89,5 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         verbose = False
     failed = runtests(verbose)
-    print('Total tests: %s'%total_tests)
     sys.exit(failed)
 
