@@ -197,6 +197,15 @@ class CyPariRelease(Command):
                     subprocess.check_call(['auditwheel', 'repair',
                                            os.path.join('dist', name)])
 
+win64_py3_decls = b'''
+'''
+
+win64_py2_decls = b'''
+'''
+
+decls = b'''
+'''
+
 class CyPariBuildExt(build_ext):
         
     def run(self):
@@ -236,30 +245,35 @@ class CyPariBuildExt(build_ext):
             import autogen
             autogen.autogen_all()
             
-        # Provide compile time constants which indicate whether we are
-        # building for 64 bit Python on Windows, and which version of
-        # Python we are using.  We need to handle 64 bit Windows
-        # differently because (a) it is the only 64 bit system with 32
-        # bit longs and (b) Pari deals with this by:
-        #  #define long long long
-        # thereby breaking lots of stuff in the Python headers.
-        ct_filename = os.path.join('cypari_src', 'ct_constants.pxi') 
-        ct_constants = b''
+        # Provide declarations in an included .pxi file which indicate
+        # whether we are building for 64 bit Python on Windows, and
+        # which version of Python we are using.  We need to handle 64
+        # bit Windows differently because (a) it is the only 64 bit
+        # system with 32 bit longs and (b) Pari deals with this by:
+        # #define long long long thereby breaking lots of stuff in the
+        # Python headers.
+        long_include = os.path.join('cypari_src', 'pari_long.pxi')
         if sys.platform == 'win32' and cpu_width == '64bit':
-            ct_constants += b'DEF WIN64 = True\n'
+            if sys.version_info.major == 2:
+                include_file = os.path.join('cypari_src', 'long_win64py2.pxi')
+            else:
+                include_file = os.path.join('cypari_src', 'long_win64py3.pxi')
         else:
-            ct_constants += b'DEF WIN64 = False\n'
-        ct_constants += ('DEF PYTHON_MAJOR = %d\n'%sys.version_info.major).encode('ascii')
-        if os.path.exists(ct_filename):
-            with open(ct_filename) as input:
-                old_constants = input.read().encode('ascii')
+            include_file = os.path.join('cypari_src', 'long_generic.pxi')
+        with open(include_file, 'rb') as input:
+            code = input.read()
+        # Don't touch the long_include file unless it has changed, to avoid
+        # unnecessary compilation.
+        if os.path.exists(long_include):
+            with open(long_include, 'rb') as input:
+                old_code = input.read()
         else:
-            old_constants = ''
-        if old_constants != ct_constants:
-            with open(ct_filename, 'wb') as output:
-                output.write(ct_constants)
+            old_code = b''
+        if old_code != code:
+            with open(long_include, 'wb') as output:
+                output.write(code)
 
-        # If have Cython, check that .c files are up to date
+        # If we have Cython, check that .c files are up to date
         try: 
             from Cython.Build import cythonize
             cythonize([os.path.join('cypari_src', '_pari.pyx')])

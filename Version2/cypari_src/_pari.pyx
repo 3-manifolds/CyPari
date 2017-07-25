@@ -79,16 +79,9 @@ from .paridecl cimport *
 from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
+from libc.limits cimport LONG_MIN, LONG_MAX
 
-include "cypari_src/ct_constants.pxi"
-# 64 bit Windows is the only system we support where a Pari longword
-# is not a long.
-IF WIN64:
-    ctypedef long long pari_longword
-    ctypedef unsigned long long pari_ulongword
-ELSE:
-    ctypedef long pari_longword
-    ctypedef unsigned long pari_ulongword
+include "cypari_src/pari_long.pxi"
 
 cdef String(x):
     """

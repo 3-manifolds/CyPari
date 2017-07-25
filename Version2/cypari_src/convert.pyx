@@ -54,43 +54,6 @@ from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG
 from cpython.longintrepr cimport (_PyLong_New, PyLongObject,
         digit, PyLong_SHIFT, PyLong_MASK)
-from libc.limits cimport LONG_MIN, LONG_MAX
-
-# cdef extern from "longintrepr.h":
-#     cdef PyLongObject* _PyLong_New(Py_ssize_t s)
-#     ctypedef unsigned int digit
-#     ctypedef struct PyLongObject:
-#         digit* ob_digit
-#     ctypedef struct PyVarObject:
-#         Py_ssize_t ob_size
-
-#     cdef long PyLong_SHIFT
-#     cdef digit PyLong_MASK
-
-# Constants used in converting pari integers to Python integers
-cdef pari_ulongword pos_max  # The largest pari_ulongword that fits in long
-cdef pari_ulongword neg_max  # The largest pari_ulongword whose negative fits 
-IF WIN64:
-    # Cython uses the wrong values on 64 bit Windows :^(
-    pos_max = 0x7fffffff
-    neg_max = 0x80000000
-ELSE:
-    pos_max = <pari_ulongword>LONG_MAX
-    neg_max = -(<pari_ulongword>LONG_MIN + 1) + 1
-
-cdef pari_longword_to_int(pari_longword x):
-    """
-    Convert a pari_longword to a Python int (or long, in Python 2.7)
-    The special case, of course, is Python 2.7 on 64 bit Windows,
-    where a 64 bit pari_longword does not fit into a 32-bit Python int.
-    """
-    IF WIN64 and PYTHON_MAJOR == 2:
-        if -<pari_longword>neg_max <= x <= <pari_longword>pos_max:
-            return int(x)
-        else:
-            return long(x)
-    ELSE:
-        return int(x)
 
 ####################################
 # Integers
@@ -122,17 +85,12 @@ cpdef integer_to_gen(x):
         ....:     if int(pari(x)) != x:
         ....:         print(x)
     """
-    IF PYTHON_MAJOR < 3:
-        if isinstance(x, int):
-            sig_on()
-            return new_gen(stoi(PyInt_AS_LONG(x)))
-        elif isinstance(x, long):
-            sig_on()
-            return new_gen(PyLong_AsGEN(x))
-    ELSE:
-        if isinstance(x, int):
-            sig_on()
-            return new_gen(PyLong_AsGEN(x))
+    if isinstance(x, int):
+        sig_on()
+        return new_gen(stoi(PyInt_AS_LONG(x)))
+    elif isinstance(x, long):
+        sig_on()
+        return new_gen(PyLong_AsGEN(x))
     
     raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
 
@@ -261,11 +219,7 @@ cdef GEN PyLong_AsGEN(x):
 
     # Size of the input
     cdef Py_ssize_t sizedigits
-    IF WIN64:
-        # 64 bit Windows has 32 bit longs but Pari longs are 64 bits
-        cdef long long sgn
-    ELSE:
-        cdef long sgn
+    cdef pari_longword sgn
 
     if Py_SIZE(x) == 0:
         return gen_0
