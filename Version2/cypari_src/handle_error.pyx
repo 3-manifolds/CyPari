@@ -61,11 +61,7 @@ class PariError(RuntimeError):
             not a function in function call
 
         """
-        result = self.args[1]
-        IF PYTHON_MAJOR < 3:
-            return result
-        ELSE:
-            return String(result)
+        return String(self.args[1])
 
     def errdata(self):
         """
