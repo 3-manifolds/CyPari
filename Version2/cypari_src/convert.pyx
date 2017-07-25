@@ -85,12 +85,10 @@ cpdef integer_to_gen(x):
         ....:     if int(pari(x)) != x:
         ....:         print(x)
     """
-    if isinstance(x, int):
+    # Even though longs do not exist in Python 3, Cython will do the right thing here.
+    if isinstance(x, int) or isinstance(x, long):
         sig_on()
-        return new_gen(stoi(PyInt_AS_LONG(x)))
-    elif isinstance(x, long):
-        sig_on()
-        return new_gen(PyLong_AsGEN(x))
+        return new_gen(PyLong_AsGEN(long(x)))
     
     raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
 
