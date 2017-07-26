@@ -6,6 +6,11 @@
 
 set -e
 
+PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIVERSION=pari-2.9.3
+GMPURL=https://ftp.gnu.org/gnu/gmp/
+GMPVERSION=gmp-6.1.2
+
 if [[ $(pwd) =~ " " ]]; then
     echo "Fatal Error: Sorry, the path:"
     echo "             $(pwd)"
@@ -27,14 +32,18 @@ fi
 echo Building gmp ...
 
 if [ "$2" != "nogmp" ] ; then
+    if [ ! -e ${GMPVERSION}.tar.xz ] ; then
+        echo "Downloading GMP source archive ..." ;
+        wget ${GMPURL}${GMPVERSION}.tar.xz ;
+    fi
     if [ ! -d "build/gmp_src" ] ; then
 	echo "Untarring gmp ..."
 	if [ ! -d "build" ] ; then
 	    mkdir build ;
 	fi
 	cd build
-	tar xzf ../gmp-6.1.2.tar.gz
-	mv gmp-6.1.2 gmp_src
+	tar xJf ../${GMPVERSION}.tar.xz
+	mv ${GMPVERSION} gmp_src
 	cd gmp_src
     else
 	cd build/gmp_src
@@ -88,15 +97,19 @@ if [ "$2" != "nogmp" ] ; then
 fi
 
 echo Building Pari ...
-
+    
 if [ ! -d "build/pari_src" ] ; then
-    echo "Untarring Pari..."
+    if [ ! -e ${PARIVERSION}.tar.gz ] ; then
+        echo "Downloading Pari source archive ..." ;
+        wget ${PARIURL}${PARIVERSION}.tar.gz ;
+    fi
+    echo "Untarring Pari source archive..."
     if [ ! -d "build" ] ; then
 	mkdir build ;
     fi
     cd build
-    tar xzf ../pari-2.9.1.tar.gz
-    mv pari-2.9.1 pari_src
+    tar xzf ../${PARIVERSION}.tar.gz
+    mv ${PARIVERSION} pari_src
     cd pari_src
     # neuter win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -p0 < ../../Windows/mingw_c.patch
