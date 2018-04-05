@@ -908,7 +908,7 @@ cdef class Pari(Pari_auto):
         >>> x.length() == prec_bits_to_words(100) - 2
         True
         >>> pari.set_real_precision(old_precision)
-	64
+        64
 
         Here the pari Gen uses two 64 bit words to provide at least
         100 bits of precision.  This can be used, for example, to convert

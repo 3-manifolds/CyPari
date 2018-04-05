@@ -2,7 +2,7 @@
  The 64 bit version of Pari contains this amazing statement in parigen.h:
  #define long long long
  Needless to say, this wreaks havoc with any C program on a 64 bit
- Windows system which links with libpari, since a long is alsays 32
+ Windows system which links with libpari, since a long is always 32
  bits on Windows.
 */ 
 #undef long

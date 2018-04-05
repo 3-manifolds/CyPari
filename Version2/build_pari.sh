@@ -34,7 +34,11 @@ echo Building gmp ...
 if [ "$2" != "nogmp" ] ; then
     if [ ! -e ${GMPVERSION}.tar.xz ] ; then
         echo "Downloading GMP source archive ..." ;
-        wget ${GMPURL}${GMPVERSION}.tar.xz ;
+	if [ $(uname) = "Darwin" ] ; then
+            curl -O ${GMPURL}${GMPVERSION}.tar.xz ;
+	else
+            wget ${GMPURL}${GMPVERSION}.tar.xz ;
+	fi
     fi
     if [ ! -d "build/gmp_src" ] ; then
 	echo "Untarring gmp ..."
@@ -101,7 +105,11 @@ echo Building Pari ...
 if [ ! -d "build/pari_src" ] ; then
     if [ ! -e ${PARIVERSION}.tar.gz ] ; then
         echo "Downloading Pari source archive ..." ;
-        wget ${PARIURL}${PARIVERSION}.tar.gz ;
+	if [ $(uname) = "Darwin" ] ; then
+            curl -O ${PARIURL}${PARIVERSION}.tar.gz ;
+	else
+            wget ${PARIURL}${PARIVERSION}.tar.gz ;
+	fi
     fi
     echo "Untarring Pari source archive..."
     if [ ! -d "build" ] ; then
