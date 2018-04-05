@@ -43,9 +43,9 @@ cdef Pari pari_instance
 
 # stack.pyx
 cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address)
-cdef inline Gen new_gen(GEN x)
-cdef inline Gen new_gen_noclear(GEN x)
-cdef inline void clear_stack()
+cdef Gen new_gen(GEN x)
+cdef Gen new_gen_noclear(GEN x)
+cdef void clear_stack()
 
 cdef void _pari_init_error_handling()
 cdef int _pari_err_handle(GEN E) except 0
