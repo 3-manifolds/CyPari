@@ -50,8 +50,8 @@ if sys.platform == 'win32':
         WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
         BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
     else:   # use mingw32
-        TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev2\mingw32'
-        TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev2/mingw32'
+        TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
+        TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
         WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
         BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
