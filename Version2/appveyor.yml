@@ -29,14 +29,14 @@ install:
   - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
 
   # Patch up the mingw toolchains
-  - set PATH=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev2\mingw32\bin;%PATH%;
+  - set PATH=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin;%PATH%;
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
   - "bash install_files_64.sh"
   - cd ..\crt
-  - copy stdio.h C:C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev2\mingw32\include
-  - copy stdio.h C:\msys64\mingw32\i686-w64-mingw32\include
+  - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\include
+  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\include
   - cd ..\..
 
   # Build CyPari. 
