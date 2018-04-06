@@ -11,12 +11,23 @@ environment:
     # A build job will be started for each definition below.
     
     - PYTHON: "C:\\Python27"
+      TOOLCHAIN: "C:\\mingw-w64\\i686-6.3.0-posix-dwarf-rt_v5-rev2\\mingw32"
+      
 #    - PYTHON: "C:\\Python27-x64"
+
     - PYTHON: "C:\\Python34"
+      TOOLCHAIN: "C:\\mingw-w64\\i686-6.3.0-posix-dwarf-rt_v5-rev2\\mingw32"
+      
 #    - PYTHON: "C:\\Python34-x64"
+
     - PYTHON: "C:\\Python35"
+      TOOLCHAIN: "C:\\mingw-w64\\i686-6.3.0-posix-dwarf-rt_v5-rev2\\mingw32"
+      
 #    - PYTHON: "C:\\Python35-x64"
+
     - PYTHON: "C:\\Python36"
+      TOOLCHAIN: "C:\\mingw-w64\\i686-6.3.0-posix-dwarf-rt_v5-rev2\\mingw32"
+      
 #    - PYTHON: "C:\\Python36-x64"
 
 install:
@@ -24,16 +35,19 @@ install:
   # the interpreter you're using - Appveyor does not do anything special
   # to put the Python version you want to use on PATH.
   
+  # Print available toolchains
+  - dir C:\mingw-w64
+
   # Install python packages
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
   - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
 
   # Patch up the mingw toolchains
-  - set PATH=C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\bin;%PATH%;
+  - set PATH=%TOOLCHAIN%\bin;%PATH%;
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
-#  - "bash install_files_64.sh"
+  - "bash install_files_64.sh"
   - cd ..\crt
   - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\include
 #  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\include
