@@ -1,4 +1,4 @@
-r"""
+"""
 Interrupt and signal handling
 
 See ``tests.pyx`` for extensive tests.
