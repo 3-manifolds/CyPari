@@ -44,8 +44,8 @@ install:
   - dir C:\mingw-w64
 
   # Install python packages
-  - %PYTHON%\python.exe -m pip install --upgrade pip setuptools
-  - %PYTHON%\python.exe -m pip install Cython six wheel future
+  - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
+  - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
 
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;%PATH%;
