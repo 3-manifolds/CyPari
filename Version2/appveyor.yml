@@ -11,13 +11,13 @@ environment:
     # A build job will be started for each definition below.
     
     - PYTHON: "C:\\Python27"
-    - PYTHON: "C:\\Python27-x64"
+#    - PYTHON: "C:\\Python27-x64"
     - PYTHON: "C:\\Python34"
-    - PYTHON: "C:\\Python34-x64"
+#    - PYTHON: "C:\\Python34-x64"
     - PYTHON: "C:\\Python35"
-    - PYTHON: "C:\\Python35-x64"
+#    - PYTHON: "C:\\Python35-x64"
     - PYTHON: "C:\\Python36"
-    - PYTHON: "C:\\Python36-x64"
+#    - PYTHON: "C:\\Python36-x64"
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
@@ -33,10 +33,10 @@ install:
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
-  - "bash install_files_64.sh"
+#  - "bash install_files_64.sh"
   - cd ..\crt
   - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\include
-  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\include
+#  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\include
   - cd ..\..
 
   # Build CyPari. 
