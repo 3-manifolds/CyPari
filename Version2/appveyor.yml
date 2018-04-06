@@ -59,7 +59,7 @@ install:
   - cd ..\..
 
   # Build CyPari. 
-  - %PYTHON%\python.exe setup.py build
+  - "%PYTHON%\\python.exe setup.py build"
 
 cache:
   - Version2\libcache
