@@ -288,12 +288,22 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
-        
+    
+    def _tarball_info(self, lib):
+        lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[xg]z'%lib)
+        for f in os.listdir('.'):
+            lib_match = lib_re.search(f)
+            if lib_match:
+                break
+        return lib_match.group(), lib_match.groups()[0]
+    
     def run(self):
-        check_call(['tar', 'xfz', 'pari-2.9.1.tar.gz'])
-        os.rename('pari-2.9.1', 'pari_src')
-        check_call(['tar', 'xfz', 'gmp-6.1.2.tar.gz'])
-        os.rename('gmp-6.1.2', 'gmp_src')
+        tarball, dir = self._tarball_info('pari')
+        check_call(['tar', 'xfz', tarball])
+        os.rename(dir, 'pari_src')
+        tarball, dir = self._tarball_info('gmp')
+        check_call(['tar', 'xfJ', tarball])
+        os.rename(dir, 'gmp_src')
         sdist.run(self)
         shutil.rmtree('pari_src')
         shutil.rmtree('gmp_src')
