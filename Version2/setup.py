@@ -45,11 +45,15 @@ if sys.platform == 'win32':
     # Make sure that our C compiler matches our python and that we can run bash
     # This assumes that msys2 is installed in C:\msys64.
     if cpu_width == '64bit':   # use mingw64
-        WINPATH=r'C:\msys64\mingw64\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'
-        BASHPATH='/c/msys64/mingw64/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'
+        TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
+        TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
+        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
+        BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
     else:   # use mingw32
-        WINPATH=r'C:\msys64\mingw32\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'
-        BASHPATH='/c/msys64/mingw32/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'
+        TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev2\mingw32'
+        TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev2/mingw32'
+        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
+        BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
     BASH = r'C:\msys64\usr\bin\bash'
 else:
