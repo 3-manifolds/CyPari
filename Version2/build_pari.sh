@@ -191,7 +191,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     sed -i -e 's/C:.*C:/C:/g' ${PARIPREFIX}/bin/gphelp
 
     # Remove the .o files, since Pari always builds in the same directory.
-    make clean
+    #make clean
     
 else
 # linux
