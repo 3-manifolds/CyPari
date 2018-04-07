@@ -14,6 +14,7 @@ from distutils.extension import Extension
 from distutils.command.build_ext import build_ext
 from distutils.command.sdist import sdist
 from distutils.util import get_platform
+from subprocess import Popen, PIPE
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
@@ -43,17 +44,19 @@ if sys.platform == 'win32':
     # We always build the Pari library with mingw, no matter which compiler
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
-    # This assumes that msys2 is installed in C:\msys64.
+    bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
+    BASHPATH, _ = bash_proc.communicate() 
     if cpu_width == '64bit':   # use mingw64
         TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
         TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
-        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
-        BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
+        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
+        BASHPATH='%s/bin:'%TOOLCHAIN_U + BASHPATH
+        print(BASHPATH)
     else:   # use mingw32
         TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
         TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
-        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin'%TOOLCHAIN_W
-        BASHPATH='%s/bin:/c/msys64/usr/local/bin:/c/msys64/usr/bin'%TOOLCHAIN_U
+        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
+        BASHPATH='%s/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
     BASH = r'C:\msys64\usr\bin\bash'
 else:
