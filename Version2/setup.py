@@ -250,8 +250,15 @@ class CyPariBuildExt(build_ext):
 
         if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
             not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
-            if os.path.exists(os.path.join('build', 'pari_src', 'src', 'desc', 'pari.desc')):
+            pari_desc = os.path.join('build', 'pari_src', 'src', 'desc', 'pari.desc')
+            if os.path.exists(pari_desc)
                 print('pari.desc exists')
+                with open(pari_desc) as infile:
+                    for n in range(10):
+                        try:
+                            print(infile.readline().strip())
+                        except:
+                            print('.')
             else:
                 print('pari.desc does not exist')
             import autogen
