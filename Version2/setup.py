@@ -250,11 +250,12 @@ class CyPariBuildExt(build_ext):
 
         if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
             not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
-            print('Running autogen.')
+            if os.path.exists(os.path.join('build', 'pari_src', 'src', 'desc', 'pari.desc')):
+                print('pari.desc exists')
+            else:
+                print('pari.desc does not exist')
             import autogen
             autogen.autogen_all()
-        else:
-            print('Not running autogen.')
             
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
