@@ -45,7 +45,8 @@ if sys.platform == 'win32':
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
     bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
-    BASHPATH, _ = bash_proc.communicate() 
+    BASHPATH, _ = bash_proc.communicate()
+    BASHPATH = BASHPATH.decode('utf8')
     if cpu_width == '64bit':   # use mingw64
         TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
         TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
@@ -249,8 +250,11 @@ class CyPariBuildExt(build_ext):
 
         if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
             not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
+            print('Running autogen.')
             import autogen
             autogen.autogen_all()
+        else:
+            print('Not running autogen.')
             
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
