@@ -49,7 +49,7 @@ install:
   - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
 
   # Patch up the mingw toolchains
-  - set PATH=%TOOLCHAIN%\bin;%PATH%;
+  - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
   - "bash install_files_32.sh"
