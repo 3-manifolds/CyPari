@@ -250,10 +250,10 @@ class CyPariBuildExt(build_ext):
 
         if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
             not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
-            pari_desc = os.path.join('build', 'pari_src', 'src', 'desc', 'pari.desc')
-            if os.path.exists(pari_desc):
+            pari_desc32 = os.path.join('libcache', 'pari32', 'share', 'pari.desc')
+            if os.path.exists(pari_desc32):
                 print('pari.desc exists')
-                with open(pari_desc) as infile:
+                with open(pari_desc32) as infile:
                     for n in range(10):
                         try:
                             print(infile.readline().strip())
