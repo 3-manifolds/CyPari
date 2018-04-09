@@ -44,6 +44,7 @@ if sys.platform == 'win32':
     # We always build the Pari library with mingw, no matter which compiler
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
+    # and other needed utilities such as find.
     bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
     BASHPATH, _ = bash_proc.communicate()
     BASHPATH = BASHPATH.decode('utf8')
@@ -52,7 +53,6 @@ if sys.platform == 'win32':
         TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
         WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
         BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
-        print(BASHPATH)
     else:   # use mingw32
         TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
         TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
@@ -240,7 +240,7 @@ class CyPariBuildExt(build_ext):
                 cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
                 cmd = r'export PATH="%s" ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
-            print([BASH, '-c', cmd])
+            # print([BASH, '-c', cmd])
             if subprocess.call([BASH, '-c', cmd]):
                 sys.exit("***Failed to build PARI library***")
 
@@ -250,17 +250,6 @@ class CyPariBuildExt(build_ext):
 
         if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
             not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
-            pari_desc32 = os.path.join('libcache', 'pari32', 'share', 'pari.desc')
-            if os.path.exists(pari_desc32):
-                print('pari.desc exists')
-                with open(pari_desc32) as infile:
-                    for n in range(10):
-                        try:
-                            print(infile.readline().strip())
-                        except:
-                            print('.')
-            else:
-                print('pari.desc does not exist')
             import autogen
             autogen.autogen_all()
             
