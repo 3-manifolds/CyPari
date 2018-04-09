@@ -51,7 +51,7 @@ if sys.platform == 'win32':
         TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
         TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
         WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
-        BASHPATH='%s/bin:'%TOOLCHAIN_U + BASHPATH
+        BASHPATH='%s/bin:/c/msys64/bin:'%TOOLCHAIN_U + BASHPATH
         print(BASHPATH)
     else:   # use mingw32
         TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
