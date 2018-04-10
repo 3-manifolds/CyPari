@@ -45,12 +45,14 @@ all: libparicrt32 libparicrt64 get_output_format32.o get_output_format64.o
 
 libparicrt32:
 	ar -x ${libgcc32} ${gcc32_objs}
-	ar -r libparicrt32.a ${gcc32_objs}
+	ar -x ${mingwex32} ${mingw32_objs}
+	ar -r libparicrt32.a ${gcc32_objs} ${mingw32_objs}
 	rm *.o
 
 libparicrt64:
 	ar -x ${libgcc64} ${gcc64_objs}
-	ar -r libparicrt64.a ${gcc64_objs}
+	ar -x ${mingwex64} ${mingw64_objs}
+	ar -r libparicrt64.a ${gcc64_objs} ${mingw64_objs}
 	rm *.o
 
 get_output_format32.o: get_output_format.c
