@@ -161,7 +161,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
     # This allows using C99 format specifications in printf.
     if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
-	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT -DUNIVERSAL_CRT'
+	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi

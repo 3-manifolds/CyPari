@@ -55,8 +55,8 @@ install:
   - "bash install_files_32.sh"
   - "bash install_files_64.sh"
   - cd ..\crt
-  - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\include
-  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\include
+  - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\i686-w64-mingw32\include
+  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\x86_64-w64-mingw32\include
   - cd ..\..
 
   # Build CyPari. 

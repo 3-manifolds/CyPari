@@ -117,7 +117,6 @@ extern FILE (* __MINGW_IMP_SYMBOL(_iob))[];	/* A pointer to an array of FILE */
   #define stdin  (__acrt_iob_func(0))
   #define stdout (__acrt_iob_func(1))
   #define stderr (__acrt_iob_func(2))
-  FILE __imp___iob[] = { *stdin, *stdout, *stderr };
 #else  
   #define stdin (&__iob_func()[0])
   #define stdout (&__iob_func()[1])

@@ -319,7 +319,7 @@ if ext_compiler == 'mingw32':
     if major == 3:
         if minor == 4:
             link_args = [r'C:\Windows\System32\Python34.dll']
-        link_args += ['-specs=specs100']
+            link_args += ['-specs=specs100']
     else:
         link_args = ['-specs=specs90']
     link_args += ['-Wl,--subsystem,windows']
@@ -335,11 +335,13 @@ elif ext_compiler == 'msvc':
         link_args += ['/DEBUG']
     # Add the mingw crt objects needed by libpari.
     if cpu_width == '64bit':
-        link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a')]
+        link_args += [os.path.join('Windows', 'crt', 'libparicrt64.a'),
+                      'legacy_stdio_definitions.lib', 'advapi32.lib']
         if sys.version_info >= (3, 5):
             link_args += [os.path.join('Windows', 'crt', 'get_output_format64.o')]
     else:
-        link_args += [os.path.join('Windows', 'crt', 'libparicrt32.a')]
+        link_args += [os.path.join('Windows', 'crt', 'libparicrt32.a'),
+                      'legacy_stdio_definitions.lib', 'advapi32.lib']
         if sys.version_info >= (3, 5):
             link_args += [os.path.join('Windows', 'crt', 'get_output_format32.o')]
             
