@@ -41,7 +41,7 @@ if [ "$2" != "nogmp" ] ; then
 	fi
     fi
     if [ ! -d "build/gmp_src" ] ; then
-	echo "Untarring gmp ..."
+	echo "Extracting gmp source code ..."
 	if [ ! -d "build" ] ; then
 	    mkdir build ;
 	fi
@@ -111,7 +111,7 @@ if [ ! -d "build/pari_src" ] ; then
             wget ${PARIURL}${PARIVERSION}.tar.gz ;
 	fi
     fi
-    echo "Untarring Pari source archive..."
+    echo "Extracting Pari source code ..."
     if [ ! -d "build" ] ; then
 	mkdir build ;
     fi
@@ -119,8 +119,17 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../${PARIVERSION}.tar.gz
     mv ${PARIVERSION} pari_src
     cd pari_src
-    # neuter win32_set_pdf_viewer so it won't break linking with MSVC.
+    # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -p0 < ../../Windows/mingw_c.patch
+    # When we build the pari library for linking with Visual C 2014
+    # (i.e. for Python 3.5 and 3.6) the Pari configure script has
+    # trouble linking some of the little C programs which verify that
+    # we have provided the correct gmp configuration in the options to
+    # Configure.  Also, the msys2 uname produces something Pari does
+    # not recognize.  Since we are not lying about our gmp
+    # configuration we just patch get_gmp and arch-osname to give the
+    # right answers.
+    patch -p1 < ../../Windows/pari_config.patch
 else
     cd build/pari_src
 fi
