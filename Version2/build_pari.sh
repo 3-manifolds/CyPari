@@ -32,12 +32,12 @@ fi
 echo Building gmp ...
 
 if [ "$2" != "nogmp" ] ; then
-    if [ ! -e ${GMPVERSION}.tar.xz ] ; then
+    if [ ! -e ${GMPVERSION}.tar.bz2 ] ; then
         echo "Downloading GMP source archive ..." ;
 	if [ $(uname) = "Darwin" ] ; then
-            curl -O ${GMPURL}${GMPVERSION}.tar.xz ;
+            curl -O ${GMPURL}${GMPVERSION}.tar.bz2 ;
 	else
-            wget ${GMPURL}${GMPVERSION}.tar.xz ;
+            wget ${GMPURL}${GMPVERSION}.tar.bz2 ;
 	fi
     fi
     if [ ! -d "build/gmp_src" ] ; then
@@ -46,7 +46,7 @@ if [ "$2" != "nogmp" ] ; then
 	    mkdir build ;
 	fi
 	cd build
-	tar xJf ../${GMPVERSION}.tar.xz
+	tar xjf ../${GMPVERSION}.tar.bz2
 	mv ${GMPVERSION} gmp_src
 	cd gmp_src
     else
