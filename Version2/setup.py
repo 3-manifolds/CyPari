@@ -294,7 +294,7 @@ class CyPariBuildExt(build_ext):
 class CyPariSourceDist(sdist):
     
     def _tarball_info(self, lib):
-        lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[xg]z'%lib)
+        lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
             lib_match = lib_re.search(f)
             if lib_match:
@@ -306,7 +306,7 @@ class CyPariSourceDist(sdist):
         check_call(['tar', 'xfz', tarball])
         os.rename(dir, 'pari_src')
         tarball, dir = self._tarball_info('gmp')
-        check_call(['tar', 'xfJ', tarball])
+        check_call(['tar', 'xfj', tarball])
         os.rename(dir, 'gmp_src')
         sdist.run(self)
         shutil.rmtree('pari_src')
