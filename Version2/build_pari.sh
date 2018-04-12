@@ -119,17 +119,6 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../${PARIVERSION}.tar.gz
     mv ${PARIVERSION} pari_src
     cd pari_src
-    # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
-    patch -p0 < ../../Windows/mingw_c.patch
-    # When we build the pari library for linking with Visual C 2014
-    # (i.e. for Python 3.5 and 3.6) the Pari configure script has
-    # trouble linking some of the little C programs which verify that
-    # we have provided the correct gmp configuration in the options to
-    # Configure.  Also, the msys2 uname produces something Pari does
-    # not recognize.  Since we are not lying about our gmp
-    # configuration we just patch get_gmp and arch-osname to give the
-    # right answers.
-    patch -p1 < ../../Windows/pari_config.patch
 else
     cd build/pari_src
 fi
@@ -168,6 +157,17 @@ if [ $(uname) = "Darwin" ] ; then
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
+    # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
+    patch -p0 < ../../Windows/mingw_c.patch
+    # When we build the pari library for linking with Visual C 2014
+    # (i.e. for Python 3.5 and 3.6) the Pari configure script has
+    # trouble linking some of the little C programs which verify that
+    # we have provided the correct gmp configuration in the options to
+    # Configure.  Also, the msys2 uname produces something Pari does
+    # not recognize.  Since we are not lying about our gmp
+    # configuration we just patch get_gmp and arch-osname to give the
+    # right answers.
+    patch -p1 < ../../Windows/pari_config.patch
     # This allows using C99 format specifications in printf.
     if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
 	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
