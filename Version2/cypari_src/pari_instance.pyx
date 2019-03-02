@@ -1410,10 +1410,15 @@ cdef class Pari(Pari_auto):
             sage: x = pari('x')
             sage: pari.genus2red([-5*x**5, x**3 - 2*x**2 - 2*x + 1])
             [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
+            sage: pari.genus2red(x**6+3, 3)
+            [59049, Mat([3, 10]), x^6 + 3, [3, [5, [Mod(0, 3), Mod(0, 3)]], ["[V] page 156", [3]]]]
         """
         cdef Gen t0 = objtogen(P)
         sig_on()
-        return new_gen(genus2red(t0.g, NULL))
+        if P0 is None:
+            return new_gen(genus2red(t0.g, NULL))
+        cdef Gen t1 = objtogen(P0)
+        return new_gen(genus2red(t0.g, t1.g))
 
     def List(self, x=None):
         """
