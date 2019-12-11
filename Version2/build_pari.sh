@@ -1,12 +1,13 @@
 #! /bin/bash
 
-# On macOS this builds a fat (i386/x86_64) PARI library for OS X > 10.5.
+# On macOS this builds a x86_64 PARI library for OS X > 10.5.
 # On Windows it uses mingw32 or mingw64, depending on the MSys2 environment.
 # On linux the default system gcc is used to build for the host architecture.
 
 set -e
 
-PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
+# PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.9/
 PARIVERSION=pari-2.9.3
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.1.2
@@ -53,21 +54,12 @@ if [ "$2" != "nogmp" ] ; then
 	cd build/gmp_src
     fi
     if [ $(uname) = "Darwin" ] ; then
-    #macOS -- build separately for 32 and 64 bits then use lipo
-	export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
-	export ABI=32
-	./configure --with-pic --build=i686-none-darwin --prefix=${GMPPREFIX}32
-	make install
-	make distclean
+    #macOS -- build 64bits only
 	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
 	export ABI=64
-	./configure --with-pic --build=x86_64-none-darwin --prefix=${GMPPREFIX}64
+	./configure --with-pic --build=x86_64-none-darwin --prefix=${GMPPREFIX}
 	make install
         make distclean
-	if [ ! -d "${GMPPREFIX}/lib" ] ; then
-	    mkdir -p ${GMPPREFIX}/lib
-	fi
-	lipo ${GMPPREFIX}32/lib/libgmp.a ${GMPPREFIX}64/lib/libgmp.a -create -output ${GMPPREFIX}/lib/libgmp.a
 	cd ../..
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
@@ -125,34 +117,13 @@ fi
 
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
-#macOS -- build separately for 32 and 64 bits then use lipo
-    export CFLAGS='-mmacosx-version-min=10.5 -arch i386'
-    ./Configure --prefix=../pari32 --libdir=../pari32/lib --with-gmp=${GMPPREFIX}32
-    cd Odarwin-i386
-    make install-lib-sta
-    make install-include
-    cd ..
-    cp src/language/anal.h ../pari32/include/pari
+#macOS -- build 64bits only
     export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
-    ./Configure --prefix=../pari64 --libdir=../pari64/lib --with-gmp=${GMPPREFIX}64 --host=x86_64-darwin
+    ./Configure --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX} --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
     make install-lib-sta
-    cd ..
-    if [ ! -d ${PARILIBDIR} ] ; then
-	mkdir -p ${PARILIBDIR}
-    fi
-    lipo ../pari32/lib/libpari.a ../pari64/lib/libpari.a -create -output ${PARIPREFIX}/lib/libpari.a
-    cp -r ../pari64/include ${PARIPREFIX}
-    cp -r ../pari64/bin ${PARIPREFIX}
-    cp -r ../pari64/share ${PARIPREFIX}
-    cp -r ../pari64/lib/pari ${PARIPREFIX}/lib
-    cp src/language/anal.h ${PARIPREFIX}/include/pari
-    # Patch paricfg.h for dual architectures
     cd ${PARIPREFIX}
-    patch include/pari/paricfg.h < ../../macOS/mac_paricfg.patch
-    # patch gphelp, because we relocate it.
-    sed -i -e 's/build\/pari_src\/\.\.\/pari64/libcache\/pari/g' ${PARIPREFIX}/bin/gphelp
     cd ../../build/pari_src
     
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
