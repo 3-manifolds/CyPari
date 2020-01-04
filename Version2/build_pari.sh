@@ -8,7 +8,7 @@ set -e
 
 # PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
 PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.9/
-PARIVERSION=pari-2.9.3
+PARIVERSION=pari-2.9.5
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.1.2
 
