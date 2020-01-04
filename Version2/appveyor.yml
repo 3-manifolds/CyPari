@@ -52,7 +52,8 @@ install:
 
   # Install python packages
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON%\\python.exe -m pip install Cython six wheel future"
+  - "%PYTHON%\\python.exe -m pip install six wheel future"
+  - "%PYTHON%\\python.exe -m pip install 'cython<0.29'"
 
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
