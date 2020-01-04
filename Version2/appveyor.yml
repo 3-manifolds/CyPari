@@ -18,12 +18,6 @@ environment:
     - PYTHON: C:\Python27-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
 
-    - PYTHON: C:\Python34
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-      
-    - PYTHON: C:\Python34-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
-
     - PYTHON: C:\Python35
       TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
       
@@ -40,6 +34,12 @@ environment:
       TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
 
     - PYTHON: C:\Python37-x64
+      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
+
+    - PYTHON: C:\Python38
+      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
+
+    - PYTHON: C:\Python38-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
 
 install:
