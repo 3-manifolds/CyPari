@@ -150,7 +150,7 @@ class CyPariTest(Command):
                 platform=sysconfig.get_platform(),
                 version_info=sys.version_info)
         )
-        sys.path.insert(0, build_lib_dir)
+        sys.path.insert(0, os.path.abspath(build_lib_dir))
         from cypari.test import runtests
         sys.exit(runtests())
 
