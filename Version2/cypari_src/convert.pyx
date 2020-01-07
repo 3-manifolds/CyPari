@@ -47,13 +47,17 @@ include "cysignals/signals.pxi"
 from .paridecl cimport *
 from .stack cimport new_gen
 """
-cdef extern from *:
-    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
 
 from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG
-from cpython.longintrepr cimport (_PyLong_New, PyLongObject,
+from cpython.longintrepr cimport (_PyLong_New,
         digit, PyLong_SHIFT, PyLong_MASK)
+
+cdef extern from *:
+    ctypedef struct PyLongObject:
+        digit* ob_digit
+
+    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
 
 ####################################
 # Integers
