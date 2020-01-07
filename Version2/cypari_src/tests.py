@@ -1513,7 +1513,7 @@ General number fields::
     >>> F.nfisisom(GG)
     [1/2*y^2]
     >>> F.nfisisom(GG[0])
-    [y^2]
+    [1/2*y^2]
     >>> H = pari('y^2-2').nfinit()
     >>> F.nfisisom(H)
     0
