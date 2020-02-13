@@ -48,16 +48,27 @@ from .paridecl cimport *
 from .stack cimport new_gen
 """
 
+from cpython.ref cimport PyObject
 from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG
 from cpython.longintrepr cimport (_PyLong_New,
         digit, PyLong_SHIFT, PyLong_MASK)
 
 cdef extern from *:
+    """
+    void cypari_set_PyObject_size(PyObject *obj, Py_ssize_t s)
+    {
+        Py_SIZE(obj) = s;
+    }
+    """
+
+    # Cython lacks lvalue support, so explicitly make function
+    # to set Py_SIZE(obj).
+    void cypari_set_PyObject_size(PyObject *obj, Py_ssize_t s)
+
     ctypedef struct PyLongObject:
         digit* ob_digit
 
-    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
 
 ####################################
 # Integers
@@ -336,13 +347,10 @@ cdef PyLong_FromGEN(GEN g):
         if d:
             sizedigits_final = i+1
 
-    # Set correct size (use a pointer to hack around Cython's
-    # non-support for lvalues).
-    cdef Py_ssize_t* sizeptr = Py_SIZE_PTR(x)
     if signe(g) > 0:
-        sizeptr[0] = sizedigits_final
+        cypari_set_PyObject_size(<PyObject*>(x),  sizedigits_final)
     else:
-        sizeptr[0] = -sizedigits_final
+        cypari_set_PyObject_size(<PyObject*>(x), -sizedigits_final)
 
     return x
 
