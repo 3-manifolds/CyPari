@@ -3,6 +3,6 @@ class Version(namedtuple('Version', ['major', 'minor', 'micro', 'tag'])):
     def __str__(self):
         return '%s.%s.%s%s'%self
     
-version_info = Version(2, 3, 0, '')
+version_info = Version(2, 3, 1, '')
 __version__ = str(version_info)
         
