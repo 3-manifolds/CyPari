@@ -314,6 +314,36 @@ from .handle_error cimport _pari_init_error_handling
 from .closure cimport _pari_init_closure
 """
 
+cpdef bytes to_bytes(s):
+    """
+    Converts bytes and unicode ``s`` to bytes.
+
+    Examples:
+
+    >>> from cypari import to_bytes
+    >>> s1 = to_bytes(b'hello')
+    >>> s2 = to_bytes('hello')
+    >>> s3 = to_bytes(u'hello')
+    >>> type(s1) is type(s2) is type(s3) is bytes
+    True
+    >>> s1 == s2 == s3 == b'hello'
+    True
+
+    >>> type(to_bytes(1234)) is bytes
+    True
+    >>> int(to_bytes(1234))
+    1234
+    """
+    cdef int convert
+    for convert in range(2):
+        if convert:
+            s = str(s)
+        if isinstance(s, bytes):
+            return <bytes> s
+        elif isinstance(s, unicode):
+            return (<unicode> s).encode('utf-8')
+    raise AssertionError(f"str() returned {type(s)}")
+
 cdef extern from *:
     int sig_on_count "cysigs.sig_on_count"
 

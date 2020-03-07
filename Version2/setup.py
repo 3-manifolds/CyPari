@@ -57,6 +57,7 @@ if sys.platform == 'win32':
     bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
     BASHPATH, _ = bash_proc.communicate()
     BASHPATH = BASHPATH.decode('utf8')
+    # For Python3.8 we can use the default gcc in mingw64
     if cpu_width == '64bit':   # use mingw64
         TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
         TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
@@ -125,11 +126,13 @@ class CyPariClean(Command):
                 shutil.rmtree(dir)
             except OSError:
                 pass
-        junkfiles = (glob('cypari_src/*.so*') +
-                     glob('cypari_src/*.pyc') +
-                     glob('cypari_src/_pari.c') +
-                     glob('cypari_src/_pari*.h') +
-                     glob('cypari_src/auto*.pxi')
+        junkfiles = (glob('cypari/*.so*') +
+                     glob('cypari/*.pyc') +
+                     glob('cypari/_pari.c') +
+                     glob('cypari/_pari*.h') +
+                     glob('cypari/auto*.pxi') +
+                     glob('cypari/auto*.pxd') +
+                     glob('cypari/*.tmp')
         )
         for file in junkfiles:
             try:
@@ -179,7 +182,7 @@ class CyPariRelease(Command):
             shutil.rmtree('build')
         if os.path.exists('dist'):
             shutil.rmtree('dist')
-        for filename in glob('cypari_src/_pari*.c'):
+        for filename in glob('cypari/_pari*.c'):
             os.remove(filename)
 
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
@@ -190,9 +193,9 @@ class CyPariRelease(Command):
             check_call([python, 'setup.py', 'test'])
             # Save a copy of the _pari.c file for each major version of Python.
             _pari_c_name = '_pari_py%s.c'%python_major(python)
-            _pari_c_path = os.path.join('cypari_src', _pari_c_name)
+            _pari_c_path = os.path.join('cypari', _pari_c_name)
             if not os.path.exists(_pari_c_path):
-                os.rename(os.path.join('cypari_src', '_pari.c'), _pari_c_path)
+                os.rename(os.path.join('cypari', '_pari.c'), _pari_c_path)
             if sys.platform.startswith('linux'):
                 plat = get_platform().replace('linux', 'manylinux1')
                 plat = plat.replace('-', '_')
@@ -236,8 +239,8 @@ class CyPariBuildExt(build_ext):
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
             # Find the correct _pari.c for our version of Python.
             _pari_c_name = '_pari_py%d.c'%sys.version_info.major
-            os.rename(os.path.join('cypari_src', _pari_c_name),
-                      os.path.join('cypari_src', '_pari.c'))
+            os.rename(os.path.join('cypari', _pari_c_name),
+                      os.path.join('cypari', '_pari.c'))
             building_sdist = True
         
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
@@ -257,10 +260,10 @@ class CyPariBuildExt(build_ext):
             build_ext.run(self)
             return
 
-        if (not os.path.exists(os.path.join('cypari_src', 'auto_gen.pxi')) or
-            not os.path.exists(os.path.join('cypari_src', 'auto_instance.pxi'))):
+        if (not os.path.exists(os.path.join('cypari', 'auto_gen.pxi')) or
+            not os.path.exists(os.path.join('cypari', 'auto_instance.pxi'))):
             import autogen
-            autogen.autogen_all()
+            autogen.rebuild()
             
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
@@ -269,14 +272,14 @@ class CyPariBuildExt(build_ext):
         # system with 32 bit longs and (b) Pari deals with this by:
         # #define long long long thereby breaking lots of stuff in the
         # Python headers.
-        long_include = os.path.join('cypari_src', 'pari_long.pxi')
+        long_include = os.path.join('cypari', 'pari_long.pxi')
         if sys.platform == 'win32' and cpu_width == '64bit':
             if sys.version_info.major == 2:
-                include_file = os.path.join('cypari_src', 'long_win64py2.pxi')
+                include_file = os.path.join('cypari', 'long_win64py2.pxi')
             else:
-                include_file = os.path.join('cypari_src', 'long_win64py3.pxi')
+                include_file = os.path.join('cypari', 'long_win64py3.pxi')
         else:
-            include_file = os.path.join('cypari_src', 'long_generic.pxi')
+            include_file = os.path.join('cypari', 'long_generic.pxi')
         with open(include_file, 'rb') as input:
             code = input.read()
         # Don't touch the long_include file unless it has changed, to avoid
@@ -293,10 +296,10 @@ class CyPariBuildExt(build_ext):
         # If we have Cython, check that .c files are up to date
         try: 
             from Cython.Build import cythonize
-            cythonize([os.path.join('cypari_src', '_pari.pyx')],
+            cythonize([os.path.join('cypari', '_pari.pyx')],
                       compiler_directives = {'language_level':2})
         except ImportError:
-            if not os.path.exists(os.path.join('cypari_src', '_pari.c')):
+            if not os.path.exists(os.path.join('cypari', '_pari.c')):
                 sys.exit(no_cython_message)
 
         build_ext.run(self)
@@ -366,14 +369,14 @@ if sys.platform.startswith('linux'):
 
 include_dirs = []
 include_dirs=[pari_include_dir]
-pari_gen = Extension('cypari._pari',
-                     sources=['cypari_src/_pari.c'],
+_pari = Extension(name='cypari._pari',
+                     sources=['cypari/_pari.c'],
                      include_dirs=include_dirs,
                      extra_link_args=link_args,
                      extra_compile_args=compile_args)
 
 # Load the version number.
-sys.path.insert(0, 'cypari_src')
+sys.path.insert(0, 'cypari')
 from version import __version__
 sys.path.pop(0)
 
@@ -382,7 +385,7 @@ setup(
     version = __version__,
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
-    package_dir = {'cypari':'cypari_src'},
+    package_dir = {'cypari':'cypari'},
     install_requires = ['six', 'future'],
     cmdclass = {
         'build_ext': CyPariBuildExt,
@@ -391,7 +394,7 @@ setup(
         'release': CyPariRelease,
         'sdist': CyPariSourceDist,
     },
-    ext_modules = [pari_gen],
+    ext_modules = [_pari],
     zip_safe = False,
     long_description = long_description,
     url = 'https://bitbucket.org/t3m/cypari',

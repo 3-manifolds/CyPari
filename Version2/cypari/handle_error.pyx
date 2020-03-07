@@ -23,7 +23,6 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-
 from cpython cimport PyErr_Occurred
 
 import sys
@@ -203,4 +202,3 @@ cdef void _pari_err_recover(long errnum):
     # An exception was raised.  Jump to the signal-handling code
     # which will cause sig_on() to see the exception.
     sig_error()
-

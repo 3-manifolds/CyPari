@@ -53,7 +53,7 @@ AUTHORS:
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-from __future__ import print_function
+#from __future__ import print_function
 
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
@@ -81,8 +81,6 @@ cimport libc.stdlib
 from libc.stdio cimport *
 from libc.limits cimport LONG_MIN, LONG_MAX
 
-include "cypari_src/pari_long.pxi"
-
 cdef String(x):
     """
     Return a string from either a string or bytes object, using ascii.
@@ -98,16 +96,16 @@ cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
 include "memory.pxi"
 include "signals.pyx"
-init_cysignals()
 include "stack.pyx"
-include "pari_instance.pyx"
-# Instantiate an instance of the Pari class
-cdef Pari pari_instance = Pari()
-# and make it accessible from python as `pari`.
-pari = pari_instance
 include "convert.pyx"
+include "pari_instance.pyx"
 include "handle_error.pyx"
 include "closure.pyx"
 include "gen.pyx"
 
+# Instantiate an instance of the Pari class
+cdef Pari pari_instance = Pari()
+# and make it accessible from python as `pari`.
+pari = pari_instance
 
+init_cysignals()

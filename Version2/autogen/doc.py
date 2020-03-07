@@ -1,28 +1,26 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 """
-Handle PARI documentation for Sage
+Handle PARI documentation
 """
 
 from __future__ import unicode_literals
 import re
 import subprocess
-import os
-from six import unichr
-from autogen import PARIDIR
-GPHELP = os.path.join('.', 'libcache', PARIDIR, 'bin', 'gphelp')
+from .paths import perl, gphelp
 
 leading_ws = re.compile("^( +)", re.MULTILINE)
 trailing_ws = re.compile("( +)$", re.MULTILINE)
 double_space = re.compile("  +")
 
 end_space = re.compile(r"(@\[end[a-z]*\])([A-Za-z])")
+end_paren = re.compile(r"(@\[end[a-z]*\])([(])")
 
 begin_verb = re.compile(r"@1")
 end_verb = re.compile(r"@[23] *@\[endcode\]")
 verb_loop = re.compile("^(    .*)@\[[a-z]*\]", re.MULTILINE)
 
 dollars = re.compile(r"@\[dollar\]\s*(.*?)\s*@\[dollar\]", re.DOTALL)
-doubledollars = re.compile(r"@\[doubledollar\]\s*(.*?)\s*@\[doubledollar\]", re.DOTALL)
+doubledollars = re.compile(r"@\[doubledollar\]\s*(.*?)\s*@\[doubledollar\] *", re.DOTALL)
 
 math_loop = re.compile(r"(@\[start[A-Z]*MATH\][^@]*)@\[[a-z]*\]")
 math_backslash = re.compile(r"(@\[start[A-Z]*MATH\][^@]*)=BACKSLASH=")
@@ -63,10 +61,10 @@ def sub_loop(regex, repl, text):
 
     Ensure there a space between any 2 letters ``x``::
 
-        sage: from autogen.pari.doc import sub_loop
-        sage: import re
-        sage: sub_loop(re.compile("xx"), "x x", "xxx_xx")
-        u'x x x_x x'
+        >>> from autogen.doc import sub_loop
+        >>> import re
+        >>> print(sub_loop(re.compile("xx"), "x x", "xxx_xx"))
+        x x x_x x
     """
     while True:
         text, n = regex.subn(repl, text)
@@ -75,7 +73,7 @@ def sub_loop(regex, repl, text):
 
 
 def raw_to_rest(doc):
-    """
+    r"""
     Convert raw PARI documentation (with ``@``-codes) to reST syntax.
 
     INPUT:
@@ -86,20 +84,21 @@ def raw_to_rest(doc):
 
     EXAMPLES::
 
-        sage: from autogen.pari.doc import raw_to_rest
-        sage: print(raw_to_rest("@[startbold]hello world@[endbold]"))
+        >>> from autogen.doc import raw_to_rest
+        >>> print(raw_to_rest(b"@[startbold]hello world@[endbold]"))
         :strong:`hello world`
 
     TESTS::
 
-        sage: raw_to_rest("@[invalid]")
+        >>> raw_to_rest(b"@[invalid]")
         Traceback (most recent call last):
         ...
         SyntaxError: @ found: @[invalid]
 
-        sage: s = '@3@[startbold]*@[endbold] snip @[dollar]0@[dollar]\ndividing @[dollar]#E@[dollar].'
-        sage: raw_to_rest(s)
-        u'- snip :math:`0`\n  dividing :math:`\\#E`.'
+        >>> s = b'@3@[startbold]*@[endbold] snip @[dollar]0@[dollar]\ndividing @[dollar]#E@[dollar].'
+        >>> print(raw_to_rest(s))
+        - snip :math:`0`
+          dividing :math:`\#E`.
     """
     doc = doc.decode("utf-8")
 
@@ -113,7 +112,7 @@ def raw_to_rest(doc):
     doc = doc.replace("@[lt]", "<")
     doc = doc.replace("@[gt]", ">")
     doc = doc.replace("@[pm]", "±")
-    doc = doc.replace("@[nbrk]", unichr(0xa0))
+    doc = doc.replace("@[nbrk]", "\xa0")
     doc = doc.replace("@[agrave]", "à")
     doc = doc.replace("@[aacute]", "á")
     doc = doc.replace("@[eacute]", "é")
@@ -130,7 +129,11 @@ def raw_to_rest(doc):
 
     # Sphinx dislikes inline markup immediately followed by a letter:
     # insert a non-breaking space
-    doc = end_space.sub("\\1" + unichr(0xa0) + "\\2", doc)
+    doc = end_space.sub("\\1\xa0\\2", doc)
+
+    # Similarly, for inline markup immediately followed by an open
+    # parenthesis, insert a space
+    doc = end_paren.sub("\\1 \\2", doc)
 
     # Fix labels and references
     doc = label_define.sub("", doc)
@@ -225,7 +228,7 @@ def raw_to_rest(doc):
     doc = prototype.sub("", doc)
 
     # Remove everything starting with "The library syntax is"
-    # (this is not relevant for Sage)
+    # (this is not relevant for Python)
     doc = library_syntax.sub("", doc)
 
     # Allow at most 2 consecutive newlines
@@ -254,15 +257,24 @@ def get_raw_doc(function):
 
     EXAMPLES::
 
-        sage: from autogen.pari.doc import get_raw_doc
-        sage: get_raw_doc("cos")
-        '@[startbold]cos@[dollar](x)@[dollar]:@[endbold]\n\n@[label se:cos]\nCosine of @[dollar]x@[dollar].\n\n\nThe library syntax is @[startcode]GEN @[startbold]gcos@[endbold](GEN x, long prec)@[endcode].\n\n\n'
-        sage: get_raw_doc("abcde")
+        >>> from autogen.doc import get_raw_doc
+        >>> print(get_raw_doc("cos").decode())
+        @[startbold]cos@[dollar](x)@[dollar]:@[endbold]
+        <BLANKLINE>
+        @[label se:cos]
+        Cosine of @[dollar]x@[dollar].
+        <BLANKLINE>
+        <BLANKLINE>
+        The library syntax is @[startcode]GEN @[startbold]gcos@[endbold](GEN x, long prec)@[endcode].
+        <BLANKLINE>
+        <BLANKLINE>
+        <BLANKLINE>
+        >>> get_raw_doc("abcde")
         Traceback (most recent call last):
         ...
         RuntimeError: no help found for 'abcde'
     """
-    doc = subprocess.check_output(["perl", GPHELP, "-raw", function])
+    doc = subprocess.check_output([perl, gphelp, "-raw", function])
     if doc.endswith(b"""' not found !\n"""):
         raise RuntimeError("no help found for '{}'".format(function))
     return doc
@@ -279,20 +291,20 @@ def get_rest_doc(function):
 
     EXAMPLES::
 
-        sage: from autogen.pari.doc import get_rest_doc
-        sage: print(get_rest_doc("teichmuller"))
+        >>> from autogen.doc import get_rest_doc
+        >>> print(get_rest_doc("teichmuller"))
         Teichmüller character of the :math:`p`-adic number :math:`x`, i.e. the unique
         :math:`(p-1)`-th root of unity congruent to :math:`x / p^{v_p(x)}` modulo :math:`p`...
 
     ::
 
-        sage: print(get_rest_doc("weber"))
+        >>> print(get_rest_doc("weber"))
         One of Weber's three :math:`f` functions.
         If :math:`flag = 0`, returns
         <BLANKLINE>
         .. MATH::
         <BLANKLINE>
-            f(x) = \exp(-i\pi/24).\eta((x+1)/2)/\eta(x) {such that}
+            f(x) = \exp (-i\pi/24).\eta ((x+1)/2)/\eta (x) {such that}
             j = (f^{24}-16)^3/f^{24},
         <BLANKLINE>
         where :math:`j` is the elliptic :math:`j`-invariant (see the function :literal:`ellj`).
@@ -300,14 +312,14 @@ def get_rest_doc(function):
         <BLANKLINE>
         .. MATH::
         <BLANKLINE>
-            f_1(x) = \eta(x/2)/\eta(x) {such that}
+            f_1(x) = \eta (x/2)/\eta (x) {such that}
             j = (f_1^{24}+16)^3/f_1^{24}.
         <BLANKLINE>
         Finally, if :math:`flag = 2`, returns
         <BLANKLINE>
         .. MATH::
         <BLANKLINE>
-            f_2(x) = \sqrt{2}\eta(2x)/\eta(x) {such that}
+            f_2(x) = \sqrt{2}\eta (2x)/\eta (x) {such that}
             j = (f_2^{24}+16)^3/f_2^{24}.
         <BLANKLINE>
         Note the identities :math:`f^8 = f_1^8+f_2^8` and :math:`ff_1f_2 = \sqrt2`.
@@ -315,98 +327,13 @@ def get_rest_doc(function):
 
     ::
 
-        sage: print(get_rest_doc("ellap"))
-        Let :math:`E` be an :literal:`ell` structure as output by :literal:`ellinit`, defined over
-        a number field or a finite field :math:`\mathbb{F}_q`. The argument :math:`p` is best left
-        omitted if the curve is defined over a finite field, and must be a prime
-        number or a maximal ideal otherwise. This function computes the trace of
-        Frobenius :math:`t` for the elliptic curve :math:`E`, defined by the equation :math:`\#E(\mathbb{F}_q)
-        = q+1 - t` (for primes of good reduction).
-        <BLANKLINE>
-        When the characteristic of the finite field is large, the availability of
-        the :literal:`seadata` package will speed the computation.
-        <BLANKLINE>
-        If the curve is defined over :math:`\mathbb{Q}`, :math:`p` must be explicitly given and the
-        function computes the trace of the reduction over :math:`\mathbb{F}_p`.
-        The trace of Frobenius is also the :math:`a_p` coefficient in the curve :math:`L`-series
-        :math:`L(E,s) = \sum_n a_n n^{-s}`, whence the function name. The equation must be
-        integral at :math:`p` but need not be minimal at :math:`p`; of course, a minimal model
-        will be more efficient.
-        <BLANKLINE>
-        ::
-        <BLANKLINE>
-            ? E = ellinit([0,1]); \\ y^2 = x^3 + 0.x + 1, defined over Q
-            ? ellap(E, 7) \\ 7 necessary here
-            %2 = -4 \\ #E(F_7) = 7+1-(-4) = 12
-            ? ellcard(E, 7)
-            %3 = 12 \\ OK
-        <BLANKLINE>
-            ? E = ellinit([0,1], 11); \\ defined over F_11
-            ? ellap(E) \\ no need to repeat 11
-            %4 = 0
-            ? ellap(E, 11) \\ ... but it also works
-            %5 = 0
-            ? ellgroup(E, 13) \\ ouch, inconsistent input!
-             *** at top-level: ellap(E,13)
-             *** ^-----------
-             *** ellap: inconsistent moduli in Rg_to_Fp:
-             11
-             13
-        <BLANKLINE>
-            ? Fq = ffgen(ffinit(11,3), 'a); \\ defines F_q := F_{11^3}
-            ? E = ellinit([a+1,a], Fq); \\ y^2 = x^3 + (a+1)x + a, defined over F_q
-            ? ellap(E)
-            %8 = -3
-        <BLANKLINE>
-        If the curve is defined over a more general number field than :math:`\mathbb{Q}`,
-        the maximal ideal :math:`p` must be explicitly given in :literal:`idealprimedec`
-        format. If :math:`p` is above :math:`2` or :math:`3`, the function currently assumes (without
-        checking) that the given model is locally minimal at :math:`p`. There is no
-        restriction at other primes.
-        <BLANKLINE>
-        ::
-        <BLANKLINE>
-            ? K = nfinit(a^2+1); E = ellinit([1+a,0,1,0,0], K);
-            ? fa = idealfactor(K, E.disc)
-            %2 =
-            [ [5, [-2, 1]~, 1, 1, [2, -1; 1, 2]] 1]
-        <BLANKLINE>
-            [[13, [5, 1]~, 1, 1, [-5, -1; 1, -5]] 2]
-            ? ellap(E, fa[1,1])
-            %3 = -1 \\ non-split multiplicative reduction
-            ? ellap(E, fa[2,1])
-            %4 = 1 \\ split multiplicative reduction
-            ? P17 = idealprimedec(K,17)[1];
-            ? ellap(E, P17)
-            %6 = 6 \\ good reduction
-            ? E2 = ellchangecurve(E, [17,0,0,0]);
-            ? ellap(E2, P17)
-            %8 = 6 \\ same, starting from a non-miminal model
-        <BLANKLINE>
-            ? P3 = idealprimedec(K,3)[1];
-            ? E3 = ellchangecurve(E, [3,0,0,0]);
-            ? ellap(E, P3) \\ OK: E is minimal at P3
-            %11 = -2
-            ? ellap(E3, P3) \\ junk: E3 is not minimal at P3 | 3
-            %12 = 0
-        <BLANKLINE>
-        :strong:`Algorithms used.` If :math:`E/\mathbb{F}_q` has CM by a principal imaginary
-        quadratic order we use a fast explicit formula (involving essentially
-        Kronecker symbols and Cornacchia's algorithm), in :math:`O(\log q)^2`.
-        Otherwise, we use Shanks-Mestre's baby-step/giant-step method, which runs in
-        time :math:`~{O}(q^{1/4})` using :math:`~{O}(q^{1/4})` storage, hence becomes
-        unreasonable when :math:`q` has about 30 digits. Above this range, the :literal:`SEA`
-        algorithm becomes available, heuristically in :math:`~{O}(\log q)^4`, and
-        primes of the order of 200 digits become feasible. In small
-        characteristic we use Mestre's (p = 2), Kohel's (p = 3,5,7,13), Satoh-Harley
-        (all in :math:`~{O}(p^{2} n^2)`) or Kedlaya's (in :math:`~{O}(p n^3)`)
-        algorithms.
+        >>> doc = get_rest_doc("ellap")  # doc depends on PARI version
 
     ::
 
-        sage: print(get_rest_doc("bitor"))
+        >>> print(get_rest_doc("bitor"))
         bitwise (inclusive)
-        :literal:`or` of two integers :math:`x` and :math:`y`, that is the integer
+        :literal:`or` of two integers :math:`x` and :math:`y`, that is the integer 
         <BLANKLINE>
         .. MATH::
         <BLANKLINE>

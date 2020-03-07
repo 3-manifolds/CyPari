@@ -6,13 +6,13 @@ include "sage.pxi"
 cdef class RingElement:
     pass
 
-cdef class Gen_auto(RingElement):
+cdef class Gen_base(RingElement):
     cdef GEN g
     cdef pari_sp b
     cdef dict refers_to
 
 @cython.final
-cdef class Gen(Gen_auto):
+cdef class Gen(Gen_base):
     pass
 
 cpdef Gen objtogen(s)
@@ -92,8 +92,8 @@ cdef extern from "struct_signals.h":
         int sig_on_count
         const char* s
 
-cdef api:
-     cysigs_t cysigs "cysigs"
+#cdef api:
+#     cysigs_t cysigs "cysigs"
 #     void print_backtrace() nogil
 #     void _sig_on_interrupt_received() nogil
 #     void _sig_on_recover() nogil

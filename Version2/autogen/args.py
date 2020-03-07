@@ -12,6 +12,8 @@ Arguments for PARI calls
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from __future__ import unicode_literals
+
 # Some replacements for reserved words
 replacements = {'char': 'character'}
 
@@ -59,6 +61,9 @@ class PariArgument(object):
         else:
             self.default = default
 
+        # Name for a temporary variable. Only a few classes actually use this.
+        self.tmpname = "_" + self.name
+
     def __repr__(self):
         s = self._typerepr() + " " + self.name
         if self.default is not None:
@@ -70,6 +75,14 @@ class PariArgument(object):
         Return a string representing the type of this argument.
         """
         return "(generic)"
+
+    def ctype(self):
+        """
+        The corresponding C type. This is used for auto-generating
+        the declarations of the C function. In some cases, this is also
+        used for passing the argument from Python to Cython.
+        """
+        raise NotImplementedError
 
     def always_default(self):
         """
@@ -120,7 +133,16 @@ class PariArgument(object):
         """
         Return code to appear in the function body to convert this
         argument to something that PARI understand. This code can also
-        contain extra checks.
+        contain extra checks. It will run outside of ``sig_on()``.
+        """
+        return ""
+
+    def c_convert_code(self):
+        """
+        Return additional conversion code which will be run after
+        ``convert_code`` and inside the ``sig_on()`` block. This must
+        not involve any Python code (in particular, it should not raise
+        exceptions).
         """
         return ""
 
@@ -135,10 +157,6 @@ class PariArgumentObject(PariArgument):
     """
     Class for arguments which are passed as generic Python ``object``.
     """
-    def __init__(self, *args, **kwds):
-        super(PariArgumentObject, self).__init__(*args, **kwds)
-        self.tmpname = "_" + self.name
-
     def prototype_code(self):
         """
         Return code to appear in the prototype of the Cython wrapper.
@@ -156,9 +174,6 @@ class PariArgumentClass(PariArgument):
 
     The C/Cython type is given by ``self.ctype()``.
     """
-    def ctype(self):
-        raise NotImplementedError
-
     def prototype_code(self):
         """
         Return code to appear in the prototype of the Cython wrapper.
@@ -169,60 +184,82 @@ class PariArgumentClass(PariArgument):
         return s
 
 
-class PariArgument(PariArgumentObject):
+class PariInstanceArgument(PariArgumentObject):
     """
     ``self`` argument for ``Pari`` object.
+
+    This argument is never actually used.
     """
     def __init__(self):
-        PariArgumentObject.__init__(self, iter(["self"]), None, 0)
-    def convert_code(self):
-        return "        cdef Pari pari_instance = <Pari>self\n"
+        PariArgument.__init__(self, iter(["self"]), None, 0)
     def _typerepr(self):
         return "Pari"
+    def ctype(self):
+        return "GEN"
 
 
 class PariArgumentGEN(PariArgumentObject):
     def _typerepr(self):
         return "GEN"
+    def ctype(self):
+        return "GEN"
     def convert_code(self):
+        """
+        Conversion to Gen
+        """
         if self.index == 0:
-            # "self" is always of type Gen, we skip the conversion
-            s  = "        cdef GEN {tmp} = {name}.g\n"
+            # self argument
+            s  = ""
         elif self.default is None:
             s  = "        {name} = objtogen({name})\n"
-            s += "        cdef GEN {tmp} = (<Gen>{name}).g\n"
-        elif self.default == "NULL":
-            s  = "        cdef GEN {tmp} = {default}\n"
-            s += "        if {name} is not None:\n"
+        elif self.default is False:
+            # This is actually a required argument
+            # See parse_prototype() in parser.py why we need this
+            s  = "        if {name} is None:\n"
+            s += "            raise TypeError(\"missing required argument: '{name}'\")\n"
+            s += "        {name} = objtogen({name})\n"
+        else:
+            s  = "        cdef bint _have_{name} = ({name} is not None)\n"
+            s += "        if _have_{name}:\n"
             s += "            {name} = objtogen({name})\n"
+        return s.format(name=self.name)
+    def c_convert_code(self):
+        """
+        Conversion Gen -> GEN
+        """
+        if not self.default:
+            # required argument
+            s  = "        cdef GEN {tmp} = (<Gen>{name}).g\n"
+        elif self.default == "NULL":
+            s  = "        cdef GEN {tmp} = NULL\n"
+            s += "        if _have_{name}:\n"
             s += "            {tmp} = (<Gen>{name}).g\n"
         elif self.default == "0":
-            s  = "        cdef GEN {tmp}\n"
-            s += "        if {name} is None:\n"
-            s += "            {tmp} = gen_0\n"
-            s += "        else:\n"
-            s += "            {name} = objtogen({name})\n"
+            s  = "        cdef GEN {tmp} = gen_0\n"
+            s += "        if _have_{name}:\n"
             s += "            {tmp} = (<Gen>{name}).g\n"
         else:
             raise ValueError("default value %r for GEN argument %r is not supported" % (self.default, self.name))
-        return s.format(name=self.name, tmp=self.tmpname, default=self.default)
+        return s.format(name=self.name, tmp=self.tmpname)
     def call_code(self):
         return self.tmpname
 
 class PariArgumentString(PariArgumentObject):
     def _typerepr(self):
         return "str"
+    def ctype(self):
+        return "char *"
     def convert_code(self):
         if self.default is None:
-            s  = "        {name} = str({name}).encode('ascii')\n"
-            s += "        cdef char* {tmp} = <bytes?>{name}\n"
+            s  = "        {name} = to_bytes({name})\n"
+            s += "        cdef char* {tmp} = <bytes>{name}\n"
         else:
             s  = "        cdef char* {tmp}\n"
             s += "        if {name} is None:\n"
             s += "            {tmp} = {default}\n"
             s += "        else:\n"
-            s += "            {name} = {name}.encode('utf-8')\n"
-            s += "            {tmp} = <bytes?>{name}\n"
+            s += "            {name} = to_bytes({name})\n"
+            s += "            {tmp} = <bytes>{name}\n"
         return s.format(name=self.name, tmp=self.tmpname, default=self.default)
     def call_code(self):
         return self.tmpname
@@ -230,6 +267,8 @@ class PariArgumentString(PariArgumentObject):
 class PariArgumentVariable(PariArgumentObject):
     def _typerepr(self):
         return "var"
+    def ctype(self):
+        return "long"
     def default_default(self):
         return "-1"
     def convert_code(self):
@@ -268,7 +307,7 @@ class PariArgumentPrec(PariArgumentClass):
         return "0"
     def get_argument_name(self, namesiter):
         return "precision"
-    def convert_code(self):
+    def c_convert_code(self):
         s = "        {name} = prec_bits_to_words({name})\n"
         return s.format(name=self.name)
 
@@ -281,7 +320,7 @@ class PariArgumentBitprec(PariArgumentClass):
         return "0"
     def get_argument_name(self, namesiter):
         return "precision"
-    def convert_code(self):
+    def c_convert_code(self):
         s  = "        if not {name}:\n"
         s += "            {name} = default_bitprec()\n"
         return s.format(name=self.name)
@@ -295,9 +334,9 @@ class PariArgumentSeriesPrec(PariArgumentClass):
         return "-1"
     def get_argument_name(self, namesiter):
         return "serprec"
-    def convert_code(self):
+    def c_convert_code(self):
         s  = "        if {name} < 0:\n"
-        s += "            {name} = pari_instance.get_series_precision()\n"
+        s += "            {name} = precdl  # Global PARI series precision\n"
         return s.format(name=self.name)
 
 
@@ -313,7 +352,7 @@ pari_arg_types = {
         'b': PariArgumentBitprec,
         'P': PariArgumentSeriesPrec,
 
-    # Codes which are known but not actually supported for Sage
+    # Codes which are known but not actually supported yet
         '&': None,
         'V': None,
         'I': None,

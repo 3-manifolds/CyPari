@@ -23,7 +23,6 @@ See ``tests.pyx`` for extensive tests.
 #
 #*****************************************************************************
 
-
 from libc.signal cimport *
 from libc.stdio cimport freopen, stdin
 from cpython.exc cimport PyErr_Occurred
@@ -168,6 +167,7 @@ def sig_print_exception(sig, msg=None):
             # Python 2
             traceback.print_exception(typ, val, None, file=sys.stdout)
 
+cdef cysigs_t cysigs
 
 def init_cysignals():
     """

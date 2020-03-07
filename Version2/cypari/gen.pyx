@@ -57,6 +57,7 @@ AUTHORS:
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
+
 """ Sage's header -- not used by the standalone CyPari
 from __future__ import absolute_import, division, print_function
 
@@ -86,9 +87,11 @@ from .closure cimport objtoclosure
 
 include 'auto_gen.pxi'
 
+cdef pari_longword_to_int(pari_longword x):
+    return int(x)
 
 @cython.final
-cdef class Gen(Gen_auto):
+cdef class Gen(Gen_base):
     """
     Cython extension class that models the PARI GEN type.
     """
@@ -2518,7 +2521,7 @@ cdef class Gen(Gen_auto):
         sig_off()
         return b != 0
 
-    lift_centered = Gen_auto.centerlift
+    lift_centered = Gen_base.centerlift
 
     def padicprime(x):
         """
@@ -2861,7 +2864,7 @@ cdef class Gen(Gen_auto):
         else:
             return new_gen(veceint1(x.g, stoi(n), prec_bits_to_words(precision)))
 
-    log_gamma = Gen_auto.lngamma
+    log_gamma = Gen_base.lngamma
 
     def polylog(x, long m, long flag=0, unsigned long precision=0):
         """
@@ -3645,70 +3648,6 @@ cdef class Gen(Gen_auto):
         sig_on()
         return new_gen(nf_rnfeq(self.g, t0.g))
 
-    def _nf_nfzk(self, rnfeq):
-        """
-        Return data for constructing relative number field elements
-        from elements of the base field.
-
-        INPUT:
-
-        - ``rnfeq`` -- relative number field data as returned by
-          :meth:`_nf_rnfeq`
-
-        .. NOTE::
-
-            The output of this method is suitable for the method
-            :meth:`_nfeltup`.
-
-        TESTS::
-
-            sage: nf = pari('y^2 - 2').nfinit()
-            sage: nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
-            ([2, -x^3 + 9*x], 1/2)
-
-        """
-        cdef GEN zknf, czknf
-        cdef Gen t0 = objtogen(rnfeq)
-        cdef Gen zk, czk
-        sig_on()
-        nf_nfzk(self.g, t0.g, &zknf, &czknf)
-        zk = new_gen_noclear(zknf)
-        czk = new_gen(czknf)
-        return zk, czk
-
-    def _nfeltup(self, x, zk, czk):
-        """
-        Construct a relative number field element from an element of
-        the base field.
-
-        INPUT:
-
-        - ``x`` -- element of the base field
-
-        - ``zk``, ``czk`` -- relative number field data as returned by
-          :meth:`_nf_nfzk`
-
-        .. WARNING::
-
-            This is a low-level version of :meth:`rnfeltup` that only
-            needs the output of :meth:`_nf_nfzk`, not a full PARI
-            ``rnf`` structure.  This method may raise errors or return
-            undefined results if called with invalid arguments.
-
-        TESTS::
-
-            sage: nf = pari('nfinit(y^2 - 2)')
-            sage: zk, czk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
-            sage: nf._nfeltup('y', zk, czk)
-            -1/2*x^3 + 9/2*x
-
-        """
-        cdef Gen t0 = objtogen(x)
-        cdef Gen t1 = objtogen(zk)
-        cdef Gen t2 = objtogen(czk)
-        sig_on()
-        return new_gen(nfeltup(self.g, t0.g, t1.g, t2.g))
-
     def eval(self, *args, **kwds):
         """
         Evaluate ``self`` with the given arguments.
@@ -4165,7 +4104,7 @@ cdef class Gen(Gen_auto):
             factor_proven = saved_factor_proven
 
     # Standard name for SageMath
-    multiplicative_order = Gen_auto.znorder
+    multiplicative_order = Gen_base.znorder
 
     def __abs__(self):
         return self.abs()

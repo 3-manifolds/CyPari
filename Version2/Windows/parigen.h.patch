@@ -1,0 +1,12 @@
+--- src64/headers/parigen.h	2020-03-05 12:55:11.290389900 -0600
++++ patched_src64/headers/parigen.h	2020-03-05 12:45:50.048980800 -0600
+@@ -15,7 +15,8 @@
+ 
+ #ifdef _WIN64
+ typedef unsigned long long pari_ulong;
+-#define long long long
++typedef long long pari_long;
++#define long pari_long
+ #define labs llabs
+ #else
+ typedef unsigned long pari_ulong;

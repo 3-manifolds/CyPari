@@ -1,17 +1,25 @@
+from __future__ import absolute_import
+
+import glob
 import os
+from os.path import join, getmtime, exists
 
-PARIDIR = None
-for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
-    gphelp = os.path.join('libcache', paridir, 'bin', 'gphelp')
-    if os.path.exists(gphelp):
-        PARIDIR = paridir
-        break
-if not PARIDIR:
-    raise RuntimeError('No gphelp found!')
+from .generator import PariFunctionGenerator
+from .paths import pari_share
 
-def autogen_all():
-    """
-    Regenerate the automatically generated files of the Sage library.
-    """
-    from . import pari
-    pari.rebuild()
+def rebuild(force=False):
+    pari_module_path = 'cypari_src'
+    src_files = [join(pari_share(), 'pari.desc')] + \
+                 glob.glob(join('autogen', '*.py'))
+    gen_files = [join(pari_module_path, 'auto_paridecl.pxd'),
+                 join(pari_module_path, 'auto_gen.pxi')]
+
+    if not force and all(exists(f) for f in gen_files):
+        src_mtime = max(getmtime(f) for f in src_files)
+        gen_mtime = min(getmtime(f) for f in gen_files)
+
+        if gen_mtime > src_mtime:
+            return
+
+    G = PariFunctionGenerator()
+    G()

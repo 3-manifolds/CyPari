@@ -48,11 +48,12 @@ from .paridecl cimport *
 from .stack cimport new_gen
 """
 
+from libc.limits cimport LONG_MIN, LONG_MAX
+from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
 from cpython.object cimport Py_SIZE
-from cpython.int cimport PyInt_AS_LONG
-from cpython.longintrepr cimport (_PyLong_New,
-        digit, PyLong_SHIFT, PyLong_MASK)
+from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
+from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK)
 
 cdef extern from *:
     """
@@ -69,6 +70,7 @@ cdef extern from *:
     ctypedef struct PyLongObject:
         digit* ob_digit
 
+    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
 
 ####################################
 # Integers
@@ -107,6 +109,54 @@ cpdef integer_to_gen(x):
     
     raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
 
+cdef PyLong_FromINT(GEN g):
+    # Size of input in words, bits and Python digits. The size in
+    # digits might be a small over-estimation, but that is not a
+    # problem.
+    cdef size_t sizewords = (lgefint(g) - 2)
+    cdef size_t sizebits = sizewords * BITS_IN_LONG
+    cdef size_t sizedigits = (sizebits + PyLong_SHIFT - 1) // PyLong_SHIFT
+
+    # Actual correct computed size
+    cdef Py_ssize_t sizedigits_final = 0
+
+    x = _PyLong_New(sizedigits)
+    cdef digit* D = (<PyLongObject*>x).ob_digit
+
+    cdef digit d
+    cdef ulong w
+    cdef size_t i, j, bit
+    for i in range(sizedigits):
+        # The least significant bit of digit number i of the output
+        # integer is bit number "bit" of word "j".
+        bit = i * PyLong_SHIFT
+        j = bit // BITS_IN_LONG
+        bit = bit % BITS_IN_LONG
+
+        w = int_W(g, j)[0]
+        d = w >> bit
+
+        # Do we need bits from the next word too?
+        if BITS_IN_LONG - bit < PyLong_SHIFT and j+1 < sizewords:
+            w = int_W(g, j+1)[0]
+            d += w << (BITS_IN_LONG - bit)
+
+        d = d & PyLong_MASK
+        D[i] = d
+
+        # Keep track of last non-zero digit
+        if d:
+            sizedigits_final = i+1
+
+    # Set correct size (use a pointer to hack around Cython's
+    # non-support for lvalues).
+    cdef Py_ssize_t* sizeptr = Py_SIZE_PTR(x)
+    if signe(g) > 0:
+        sizeptr[0] = sizedigits_final
+    else:
+        sizeptr[0] = -sizedigits_final
+
+    return x
 
 cpdef gen_to_integer(Gen x):
     """
@@ -182,21 +232,24 @@ cpdef gen_to_integer(Gen x):
     if not signe(g):
         return 0
 
-    # Try converting to a C long first. Note that we cannot use itos()
-    # from PARI since that does not deal with LONG_MIN correctly.
-    cdef pari_ulongword u
-    if lgefint(g) == 3:  # abs(x) fits in a pari_longword
-        u = <pari_ulongword>g[2]     # u = abs(x)
-        # Check that <long>(u) or <long>(-u) does not overflow
-        if signe(g) >= 0:
-            if u <= pos_max:
-                return <long>u
-        else:
-            if u <= neg_max:
-                 return -<long>u
-    # Result does not fit in a C long or we are in Python 3
-    return PyLong_FromGEN(g)
+    cdef ulong u
+    if PY_MAJOR_VERSION == 2:
+        # Try converting to a Python 2 "int" first. Note that we cannot
+        # use itos() from PARI since that does not deal with LONG_MIN
+        # correctly.
+        if lgefint(g) == 3:  # abs(x) fits in a ulong
+            u = g[2]         # u = abs(x)
+            # Check that <long>(u) or <long>(-u) does not overflow
+            if signe(g) >= 0:
+                if u <= <ulong>LONG_MAX:
+                    return PyInt_FromLong(u)
+            else:
+                if u <= -<ulong>LONG_MIN:
+                    return PyInt_FromLong(-u)
 
+    # Result does not fit in a C long
+    res = PyLong_FromINT(g)
+    return res
 
 cdef GEN gtoi(GEN g0) except NULL:
     """
@@ -306,53 +359,6 @@ cdef GEN PyLong_AsGEN(x):
         ptr = int_nextW(ptr)
 
     return g
-
-
-cdef PyLong_FromGEN(GEN g):
-    # Size of input in words, bits and Python digits. The size in
-    # digits might be a small over-estimation, but that is not a
-    # problem.
-    cdef size_t sizewords = (lgefint(g) - 2)
-    cdef size_t sizebits = sizewords * BITS_IN_LONG
-    cdef size_t sizedigits = (sizebits + PyLong_SHIFT - 1) // PyLong_SHIFT
-
-    # Actual correct computed size
-    cdef Py_ssize_t sizedigits_final = 0
-
-    x = _PyLong_New(sizedigits) 
-    cdef digit* D = (<PyLongObject*>x).ob_digit
-
-    cdef digit d
-    cdef ulong w
-    cdef size_t i, j, bit
-    for i in range(sizedigits):
-        # The least significant bit of digit number i of the output
-        # integer is bit number "bit" of word "j".
-        bit = i * PyLong_SHIFT
-        j = bit // BITS_IN_LONG
-        bit = bit % BITS_IN_LONG
-
-        w = int_W(g, j)[0]
-        d = (w >> bit) & PyLong_MASK
-
-        # Do we need bits from the next word too?
-        if BITS_IN_LONG - bit < PyLong_SHIFT and j+1 < sizewords:
-            w = int_W(g, j+1)[0] 
-            d += (w << (BITS_IN_LONG - bit)) & PyLong_MASK
-
-        d = d
-        D[i] = d
-
-        # Keep track of last non-zero digit
-        if d:
-            sizedigits_final = i+1
-
-    if signe(g) > 0:
-        cypari_set_PyObject_size(<PyObject*>(x),  sizedigits_final)
-    else:
-        cypari_set_PyObject_size(<PyObject*>(x), -sizedigits_final)
-
-    return x
 
 
 ####################################

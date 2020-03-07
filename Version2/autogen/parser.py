@@ -12,38 +12,13 @@ Read and parse the file pari.desc
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-import os, re
+from __future__ import absolute_import, unicode_literals
 
-from autogen.pari.args import pari_arg_types
-from autogen.pari.ret import pari_ret_types
-from autogen import PARIDIR
+import os, re, io
 
-def sage_src_pari():
-    """
-    Return the directory in the Sage source tree where the interface to
-    the PARI library is and where the auto-generated files should be
-    stored.
-
-    EXAMPLES::
-
-        sage: from autogen.pari.parser import sage_src_pari
-        sage: sage_src_pari()
-        '.../src/sage/libs/pari'
-    """
-    return 'cypari_src'
-
-
-def pari_share():
-    r"""
-    Return the directory where the PARI data files are stored.
-
-    EXAMPLES::
-
-        sage: from autogen.pari.parser import pari_share
-        sage: pari_share()
-        '.../local/share/pari'
-    """
-    return os.path.join('libcache', PARIDIR, "share", "pari")
+from .args import pari_arg_types
+from .ret import pari_ret_types
+from .paths import pari_share
 
 paren_re = re.compile(r"[(](.*)[)]")
 argname_re = re.compile(r"[ {]*([A-Za-z_][A-Za-z0-9_]*)")
@@ -58,18 +33,19 @@ def read_pari_desc():
 
     EXAMPLES::
 
-        sage: from autogen.pari.parser import read_pari_desc
-        sage: D = read_pari_desc()
-        sage: D["cos"]
-        {'class': 'basic',
-         'cname': 'gcos',
-         'doc': 'cosine of $x$.',
-         'function': 'cos',
-         'help': 'cos(x): cosine of x.',
-         'prototype': 'Gp',
-         'section': 'transcendental'}
+        >>> from autogen.parser import read_pari_desc
+        >>> D = read_pari_desc()
+        >>> D["cos"] == { 'class': 'basic',
+        ...   'cname': 'gcos',
+        ...   'doc': 'cosine of $x$.',
+        ...   'function': 'cos',
+        ...   'help': 'cos(x): cosine of x.',
+        ...   'prototype': 'Gp',
+        ...   'section': 'transcendental'}
+        True
     """
-    with open(os.path.join(pari_share(), 'pari.desc')) as f:
+    pari_desc = os.path.join(pari_share(), 'pari.desc')
+    with io.open(pari_desc, encoding="utf-8") as f:
         lines = f.readlines()
 
     n = 0
@@ -94,31 +70,6 @@ def read_pari_desc():
         functions[name] = fun
 
     return functions
-
-
-decl_re = re.compile(" ([A-Za-z][A-Za-z0-9_]*)[(]")
-
-def read_decl():
-    """
-    Read the files ``paridecl.pxd`` and ``declinl.pxi`` and return a set
-    of all declared PARI library functions.
-
-    We do a simple regexp search, so there might be false positives.
-    The main use is to skip undeclared functions.
-
-    EXAMPLES::
-
-        sage: from autogen.pari.parser import read_decl
-        sage: read_decl()
-        {'ABC_to_bnr', ..., 'zx_to_zv'}
-    """
-    s = set()
-    with open(os.path.join(sage_src_pari(), "paridecl.pxd")) as f:
-        s.update(decl_re.findall(f.read()))
-    with open(os.path.join(sage_src_pari(), "declinl.pxi")) as f:
-        s.update(decl_re.findall(f.read()))
-    return s
-
 
 def parse_prototype(proto, help, initial_args=[]):
     """
@@ -145,12 +96,12 @@ def parse_prototype(proto, help, initial_args=[]):
 
     EXAMPLES::
 
-        sage: from autogen.pari.parser import parse_prototype
-        sage: proto = 'GD0,L,DGDGDG'
-        sage: help = 'qfbred(x,{flag=0},{d},{isd},{sd})'
-        sage: parse_prototype(proto, help)
+        >>> from autogen.parser import parse_prototype
+        >>> proto = 'GD0,L,DGDGDG'
+        >>> help = 'qfbred(x,{flag=0},{d},{isd},{sd})'
+        >>> parse_prototype(proto, help)
         ([GEN x, long flag=0, GEN d=NULL, GEN isd=NULL, GEN sd=NULL], GEN)
-        sage: parse_prototype("lp", "foo()", ["TEST"])
+        >>> parse_prototype("lp", "foo()", [str("TEST")])
         (['TEST', prec precision=0], long)
     """
     # Use the help string just for the argument names.
@@ -175,7 +126,7 @@ def parse_prototype(proto, help, initial_args=[]):
 
     # Go over the prototype characters and build up the arguments
     args = list(initial_args)
-    default = None
+    have_default = False  # Have we seen any default argument?
     while n < len(proto):
         c = proto[n]; n += 1
 
@@ -203,6 +154,25 @@ def parse_prototype(proto, help, initial_args=[]):
                 raise ValueError('unknown prototype character %r' % c)
 
         arg = t(names, default, index=len(args))
+        if arg.default is not None:
+            have_default = True
+        elif have_default:
+            # We have a non-default argument following a default
+            # argument, which means trouble...
+            #
+            # A syntactical wart of Python is that it does not allow
+            # that: something like def foo(x=None, y) is a SyntaxError
+            # (at least with Python-2.7.13, Python-3.6.1 and Cython-0.25.2)
+            #
+            # A small number of GP functions (nfroots() for example)
+            # wants to do this anyway. Luckily, this seems to occur only
+            # for arguments of type GEN (prototype code "G")
+            #
+            # To work around this, we add a "fake" default value and
+            # then raise an error if it was not given...
+            if c != "G":
+                raise NotImplementedError("non-default argument after default argument is only implemented for GEN arguments")
+            arg.default = False
         args.append(arg)
 
     return (args, ret)

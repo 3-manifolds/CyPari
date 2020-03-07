@@ -1,6 +1,6 @@
---- src/systems/mingw/mingw.c.orig	2017-02-06 11:10:40.914748500 -0600
-+++ src/systems/mingw/mingw.c	2017-02-06 11:10:48.413841100 -0600
-@@ -138,6 +138,7 @@
+--- src/systems/mingw/mingw.c.orig	2020-02-14 03:17:45.000000000 -0600
++++ src/systems/mingw/mingw.c	2020-03-05 13:10:26.365848900 -0600
+@@ -145,6 +145,7 @@
  void
  win32_set_pdf_viewer(void)
  {
@@ -8,7 +8,7 @@
    char *s = getenv("GP_PDF_VIEWER");
    if (!s)
    {
-@@ -156,6 +157,7 @@
+@@ -163,6 +164,7 @@
      sprintf(buf,"GP_PDF_VIEWER=%s",str);
      putenv(buf);
    }

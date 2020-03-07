@@ -12,6 +12,8 @@ Return types for PARI calls
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from __future__ import unicode_literals
+
 class PariReturn(object):
     """
     This class represents the return value of a PARI call.
@@ -58,11 +60,11 @@ class PariReturnInt(PariReturn):
 
 class PariReturnLong(PariReturn):
     def ctype(self):
-        return "pari_longword"
+        return "long"
 
 class PariReturnULong(PariReturn):
     def ctype(self):
-        return "pari_ulong"
+        return "unsigned long"
 
 class PariReturnVoid(PariReturn):
     def ctype(self):

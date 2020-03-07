@@ -6,11 +6,10 @@
 
 set -e
 
-# PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
-PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.9/
-PARIVERSION=pari-2.9.5
+PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIVERSION=pari-2.11.3
 GMPURL=https://ftp.gnu.org/gnu/gmp/
-GMPVERSION=gmp-6.1.2
+GMPVERSION=gmp-6.2.0
 
 if [[ $(pwd) =~ " " ]]; then
     echo "Fatal Error: Sorry, the path:"
@@ -32,7 +31,7 @@ fi
 
 echo Building gmp ...
 
-if [ "$2" != "nogmp" ] ; then
+if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     if [ ! -e ${GMPVERSION}.tar.bz2 ] ; then
         echo "Downloading GMP source archive ..." ;
 	if [ $(uname) = "Darwin" ] ; then
@@ -156,6 +155,10 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     sed -i -e 's/C:.*C:/C:/g' pari.nsi
     sed -i -e 's/C:.*C:/C:/g' paricfg.h
     cd ..
+    if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
+	patch -p0 < ../../Windows/parigen.h.patch
+	patch -p0 < ../../Windows/parsec.h.patch
+    fi
     make install-lib-sta
     
     # We cannot build the dll for Pythons > 3.4, because mingw can't
