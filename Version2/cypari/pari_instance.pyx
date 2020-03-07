@@ -296,43 +296,12 @@ Check that ``default()`` works properly::
 # Define the conditional compilation variable SAGE
 include "sage.pxi"
 
-""" Sage header -- not used by the standalone CyPari
-from __future__ import absolute_import, division
-
-include "cysignals/signals.pxi"
-
 import sys
-from libc.stdio cimport *
-cimport cython
+encoding = sys.getfilesystemencoding()
 
-from .paridecl cimport *
-from .paripriv cimport *
-from .gen cimport Gen, objtogen
-from .stack cimport new_gen, new_gen_noclear, clear_stack
-from .convert cimport new_gen_from_double
-from .handle_error cimport _pari_init_error_handling
-from .closure cimport _pari_init_closure
-"""
-
-cpdef bytes to_bytes(s):
+cdef bytes to_bytes(s):
     """
     Converts bytes and unicode ``s`` to bytes.
-
-    Examples:
-
-    >>> from cypari import to_bytes
-    >>> s1 = to_bytes(b'hello')
-    >>> s2 = to_bytes('hello')
-    >>> s3 = to_bytes(u'hello')
-    >>> type(s1) is type(s2) is type(s3) is bytes
-    True
-    >>> s1 == s2 == s3 == b'hello'
-    True
-
-    >>> type(to_bytes(1234)) is bytes
-    True
-    >>> int(to_bytes(1234))
-    1234
     """
     cdef int convert
     for convert in range(2):
@@ -341,7 +310,7 @@ cpdef bytes to_bytes(s):
         if isinstance(s, bytes):
             return <bytes> s
         elif isinstance(s, unicode):
-            return (<unicode> s).encode('utf-8')
+            return (<unicode> s).encode(encoding)
     raise AssertionError(f"str() returned {type(s)}")
 
 cdef extern from *:

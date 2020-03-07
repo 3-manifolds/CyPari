@@ -615,7 +615,7 @@ cdef class Gen(Gen_base):
         TESTS::
 
             sage: pari('x^4 + 8').polred(2)
-            [1, x - 1; 1/2*x^2 + 1, x^2 - 2*x + 3; -1/2*x^2 + 1, x^2 - 2*x + 3; 1/2*x^2, x^2 + 2; 1/4*x^3, x^4 + 2]
+            [0, x; 1/2*x^2 + 1, x^2 - 2*x + 3; -1/2*x^2 + 1, x^2 - 2*x + 3; 1/2*x^2, x^2 + 2; 1/4*x^3, x^4 + 2]
         '''
         import warnings
         with warnings.catch_warnings():
@@ -1847,7 +1847,7 @@ cdef class Gen(Gen_base):
             False
             sage: n = pari(2**31-1)
             sage: n.isprime(1)
-            (True, [2, 3, 1; 3, 5, 1; 7, 3, 1; 11, 3, 1; 31, 2, 1; 151, 3, 1; 331, 3, 1])
+            True
         """
         cdef GEN x
         sig_on()
@@ -2647,11 +2647,11 @@ cdef class Gen(Gen_base):
             4       # 32-bit
             3       # 64-bit
             sage: pari('x').sizeword()
-            9
+            7
             sage: pari('x^20').sizeword()
-            66
+            26
             sage: pari('[x, I]').sizeword()
-            20
+            16
         """
         return <long>gsizeword(x.g)
 
@@ -3467,7 +3467,7 @@ cdef class Gen(Gen_base):
             [x, x^2 + 972, x^3 + 54, x^3 + 864, x^3 - 54, x^6 + 108]
             sage: G = pari('x^4 + 1').galoisinit()
             sage: G.galoissubfields(flag=2, v='z')[3]
-            [x^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
+            [z^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
 
         .. _galoissubfields: http://pari.math.u-bordeaux.fr/dochtml/html.stable/Functions_related_to_general_number_fields.html#galoissubfields
         """
@@ -4083,9 +4083,7 @@ cdef class Gen(Gen_base):
         polynomials::
 
             sage: pari('x^3 - y^3').factor()
-            Traceback (most recent call last):
-            ...
-            PariError: sorry, factor for general polynomials is not yet implemented
+            [x - y, 1; x^2 + y*x + y^2, 1]
         """
         cdef GEN g
         global factor_proven
@@ -4353,7 +4351,7 @@ cdef class Gen(Gen_base):
         With flag=1, compute the pair P(z) and P'(z)::
 
             sage: E.ellwp(1, flag=1)
-            [13.9658695257485, 50.5619300880073]
+            [13.9658695257485, 101.123860176015]
         """
         cdef Gen t0 = objtogen(z)
         cdef GEN g0 = t0.g
