@@ -157,7 +157,6 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     cd ..
     if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
 	patch -p0 < ../../Windows/parigen.h.patch
-	patch -p0 < ../../Windows/parsec.h.patch
     fi
     make install-lib-sta
     

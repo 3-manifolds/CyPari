@@ -96,16 +96,16 @@ cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
 include "memory.pxi"
 include "signals.pyx"
+init_cysignals()
 include "stack.pyx"
-include "convert.pyx"
 include "pari_instance.pyx"
-include "handle_error.pyx"
-include "closure.pyx"
-include "gen.pyx"
-
 # Instantiate an instance of the Pari class
 cdef Pari pari_instance = Pari()
 # and make it accessible from python as `pari`.
 pari = pari_instance
+include "convert.pyx"
+include "handle_error.pyx"
+include "closure.pyx"
+include "gen.pyx"
 
-init_cysignals()
+
