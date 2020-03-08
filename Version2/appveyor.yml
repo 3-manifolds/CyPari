@@ -30,6 +30,7 @@ install:
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
   - set MSYSTEM=MINGW32
+  - cd Version2
   #- cd Version2\Windows\toolchain
   #- "bash install_files_32.sh"
   #- "bash install_files_64.sh"
