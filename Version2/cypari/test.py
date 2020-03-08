@@ -23,7 +23,8 @@ class DocTestParser(doctest.DocTestParser):
         else:
             string = regex64.sub('', string)
             string = regex32.sub('\g<1>\n', string)
-        regex_random = re.compile(r'(\n.*?)\s+# random\s*\n.*$', re.MULTILINE)
+        regex_random = re.compile('\n[^#^\n]*# random.*\n[^\n]*[^\n]*',
+                                  re.MULTILINE)
         string = regex_random.sub('', string)
         # Adjust the name of the PariError exception
         # Remove deprecation warnings in the output
@@ -52,6 +53,31 @@ for cls in (_pari.Gen, _pari.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
+# On Windows, for some yet to be determined reason, any doctest which
+# raises an exception, even an expected exception, causes the test run
+# to abort with error code 3.
+
+if sys.platform == 'win32':
+    bad_tests = (
+        'Pari.allocatemem', 'Pari.setrand', 'Pari.stacksize',
+        'PariError.__str__', 'PariError.errdata',
+        'PariError.errnum', 'PariError.errtext',
+        '__test__.Gen.__call__ (line 0)',
+        '__test__.Gen.__complex__ (line 0)',
+        '__test__.Gen.__iter__ (line 0)',
+        '__test__.Gen.bid_get_gen (line 0)',
+        '__test__.Gen.change_variable_name (line 0)',
+        '__test__.Gen.eval (line 0)',
+        '__test__.Gen.factor (line 0)',
+        '__test__.Gen.getattr (line 0)',
+        '__test__.Gen.nf_get_pol (line 0)',
+        '__test__.Pari._close (line 0)',
+        '__test__.Pari.allocatemem (line 0)',
+        '__test__.Pari.setrand (line 0)',
+        'gen_to_integer')
+else:
+    bad_tests = tuple()
+
 def runtests(verbose=False):
     parser = DocTestParser()
     finder = doctest.DocTestFinder(parser=parser)
@@ -63,12 +89,9 @@ def runtests(verbose=False):
             optionflags=doctest.ELLIPSIS|doctest.IGNORE_EXCEPTION_DETAIL)
         count = 0
         for test in finder.find(module, extraglobs=extra_globals):
-            if sys.platform == 'win32':
-                print(test.name)
-                if test.name.split('.', 2)[-1] in (
-                        'Pari.allocatemem', 'Pari.setrand', 'Pari.stacksize'):
-                    print('skipping')
-                    continue
+            if test.name.split('.', 2)[-1] in bad_tests:
+                print('skipping %s'%test.name.split()[0])
+                continue
             count += 1
             runner.run(test)
         result = runner.summarize()
