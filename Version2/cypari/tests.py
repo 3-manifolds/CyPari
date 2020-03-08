@@ -1534,11 +1534,11 @@ General number fields::
     >>> K = pari('y^3 - 250').nfinit()
     >>> P = K.idealprimedec(5)[1]
     >>> modP = K.nfmodprinit(P)
-    >>> zk = K[6]/25; zk
+    >>> zk = K.nf_get_zk(); zk
     [1, 1/5*y, 1/25*y^2]
     >>> mods = [K.nfmodpr(t, modP) for t in zk]; mods
     [1, y, 2*y + 1]
-    >>> lifts = [K.nfmodprlift(x, modP) for x in mods]; lifts
+    >>> lifts = [K.nfbasistoalg_lift(K.nfmodprlift(x, modP)) for x in mods]; lifts
     [1, 1/5*y, 2/5*y + 1]
     >>> K.nfeltval(lifts[2] - zk[2], P) == 1
     True
@@ -1634,7 +1634,7 @@ General number fields::
     [Mod(-zz, zz^4 + 2), Mod(zz, zz^4 + 2)]
 
     >>> nf = pari('x^2 + 1').nfinit()
-    >>> nf.nfrootsof1()
+    >>> [nf.nfbasistoalg_lift(r) for r in nf.nfrootsof1()]
     [4, x]
 
     >>> x = pari('xx1'); x
