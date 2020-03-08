@@ -12,35 +12,8 @@ environment:
     # http://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
     # A build job will be started for each definition below.
 
-    - PYTHON: C:\Python27
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-      
-    - PYTHON: C:\Python27-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
-
-    - PYTHON: C:\Python35
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-      
-    - PYTHON: C:\Python35-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
-
-    - PYTHON: C:\Python36
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-      
-    - PYTHON: C:\Python36-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
-
-    - PYTHON: C:\Python37
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-
-    - PYTHON: C:\Python37-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
-
-    - PYTHON: C:\Python38
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
-
     - PYTHON: C:\Python38-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
@@ -58,10 +31,8 @@ install:
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
   - set MSYSTEM=MINGW32
   - cd Version2\Windows\toolchain
-  - "bash install_files_32.sh"
   - "bash install_files_64.sh"
   - cd ..\crt
-  - copy stdio.h C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32\i686-w64-mingw32\include
   - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\x86_64-w64-mingw32\include
   - cd ..\..
 
