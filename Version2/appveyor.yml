@@ -66,7 +66,7 @@ install:
   - cd ..\..
 
   # Build CyPari. 
-  - dir cypari_src
+  - dir cypari
   - "%PYTHON%\\python.exe setup.py build"
 
 cache:
