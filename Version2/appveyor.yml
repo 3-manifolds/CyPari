@@ -30,11 +30,12 @@ install:
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
   - set MSYSTEM=MINGW32
-  - cd Version2\Windows\toolchain
-  - "bash install_files_64.sh"
-  - cd ..\crt
-  - copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\x86_64-w64-mingw32\include
-  - cd ..\..
+  #- cd Version2\Windows\toolchain
+  #- "bash install_files_32.sh"
+  #- "bash install_files_64.sh"
+  #- cd ..\crt
+  #- copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\x86_64-w64-mingw32\include
+  #- cd ..\..
 
   # Build CyPari. 
   - dir cypari
