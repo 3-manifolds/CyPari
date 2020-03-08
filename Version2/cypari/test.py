@@ -37,8 +37,8 @@ class DocTestParser(doctest.DocTestParser):
 
 extra_globals = dict([('pari', _pari.pari)])    
 modules_to_test = [
-    (_pari, extra_globals),
     (tests, extra_globals),
+    (_pari, extra_globals),
 ]
 
 # Cython adds a docstring to _pari.__test__ *only* if it contains '>>>'.
@@ -52,14 +52,6 @@ for cls in (_pari.Gen, _pari.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
-# On Windows these tests segfault, presumably because the Pari stack gets
-# deallocated when the test environment is destroyed.  Running the test commands
-# by hand in the interpreter does not cause a crash.
-
-if sys.platform == 'win32':
-    _pari.__test__.pop('Pari.__init__ (line 0)')
-    _pari.__test__.pop('Pari._close (line 0)')
-    
 def runtests(verbose=False):
     parser = DocTestParser()
     finder = doctest.DocTestFinder(parser=parser)
@@ -71,6 +63,12 @@ def runtests(verbose=False):
             optionflags=doctest.ELLIPSIS|doctest.IGNORE_EXCEPTION_DETAIL)
         count = 0
         for test in finder.find(module, extraglobs=extra_globals):
+            if sys.platform == 'win32':
+                print(test.name)
+                if test.name.split('.', 2)[-1] in (
+                        'Pari.allocatemem', 'Pari.setrand', 'Pari.stacksize'):
+                    print('skipping')
+                    continue
             count += 1
             runner.run(test)
         result = runner.summarize()

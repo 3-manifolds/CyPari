@@ -59,8 +59,8 @@ if sys.platform == 'win32':
     BASHPATH = BASHPATH.decode('utf8')
     # For Python3.8 we can use the default gcc in mingw64
     if cpu_width == '64bit':   # use mingw64
-        TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
-        TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
+        TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
+        TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
         WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
         BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
     else:   # use mingw32
@@ -247,7 +247,7 @@ class CyPariBuildExt(build_ext):
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
                 # This is meant to work even in a Windows Command Prompt
-                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
+                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             elif sys.platform == 'darwin':
                 cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:

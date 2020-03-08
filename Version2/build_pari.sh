@@ -62,7 +62,7 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	cd ../..
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
-	# Windows -- with no CFLAGS the ABI is not needed
+	# Windows
 	    if [ "$2" = "gmp32u" ] || [ "$2" = "gmp64u" ] ; then
 		export CFLAGS='-DUNIVERSAL_CRT'
 	    fi
@@ -71,7 +71,7 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 		BUILD=i686-w32-mingw32
 	    else
 		export ABI=64
-		BUILD=x86_64-w64-mingw32
+		BUILD=x86_64-pc-mingw64
 	    fi
 	else
 	# linux
@@ -134,46 +134,31 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # trouble linking some of the little C programs which verify that
     # we have provided the correct gmp configuration in the options to
     # Configure.  Also, the msys2 uname produces something Pari does
-    # not recognize.  Since we are not lying about our gmp
+    # not recognize.  Since we are not lying about our gmpntf
     # configuration we just patch get_gmp and arch-osname to give the
     # right answers.
     patch -p1 < ../../Windows/pari_config.patch
     # This allows using C99 format specifications in printf.
     if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
-	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
+	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO'
     else
-	export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
+	export CFLAGS='-D__USE_MINGW_ANSI_STDIO'
     fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
 
-    # Pari's Configure script screws up the paths if you specify
-    # an absolute prefix within the msys64 environment.
-    # At least the pattern is easy to recognize.
-    cd Omingw-*
-    sed -i -e 's/C:.*C:/C:/g' Makefile
-    sed -i -e 's/C:.*C:/C:/g' pari.cfg
-    sed -i -e 's/C:.*C:/C:/g' pari.nsi
-    sed -i -e 's/C:.*C:/C:/g' paricfg.h
-    cd ..
+    # When building for x86_64 parigen.h says #define long long long
+    # and that macro breaks the bison compiler compiler.
     if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
 	patch -p0 < ../../Windows/parigen.h.patch
     fi
-    make install-lib-sta
-    
-    # We cannot build the dll for Pythons > 3.4, because mingw can't
-    # handle the Universal CRT.  So we also cannot build gp. But we
-    # need gphelp.  So do a partial install.
     cd Omingw-*
+    make install-lib-sta
     make install-include
-    make install-cfg
     make install-doc
+    make install-cfg
+    make install-bin-sta
     cd ..
-
-    # Pari's Configure will also screw up the path in the gphelp script.
-    sed -i -e 's/C:.*C:/C:/g' ${PARIPREFIX}/bin/gphelp
-
-    # Remove the .o files, since Pari always builds in the same directory.
-    make clean
+    cp src64/language/anal.h ${PARIPREFIX}/include/pari/    
     
 else
 # linux
