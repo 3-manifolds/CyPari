@@ -2618,7 +2618,7 @@ cdef class Gen(Gen_base):
         if not estimate:
             return new_gen(ground(x.g))
         y = new_gen(grndtoi(x.g, &e))
-        return y, int(e)
+        return y, e
 
     def sizeword(x):
         """
