@@ -57,8 +57,12 @@ if sys.platform == 'win32':
     bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
     BASHPATH, _ = bash_proc.communicate()
     BASHPATH = BASHPATH.decode('utf8')
-    TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
-    TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
+    if cpu_width == '64bit':
+        TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
+        TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
+    else:
+        TOOLCHAIN_W = r'C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32'
+        TOOLCHAIN_U = '/c/mingw-w64/i686-8.1.0-posix-dwarf-rt_v6-rev0/mingw32'
     WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
     BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])

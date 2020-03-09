@@ -67,9 +67,11 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 		export CFLAGS='-DUNIVERSAL_CRT'
 	    fi
 	    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+		export MSYSTEM=MINGW32
 		export ABI=32
-		BUILD=x86_64-w32-mingw64
+		BUILD=i686-w32-mingw32
 	    else
+		export MSYSTEM=MINGW64
 		export ABI=64
 		BUILD=x86_64-pc-mingw64
 	    fi
@@ -144,6 +146,11 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     else
 	export CFLAGS='-D__USE_MINGW_ANSI_STDIO'
     fi
+    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+	export MSYSTEM=MINGW32
+    else
+	export MSYSTEM=MINGW64
+    fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
 
     # When building for x86_64 parigen.h says #define long long long
@@ -158,8 +165,6 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     make install-cfg
     make install-bin-sta
     cd ..
-    cp src64/language/anal.h ${PARIPREFIX}/include/pari/    
-    
 else
 # linux
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
@@ -168,7 +173,12 @@ else
 fi
 
 # We need this "private" header file.
-cp src/language/anal.h $PARIPREFIX/include/pari
+if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
+    cp src64/language/anal.h ${PARIPREFIX}/include/pari/
+else
+    cp src/language/anal.h $PARIPREFIX/include/pari	
+fi
 
-# Fix some non-prototype function declarations (until Pari 2.9.2 is released).
-sed -i -e s/\(\)\;/\(void\)\;/ $PARIPREFIX/include/pari/paripriv.h
+
+    
+
