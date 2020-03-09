@@ -1,6 +1,9 @@
 # We use AppVeyor to build our Windows binaries automatically:
 #
-# https://ci.appveyor.com/project/nathan_dunfield/cypari
+# https://ci.appveyor.com/project/nathan_dunfield/cypari-v7ul8
+
+image:
+  - Visual Studio 2015
 
 environment:
 
