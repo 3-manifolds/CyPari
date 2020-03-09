@@ -56,14 +56,13 @@ install:
 
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
-  - cd Version2
 
   # Build CyPari. 
   - dir cypari
   - "%PYTHON%\\python.exe setup.py build"
 
 cache:
-  - Version2\libcache
+  - libcache
 
 build:
   none
@@ -78,7 +77,7 @@ after_test:
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
-  - path: Version2\dist\*.whl
+  - path: dist\*.whl
 
 # on_success:
 #   You can use this step to upload your artifacts to a public website.
