@@ -57,17 +57,10 @@ if sys.platform == 'win32':
     bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
     BASHPATH, _ = bash_proc.communicate()
     BASHPATH = BASHPATH.decode('utf8')
-    # For Python3.8 we can use the default gcc in mingw64
-    if cpu_width == '64bit':   # use mingw64
-        TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
-        TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
-        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
-        BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
-    else:   # use mingw32
-        TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
-        TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
-        WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
-        BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
+    TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
+    TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
+    WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
+    BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
     BASH = r'C:\msys64\usr\bin\bash'
 else:
