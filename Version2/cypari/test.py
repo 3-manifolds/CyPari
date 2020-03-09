@@ -76,7 +76,9 @@ if sys.platform == 'win32':
         '__test__.Pari.setrand (line 0)',
         'gen_to_integer')
 else:
-    bad_tests = tuple()
+    bad_tests = (
+        '__test__.Pari._close (line 0)', # unused, marked dangerous and segfaults
+    )
 
 def runtests(verbose=False):
     parser = DocTestParser()

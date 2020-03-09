@@ -56,16 +56,6 @@ from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
 from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK)
 
 cdef extern from *:
-    """
-    void cypari_set_PyObject_size(PyObject *obj, Py_ssize_t s)
-    {
-        Py_SIZE(obj) = s;
-    }
-    """
-
-    # Cython lacks lvalue support, so explicitly make function
-    # to set Py_SIZE(obj).
-    void cypari_set_PyObject_size(PyObject *obj, Py_ssize_t s)
 
     ctypedef struct PyLongObject:
         digit* ob_digit
