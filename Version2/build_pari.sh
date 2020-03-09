@@ -68,7 +68,7 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	    fi
 	    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
 		export ABI=32
-		BUILD=i686-w32-mingw32
+		BUILD=x86_64-w32-mingw64
 	    else
 		export ABI=64
 		BUILD=x86_64-pc-mingw64
