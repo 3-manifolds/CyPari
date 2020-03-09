@@ -12,14 +12,30 @@ environment:
     # http://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
     # A build job will be started for each definition below.
 
-    - PYTHON: C:\Python36-x64
+    - PYTHON: C:\Python38
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    - PYTHON: C:\Python38-x64
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    - PYTHON: C:\Python37
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python37-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-    - PYTHON: C:\Python38-x64
+    - PYTHON: C:\Python36
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    - PYTHON: C:\Python36-x64
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    - PYTHON: C:\Python35-x64
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    - PYTHON: C:\Python35
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
@@ -35,14 +51,7 @@ install:
 
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
-  - set MSYSTEM=MINGW32
   - cd Version2
-  #- cd Version2\Windows\toolchain
-  #- "bash install_files_32.sh"
-  #- "bash install_files_64.sh"
-  #- cd ..\crt
-  #- copy stdio.h C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64\x86_64-w64-mingw32\include
-  #- cd ..\..
 
   # Build CyPari. 
   - dir cypari
@@ -66,7 +75,7 @@ artifacts:
   # bdist_wheel puts your built wheel in the dist directory
   - path: Version2\dist\*.whl
 
-#on_success:
-#  You can use this step to upload your artifacts to a public website.
-#  See Appveyor's documentation for more details. Or you can simply
-#  access your wheels from the Appveyor "artifacts" tab for your build.
+# on_success:
+#   You can use this step to upload your artifacts to a public website.
+#   See Appveyor's documentation for more details. Or you can simply
+#   access your wheels from the Appveyor "artifacts" tab for your build.
