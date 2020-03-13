@@ -130,7 +130,7 @@ if [ $(uname) = "Darwin" ] ; then
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
     # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
-    patch -p0 < ../../Windows/mingw_c.patch
+    patch -N -p0 < ../../Windows/mingw_c.patch || true
     # When we build the pari library for linking with Visual C 2014
     # (i.e. for Python 3.5 and 3.6) the Pari configure script has
     # trouble linking some of the little C programs which verify that
@@ -139,12 +139,12 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # not recognize.  Since we are not lying about our gmpntf
     # configuration we just patch get_gmp and arch-osname to give the
     # right answers.
-    patch -p1 < ../../Windows/pari_config.patch
+    patch -N -p1 < ../../Windows/pari_config.patch || true
     # This allows using C99 format specifications in printf.
     if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
 	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO'
     else
-	export CFLAGS='-D__USE_MINGW_ANSI_STDIO'
+	export CFLAGS=export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
     fi
     if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
 	export MSYSTEM=MINGW32
@@ -156,7 +156,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # When building for x86_64 parigen.h says #define long long long
     # and that macro breaks the bison compiler compiler.
     if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
-	patch -p0 < ../../Windows/parigen.h.patch
+	patch -N -p0 < ../../Windows/parigen.h.patch || true
     fi
     cd Omingw-*
     make install-lib-sta

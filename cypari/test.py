@@ -23,10 +23,19 @@ class DocTestParser(doctest.DocTestParser):
         else:
             string = regex64.sub('', string)
             string = regex32.sub('\g<1>\n', string)
+        # Remove tests for the wrong Python
+        regex_py2 = re.compile(r'(\n.*?)\s+# Py2\s*$', re.MULTILINE)
+        regex_py3 = re.compile(r'(\n.*?)\s+# Py3\s*$', re.MULTILINE)
+        if sys.version_info.major == 2:
+            string = regex_py3.sub('', string)
+            string = regex_py2.sub('\g<1>\n', string)
+        else:
+            string = regex_py2.sub('', string)
+            string = regex_py3.sub('\g<1>\n', string)
+        # Remove tests with random results
         regex_random = re.compile('\n[^#^\n]*# random.*\n[^\n]*[^\n]*',
                                   re.MULTILINE)
         string = regex_random.sub('', string)
-        # Adjust the name of the PariError exception
         # Remove deprecation warnings in the output
         string = re.sub('[ ]*doctest:...:[^\n]*\n', '', string)
         # Enable sage tests

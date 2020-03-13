@@ -79,7 +79,6 @@ from .paridecl cimport *
 from .paripriv cimport *
 cimport libc.stdlib
 from libc.stdio cimport *
-from libc.limits cimport LONG_MIN, LONG_MAX
 
 cdef String(x):
     """

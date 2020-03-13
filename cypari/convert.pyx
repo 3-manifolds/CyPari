@@ -47,8 +47,12 @@ include "cysignals/signals.pxi"
 from .paridecl cimport *
 from .stack cimport new_gen
 """
+IF UNAME_SYSNAME == "Windows":
+    cdef int LONG_MAX = 2147483647
+    cdef int LONG_MIN = -2147483648    
+ELSE:
+    from libc.limits cimport LONG_MIN, LONG_MAX
 
-from libc.limits cimport LONG_MIN, LONG_MAX
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
 from cpython.object cimport Py_SIZE

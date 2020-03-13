@@ -2601,11 +2601,13 @@ cdef class Gen(Gen_base):
             sage: pari('1.5').round()
             2
             sage: pari('1.5').round(True)
-            (2, -1)
+            (2, -1) # Py3
+            (2, -1L) # Py2
             sage: pari('1.5 + 2.1*I').round()
             2 + 2*I
             sage: pari('1.0001').round(True)
-            (1, -14)
+            (1, -14) # Py3
+            (1, -14L) # Py2
             sage: pari('(2.4*x^2 - 1.7)/x').round()
             (2*x^2 - 2)/x
             sage: pari('(2.4*x^2 - 1.7)/x').truncate()
