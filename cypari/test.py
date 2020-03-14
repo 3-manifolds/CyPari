@@ -62,11 +62,13 @@ for cls in (_pari.Gen, _pari.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
-# On Windows, for some yet to be determined reason, any doctest which
-# raises an exception, even an expected exception, causes the test run
-# to abort with error code 3.
+# For some yet to be determined reason, when we use gcc 8.1.0 on
+# Windows, any doctest which raises an exception, even an expected
+# exception, causes the test process to exit with exit status 3.  The
+# same code, when run in the interpreter, behaves as expected.
+# For now, we skip all tests which raise exceptions.
 
-if sys.platform == 'win32':
+if sys.platform == 'win32' and sys.version_info.major > 2:
     bad_tests = (
         'Pari.allocatemem', 'Pari.setrand', 'Pari.stacksize',
         'PariError.__str__', 'PariError.errdata',
@@ -85,8 +87,9 @@ if sys.platform == 'win32':
         '__test__.Pari.setrand (line 0)',
         'gen_to_integer')
 else:
+    # Always skip _close which is unused, marked dangerous, and segfaults.
     bad_tests = (
-        '__test__.Pari._close (line 0)', # unused, marked dangerous and segfaults
+        '__test__.Pari._close (line 0)',
     )
 
 def runtests(verbose=False):
