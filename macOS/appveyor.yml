@@ -8,22 +8,22 @@ branches:
 
 image: macOS
 
-clone_folder: ~appveyor/projects
+clone_folder: ${HOME}/projects
 
-stack: python 3.8
+stack: python 3.8.1
 
 install:
 
   # Show our build system
-  - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
-  - sh: which python
+  - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
+  - sh: python3 -- version
 
   # Install python packages
-  - sh: python -m pip install cython
+  - sh: python3 -m pip install cython
 
   # Build CyPari. 
-  - sh: cd ~appveyor/projects/CyPari
-  - sh: python setup.py build
+  - sh: cd ${HOME}/projects/CyPari
+  - sh: python3 setup.py build
 
 cache:
   - libcache
@@ -32,15 +32,12 @@ build:
   off
 
 test_script:
-  # Put your test command here.
-  - ps: python setup.py test
+  - ps: python3 setup.py test
   
 after_test:
-  # This step builds your wheels.
-  - ps: python setup.py bdist_wheel"
+  - ps: python3 setup.py bdist_wheel
 
 artifacts:
-  # bdist_wheel puts your built wheel in the dist directory
   - path: dist/*.whl
 
 # on_success:
