@@ -26,7 +26,9 @@ class DocTestParser(doctest.DocTestParser):
         # Remove tests for the wrong Python
         regex_py2 = re.compile(r'(\n.*?)\s+# Py2\s*$', re.MULTILINE)
         regex_py3 = re.compile(r'(\n.*?)\s+# Py3\s*$', re.MULTILINE)
-        if sys.version_info.major == 2 and sys.maxsize > 2**31:
+        if (sys.version_info.major == 2 and
+                sys.platform == 'win32' and
+                sys.maxsize > 2**31):
             string = regex_py3.sub('', string)
             string = regex_py2.sub('\g<1>\n', string)
         else:
