@@ -2,28 +2,26 @@
 #
 # https://ci.appveyor.com/project/culler/cypari-mac
 
+branches:
+  only:
+    - current_pari
+
 image: macOS
 
-environment:
-
-  matrix:
-
-    - PYTHON: Python38
+stack: python 3.8
 
 install:
-  # Note that you must use the environment variable %PYTHON% to refer to
-  # the interpreter you're using - Appveyor does not do anything special
-  # to put the Python version you want to use on PATH.
 
   # Show our build system
-  - echo $APPVEYOR_BUILD_WORKER_IMAGE
+  - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
+  - sh: which python
 
   # Install python packages
-  - $PYTHON/python.exe -m pip install cython
+  - sh: python -m pip install cython
 
   # Build CyPari. 
-  - cd cypari
-  - $PYTHON/python setup.py build"
+  - sh: cd CyPari
+  - sh: python setup.py build
 
 cache:
   - libcache
@@ -33,11 +31,11 @@ build:
 
 test_script:
   # Put your test command here.
-  - $PYTHON/python setup.py test
+  - ps: python setup.py test
   
 after_test:
   # This step builds your wheels.
-  - $PYTHON/python setup.py bdist_wheel"
+  - ps: python setup.py bdist_wheel"
 
 artifacts:
   # bdist_wheel puts your built wheel in the dist directory
