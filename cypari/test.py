@@ -62,35 +62,11 @@ for cls in (_pari.Gen, _pari.Pari):
             if docstring.find('sage:') >= 0 and docstring.find('>>>') < 0:
                 _pari.__test__['%s.%s (line 0)'%(cls.__name__, key)] = docstring
 
-# For some yet to be determined reason, when we use gcc 8.1.0 on
-# Windows, any doctest which raises an exception, even an expected
-# exception, causes the test process to exit with exit status 3.  The
-# same code, when run in the interpreter, behaves as expected.
-# For now, we skip all tests which raise exceptions.
-
-if sys.platform == 'win32' and sys.version_info.major > 2:
-    bad_tests = (
-        'Pari.allocatemem', 'Pari.setrand', 'Pari.stacksize',
-        'PariError.__str__', 'PariError.errdata',
-        'PariError.errnum', 'PariError.errtext',
-        '__test__.Gen.__call__ (line 0)',
-        '__test__.Gen.__complex__ (line 0)',
-        '__test__.Gen.__iter__ (line 0)',
-        '__test__.Gen.bid_get_gen (line 0)',
-        '__test__.Gen.change_variable_name (line 0)',
-        '__test__.Gen.eval (line 0)',
-        '__test__.Gen.factor (line 0)',
-        '__test__.Gen.getattr (line 0)',
-        '__test__.Gen.nf_get_pol (line 0)',
-        '__test__.Pari._close (line 0)',
-        '__test__.Pari.allocatemem (line 0)',
-        '__test__.Pari.setrand (line 0)',
-        'gen_to_integer')
-else:
-    # Always skip _close which is unused, marked dangerous, and segfaults.
-    bad_tests = (
-        '__test__.Pari._close (line 0)',
-    )
+# We skip tests for the _close method, which is unused, marked dangerous,
+# and causes segfaults.
+bad_tests = (
+    '__test__.Pari._close (line 0)',
+)
 
 def runtests(verbose=False):
     parser = DocTestParser()

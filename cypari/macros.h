@@ -287,6 +287,15 @@ static inline void sig_error(void)
      */
     
     cysigs.sig_mapped_to_FPE = 128;
+
+    /*
+     * When we started building with the mingw-w64 8.1.0 gcc it became
+     * the case that the SIGFPE handler would get reset during doctests
+     * whenever the test raised an exception.  As a workaround, we make
+     * sure that the SIGFPE handler is set before raising the exception. 
+     */
+
+    signal(SIGFPE, cysigs_signal_handler);
     DEBUG("sig_error raising SIGFPE\n")
     raise(SIGFPE);
 #else
