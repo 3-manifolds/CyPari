@@ -172,7 +172,7 @@ else
 fi
 
 # We need this "private" header file.
-if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
+if [ -d src64 ] ; then
     cp src64/language/anal.h ${PARIPREFIX}/include/pari/
 else
     cp src/language/anal.h $PARIPREFIX/include/pari	
