@@ -253,7 +253,10 @@ class CyPariBuildExt(build_ext):
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
                 # This is meant to work even in a Windows Command Prompt
-                cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
+                if cpu_width == 64:
+                    cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
+                else:
+                    cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             elif sys.platform == 'darwin':
                 cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:

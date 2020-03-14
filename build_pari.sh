@@ -94,7 +94,6 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 fi
 
 echo Building Pari ...
-    
 if [ ! -d "build/pari_src" ] ; then
     if [ ! -e ${PARIVERSION}.tar.gz ] ; then
         echo "Downloading Pari source archive ..." ;
@@ -155,7 +154,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 
     # When building for x86_64 parigen.h says #define long long long
     # and that macro breaks the bison compiler compiler.
-    if [ "$1" = "pari64" ] || [ "$1" = "pari64u" ] ; then
+    if [ "$1" == "pari64" ] || [ "$1" == "pari64u" ] ; then
 	patch -N -p0 < ../../Windows/parigen.h.patch || true
     fi
     cd Omingw-*
