@@ -29,13 +29,16 @@ cache:
   - libcache
 
 build:
-  off
+  none
 
 test_script:
-  - ps: python3 setup.py test
+  - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
+  - sh: echo ${PATH}
+  - sh: python3 -- version
+  - sh: python3 setup.py test
   
 after_test:
-  - ps: python3 setup.py bdist_wheel
+  - sh: python3 setup.py bdist_wheel
 
 artifacts:
   - path: dist/*.whl
