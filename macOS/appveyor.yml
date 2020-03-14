@@ -8,6 +8,8 @@ branches:
 
 image: macOS
 
+clone_folder: ~appveyor/projects
+
 stack: python 3.8
 
 install:
@@ -20,7 +22,7 @@ install:
   - sh: python -m pip install cython
 
   # Build CyPari. 
-  - sh: cd CyPari
+  - sh: cd ~appveyor/projects/CyPari
   - sh: python setup.py build
 
 cache:
