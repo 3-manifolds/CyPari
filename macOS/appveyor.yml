@@ -8,7 +8,7 @@ branches:
 
 image: macOS
 
-for:
+matrix:
   -
     stack: python 3.8
 
