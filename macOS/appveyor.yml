@@ -58,6 +58,7 @@ test_script:
 after_test:
   - sh: ls /Users/appveyor/projects/cypari-macos/libcache
   - sh: python setup.py bdist_wheel
+  - sh: python rename_wheels.py
 
 artifacts:
   - path: dist/*.whl
