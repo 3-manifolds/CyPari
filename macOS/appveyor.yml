@@ -1,40 +1,47 @@
 # https://ci.appveyor.com/project/culler/cypari-mac
 
+image: macOS
+
 branches:
   only:
     - current_pari
 
-image: macOS
-
 environment:
   matrix:
-    - PYTHON: /Users/appveyor/venv3.8.2/bin/python
-    - PYTHON: /Users/appveyor/venv3.7.5/bin/python
-  
+    - VENV: /Users/appveyor/venv3.8.2
+      PYTHONPATH: /Users/appveyor/python38
+    - VENV: /Users/appveyor/venv3.7.5
+      PYTHONPATH: /Users/appveyor/python37
+
 install:
-  - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
+  # Print some environment info
+  - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
   - sh: pwd
+  - sh: mkdir $PYTHONPATH
+  - sh: export PATH=$PYTHONPATH/bin:$PATH
   - sh: ls /Users/appveyor
-  - sh: $PYTHON --version
+
+  # Activate a virtualenv
+  - sh: source $VENV/bin/activate
 
   # Install required python packages
-  - sh: $PYTHON -m pip install --upgrade --user cython
+  - python -m pip install --prefix=$PYTHONPATH cython
+  - sh: which cython || true
 
   # Build CyPari. 
-  - sh: ls
-  - sh: $PYTHON setup.py build
-
-cache:
-  - /Users/appveyor/libcache
+  - sh: python setup.py build
 
 build:
   none
 
+cache:
+  - /Users/appveyor/libcache
+
 test_script:
-  - sh: $PYTHON setup.py test
+  - sh: python setup.py test
   
 after_test:
-  - sh: $PYTHON setup.py bdist_wheel
+  - sh: python setup.py bdist_wheel
 
 artifacts:
   - path: dist/*.whl
