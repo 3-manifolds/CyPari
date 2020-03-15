@@ -15,7 +15,7 @@ install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: pwd
   - sh: ls /Users/appveyor
-  - sh: bash $VENV/bin/activate
+  - sh: source $VENV/bin/activate
   - sh: python --version
 
   # Install required python packages
