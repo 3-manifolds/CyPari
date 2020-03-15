@@ -6,6 +6,11 @@ branches:
   only:
     - current_pari
 
+init:
+  # Currently the cache fails because 7-Zip is missing
+  # FIX ME when the new image is released.
+  - sh: brew install p7zip
+
 environment:
   matrix:
     - VENV: /Users/appveyor/venv2.7.17
@@ -26,9 +31,6 @@ environment:
 
 install:
 
-  # See if installing 7-Zip makes caching work
-  - sh: brew install p7zip
-
   # Print some environment info
   - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
   - sh: pwd
@@ -40,7 +42,6 @@ install:
   - sh: source $VENV/bin/activate
 
   # Install required python packages
-  - python -m pip install --upgrade --prefix=$PYTHONPREFIX setuptools wheel
   - python -m pip install --prefix=$PYTHONPREFIX cython
   - sh: which cython || true
   - sh: python -c "import Cython" || true
