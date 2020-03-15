@@ -23,7 +23,6 @@ install:
   - sh: python3 -m pip install cython
 
   # Build CyPari. 
-  - sh: cd CyPari
   - sh: ls
   - sh: python3 setup.py build
 
