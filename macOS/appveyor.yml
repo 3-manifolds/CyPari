@@ -8,23 +8,22 @@ image: macOS
 
 environment:
   matrix:
-    - PYTHON: /usr/local/bin/python3.8
-    - PYTHON: /usr/local/bin/python3.7
+    - VENV: venv3.8.2
+    - VENV: venv3.7.5
   
 install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: pwd
   - sh: ls /Users/appveyor
-  - sh: ls /usr/local/bin/python*
-  - sh: ls /Library/Frameworks/Python.framework/Versions
-  - sh: $PYTHON --version
+  - sh: source $VENV/bin/activate
+  - sh: python --version
 
   # Install required python packages
-  - sh: $PYTHON -m pip install cython
+  - sh: python -m pip install --upgrade --user cython
 
   # Build CyPari. 
   - sh: ls
-  - sh: $PYTHON setup.py build
+  - sh: python setup.py build
 
 cache:
   - /Users/appveyor/libcache
@@ -33,10 +32,10 @@ build:
   none
 
 test_script:
-  - sh: $PYTHON setup.py test
+  - sh: python setup.py test
   
 after_test:
-  - sh: $PYTHON setup.py bdist_wheel
+  - sh: python setup.py bdist_wheel
 
 artifacts:
   - path: dist/*.whl
