@@ -16,7 +16,7 @@ install:
 
   # Show our build system
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
-  - sh: python3 -- version
+  - sh: python3 --version
 
   # Install python packages
   - sh: python3 -m pip install cython
@@ -32,9 +32,6 @@ build:
   none
 
 test_script:
-  - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
-  - sh: echo ${PATH}
-  - sh: python3 -- version
   - sh: python3 setup.py test
   
 after_test:
