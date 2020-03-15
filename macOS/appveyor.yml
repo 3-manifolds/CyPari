@@ -63,7 +63,7 @@ artifacts:
   - path: dist/*.whl
 
 cache:
-  - libcache
+  - libcache -> macOS/clear_cache.txt
 
 # on_success:
 #   You can use this step to upload your artifacts to a public website.
