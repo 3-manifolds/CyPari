@@ -4,7 +4,7 @@ image: macOS
 
 branches:
   only:
-    - current_pari
+    - master
 
 init:
   # Currently the cache fails because 7-Zip is missing
