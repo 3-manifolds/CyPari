@@ -1,5 +1,4 @@
 import os, sys, json, requests
-from future.builtins import input
 from configparser import ConfigParser
 
 class AppveyorREST(object):
@@ -62,6 +61,7 @@ class AppveyorREST(object):
         url = template.format(self)
         headers = {'Authorization': 'Bearer {0.api_token}'.format(self)}
         response = requests.delete(url, headers=headers)
+        print('Status code: %s'%response.status_code)
         if response.status_code == requests.codes.ok:
             print('Cache deleted.')
         else:
@@ -87,27 +87,28 @@ class AppveyorREST(object):
 
 def main():
     if len(sys.argv) == 1 or set(['help', '-help', '--help', '-h']).intersection(sys.argv):
-        print('usage: python appveryor.py [help|build|clear|download <to_dir>]')
+        print('usage: python appveyor.py windows|macos [help|build|clear|download <to_dir>]')
         sys.exit()
         
     config = ConfigParser()
+    section = sys.argv[1]
     if os.path.exists('appveyor.cfg'):
         config.read('appveyor.cfg')
     else:
         print('appveyor.cfg not found - creating ...')
-        config.add_section('appveyor')
-        config.set('appveyor', 'project', input('Project name: '))
-        config.set('appveyor', 'username', input('Username: '))
-        config.set('appveyor', 'token', input('Api token: '))
+        config.add_section(section)
+        config.set(section, 'project', input('Project name: '))
+        config.set(section, 'username', input('Username: '))
+        config.set(section, 'token', input('Api token: '))
         with open('appveyor.cfg', 'wb') as output:
             config.write(output)
             
-    A = AppveyorREST(config.get('appveyor', 'project'),
-                     config.get('appveyor', 'username'),
-                     config.get('appveyor', 'token'))
+    A = AppveyorREST(config.get(section, 'project'),
+                     config.get(section, 'username'),
+                     config.get(section, 'token'))
 
     skip = False
-    for n, command in enumerate(sys.argv[1:]):
+    for n, command in enumerate(sys.argv[2:]):
         if skip:
             skip = False
             continue
