@@ -14,11 +14,18 @@ environment:
     - VENV: /Users/appveyor/venv3.7.5
       PYTHONPREFIX: /Users/appveyor/python37
       PYTHONPATH: /Users/appveyor/python37/lib/python3.7/site-packages
+    - VENV: /Users/appveyor/venv3.6.10
+      PYTHONPREFIX: /Users/appveyor/python36
+      PYTHONPATH: /Users/appveyor/python36/lib/python3.6/site-packages
+    - VENV: /Users/appveyor/venv3.5.9
+      PYTHONPREFIX: /Users/appveyor/python35
+      PYTHONPATH: /Users/appveyor/python35/lib/python3.5/site-packages
 
 install:
   # Print some environment info
   - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
   - sh: pwd
+  - sh: ls /Users/appveyor
   - sh: mkdir $PYTHONPREFIX
   - sh: export PATH=$PYTHONPREFIX/bin:$PATH
 
@@ -38,17 +45,18 @@ install:
 build:
   none
 
-cache:
-  - /Users/appveyor/projects/cypari-macos/libcache
-
 test_script:
   - sh: python setup.py test
   
 after_test:
+  - sh: ls /Users/appveyor/projects/cypari-macos/libcache
   - sh: python setup.py bdist_wheel
 
 artifacts:
   - path: dist/*.whl
+
+cache:
+  - /Users/appveyor/projects/cypari-macos/libcache
 
 # on_success:
 #   You can use this step to upload your artifacts to a public website.
