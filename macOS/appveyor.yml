@@ -8,21 +8,18 @@ branches:
 
 image: macOS
 
-matrix:
-
-  - PYTHON: python3.8
-
-  - PYTHON: python3.7
+environment:
+  matrix:
+    - PYTHON: python3.8
+    - PYTHON: python3.7
   
 install:
-
-  # Show our build system
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: $PYTHON --version
   - sh: pwd
   - sh: ls
 
-  # Install python packages
+  # Install required python packages
   - sh: $PYTHON -m pip install cython
 
   # Build CyPari. 
