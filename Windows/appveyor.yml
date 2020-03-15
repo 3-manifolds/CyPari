@@ -68,7 +68,7 @@ install:
   - "%PYTHON%\\python.exe setup.py build"
 
 cache:
-  - libcache
+  - libcache -> Windows/clear_cache.txt
 
 build:
   none
