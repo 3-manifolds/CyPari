@@ -10,7 +10,7 @@ image: macOS
 
 clone_folder: ${HOME}/projects
 
-stack: python 3.8.1
+stack: python 3.8.2
 
 install:
 
@@ -18,13 +18,12 @@ install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: python3 --version
   - sh: pwd
-  - sh: ls -lR /Users/appveyor
 
   # Install python packages
   - sh: python3 -m pip install cython
 
   # Build CyPari. 
-  - sh: cd /Users/appveyor/projects/CyPari
+  - sh: cd CyPari
   - sh: ls
   - sh: python3 setup.py build
 
