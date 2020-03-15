@@ -14,20 +14,10 @@ init:
 environment:
   matrix:
     - VENV: /Users/appveyor/venv2.7.17
-      PYTHONPREFIX: /Users/appveyor/python27
-      PYTHONPATH: /Users/appveyor/python27/lib/python2.7/site-packages
     - VENV: /Users/appveyor/venv3.8.2
-      PYTHONPREFIX: /Users/appveyor/python38
-      PYTHONPATH:  /Users/appveyor/python38/lib/python3.8/site-packages
     - VENV: /Users/appveyor/venv3.7.5
-      PYTHONPREFIX: /Users/appveyor/python37
-      PYTHONPATH: /Users/appveyor/python37/lib/python3.7/site-packages
     - VENV: /Users/appveyor/venv3.6.10
-      PYTHONPREFIX: /Users/appveyor/python36
-      PYTHONPATH: /Users/appveyor/python36/lib/python3.6/site-packages
     - VENV: /Users/appveyor/venv3.5.9
-      PYTHONPREFIX: /Users/appveyor/python35
-      PYTHONPATH: /Users/appveyor/python35/lib/python3.5/site-packages
 
 install:
 
@@ -35,14 +25,12 @@ install:
   - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
   - sh: pwd
   - sh: ls /Users/appveyor
-  - sh: mkdir $PYTHONPREFIX
-  - sh: export PATH=$PYTHONPREFIX/bin:$PATH
 
   # Activate a virtualenv
   - sh: source $VENV/bin/activate
 
   # Install required python packages
-  - python -m pip install --prefix=$PYTHONPREFIX cython
+  - python -m pip install cython
   - sh: which cython || true
   - sh: python -c "import Cython" || true
 
