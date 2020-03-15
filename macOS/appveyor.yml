@@ -56,15 +56,14 @@ test_script:
   - sh: python setup.py test
   
 after_test:
-  - sh: ls /Users/appveyor/projects/cypari-macos/libcache
   - sh: python setup.py bdist_wheel
-  - sh: python rename_wheels.py
+  - sh: python macOS/rename_wheels.py
 
 artifacts:
   - path: dist/*.whl
 
 cache:
-  - /Users/appveyor/projects/cypari-macos/libcache
+  - libcache
 
 # on_success:
 #   You can use this step to upload your artifacts to a public website.
