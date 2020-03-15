@@ -63,7 +63,6 @@ if sys.version_info.major > 2:
     iterable_types = (list, tuple, types.GeneratorType)
 else:
     iterable_types = (list, tuple, types.XRangeType, types.GeneratorType)
-from builtins import range
 
 cimport cython
 
