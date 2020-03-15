@@ -20,6 +20,9 @@ environment:
     - VENV: /Users/appveyor/venv3.5.9
       PYTHONPREFIX: /Users/appveyor/python35
       PYTHONPATH: /Users/appveyor/python35/lib/python3.5/site-packages
+    - VENV: /Users/appveyor/venv2.7.17
+      PYTHONPREFIX: /Users/appveyor/python27
+      PYTHONPATH: /Users/appveyor/python27/lib/python3.5/site-packages
 
 install:
   # Print some environment info
@@ -35,9 +38,7 @@ install:
   # Install required python packages
   - python -m pip install --prefix=$PYTHONPREFIX cython
   - sh: which cython || true
-  - sh: ls $PYTHONPREFIX
-  - sh: ls $PYTHONPATH
-  - sh: python -c "import Cython ; print(dir(Cython))"
+  - sh: python -c "import Cython"
 
   # Build CyPari.
   - sh: python setup.py build
@@ -56,7 +57,7 @@ artifacts:
   - path: dist/*.whl
 
 cache:
-  - /Users/appveyor/projects/cypari-macos/libcache
+  - '/Users/appveyor/projects/cypari-macos/libcache'
 
 # on_success:
 #   You can use this step to upload your artifacts to a public website.

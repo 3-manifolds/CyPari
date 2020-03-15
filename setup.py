@@ -335,7 +335,10 @@ class CyPariSourceDist(sdist):
         shutil.rmtree('gmp_src')
 
 link_args = []
-compile_args = []
+if sys.platform == 'darwin':
+    compile_args=['-mmacosx-version-min=10.9']
+else:
+    compile_args = []
 if ext_compiler == 'mingw32':
     major, minor = sys.version_info.major, sys.version_info.minor
     if major == 3:
