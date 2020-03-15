@@ -17,12 +17,15 @@ install:
   # Show our build system
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: python3 --version
+  - sh: pwd
+  - sh: ls -lR /Users/appveyor
 
   # Install python packages
   - sh: python3 -m pip install cython
 
   # Build CyPari. 
-  - sh: cd ${HOME}/projects/CyPari
+  - sh: cd /Users/appveyor/projects/CyPari
+  - sh: ls
   - sh: python3 setup.py build
 
 cache:
