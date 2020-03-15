@@ -8,14 +8,14 @@ image: macOS
 
 environment:
   matrix:
-    - VENV: venv3.8.2
-    - VENV: venv3.7.5
+    - VENV: /Users/appveyor/venv3.8.2
+    - VENV: /Users/appveyor/venv3.7.5
   
 install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: pwd
-  - sh: ls ..
-  - sh: bash ../$VENV/bin/activate
+  - sh: ls /Users/appveyor
+  - sh: bash $VENV/bin/activate
   - sh: python --version
 
   # Install required python packages
