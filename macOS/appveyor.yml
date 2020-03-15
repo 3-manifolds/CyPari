@@ -14,8 +14,8 @@ environment:
 install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
   - sh: pwd
-  - sh: ls
-  - sh: bash $VENV/bin/activate
+  - sh: ls ..
+  - sh: bash ../$VENV/bin/activate
   - sh: python --version
 
   # Install required python packages
