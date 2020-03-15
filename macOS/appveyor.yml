@@ -8,6 +8,9 @@ branches:
 
 environment:
   matrix:
+    - VENV: /Users/appveyor/venv2.7.17
+      PYTHONPREFIX: /Users/appveyor/python27
+      PYTHONPATH: /Users/appveyor/python27/lib/python2.7/site-packages
     - VENV: /Users/appveyor/venv3.8.2
       PYTHONPREFIX: /Users/appveyor/python38
       PYTHONPATH:  /Users/appveyor/python38/lib/python3.8/site-packages
@@ -20,9 +23,6 @@ environment:
     - VENV: /Users/appveyor/venv3.5.9
       PYTHONPREFIX: /Users/appveyor/python35
       PYTHONPATH: /Users/appveyor/python35/lib/python3.5/site-packages
-    - VENV: /Users/appveyor/venv2.7.17
-      PYTHONPREFIX: /Users/appveyor/python27
-      PYTHONPATH: /Users/appveyor/python27/lib/python3.5/site-packages
 
 install:
   # Print some environment info
@@ -38,7 +38,7 @@ install:
   # Install required python packages
   - python -m pip install --prefix=$PYTHONPREFIX cython
   - sh: which cython || true
-  - sh: python -c "import Cython"
+  - sh: python -c "import Cython" || true
 
   # Build CyPari.
   - sh: python setup.py build
