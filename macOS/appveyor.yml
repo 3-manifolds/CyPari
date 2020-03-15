@@ -1,5 +1,3 @@
-# We use AppVeyor to build our Windows binaries automatically:
-#
 # https://ci.appveyor.com/project/culler/cypari-mac
 
 branches:
@@ -10,21 +8,22 @@ image: macOS
 
 environment:
   matrix:
-    - PYTHON: python3.8
-    - PYTHON: python3.7
+    - VENV: venv3.8.2
+    - VENV: venv3.7.5
   
 install:
   - sh: echo ${APPVEYOR_BUILD_WORKER_IMAGE}
-  - sh: $PYTHON --version
   - sh: pwd
   - sh: ls
+  - sh: bash $VENV/bin/activate
+  - sh: python --version
 
   # Install required python packages
-  - sh: $PYTHON -m pip install cython
+  - sh: python -m pip install cython
 
   # Build CyPari. 
   - sh: ls
-  - sh: $PYTHON setup.py build
+  - sh: python setup.py build
 
 cache:
   - /Users/appveyor/libcache
@@ -33,10 +32,10 @@ build:
   none
 
 test_script:
-  - sh: $PYTHON setup.py test
+  - sh: python setup.py test
   
 after_test:
-  - sh: $PYTHON setup.py bdist_wheel
+  - sh: python setup.py bdist_wheel
 
 artifacts:
   - path: dist/*.whl
