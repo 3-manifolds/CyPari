@@ -7,9 +7,8 @@ branches:
     - master
 
 init:
-  # Currently the cache fails because 7-Zip is missing
-  # FIX ME when the new image is released.
-  - sh: brew install p7zip
+  # The build cache will fail if 7-Zip is missing.
+  - sh: if [ ! -d /usr/local/Cellar/p7zip ] ; then brew install p7zip ; fi 
 
 environment:
   matrix:
@@ -20,16 +19,15 @@ environment:
     - VENV: /Users/appveyor/venv3.5.9
 
 install:
-
-  # Print some environment info
+  # Print some environment info.
   - sh: echo $APPVEYOR_BUILD_WORKER_IMAGE
   - sh: pwd
   - sh: ls /Users/appveyor
 
-  # Activate a virtualenv
+  # Activate a virtualenv.
   - sh: source $VENV/bin/activate
 
-  # Install required python packages
+  # Install required python packages.
   - python -m pip install cython
   - sh: which cython || true
   - sh: python -c "import Cython" || true
