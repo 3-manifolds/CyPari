@@ -457,6 +457,9 @@ static void cysigs_signal_handler(int sig)
 	      int mapped_sig = cysigs.sig_mapped_to_FPE;
 	    cysigs.sig_mapped_to_FPE = 0;
 	    do_raise_exception(mapped_sig);
+	    if (cysigs.FPE_handler != NULL) {
+	      signal(SIGFPE, cysigs.FPE_handler);
+	    }
 	    reset_CPU();
 	    DEBUG( "Calling longjmp\n" )
 	      longjmp(cysigs.env, mapped_sig);
