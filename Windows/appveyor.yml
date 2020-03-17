@@ -8,6 +8,11 @@ branches:
   only:
     - master
 
+init:
+  # Temporary, until the i686 toolchain is added to the image.
+  - C:\Python38-x64\python.exe -m pip install requests
+  - C:\Python38-x64\python.exe Windows\get_toolchain.py
+
 environment:
   matrix:
 
@@ -27,25 +32,25 @@ environment:
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python38
-      TOOLCHAIN: libcache\mingw32
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
     - PYTHON: C:\Python37-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python37
-      TOOLCHAIN: libcache\mingw32
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
     - PYTHON: C:\Python36-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python36
-      TOOLCHAIN: libcache\mingw32
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
     - PYTHON: C:\Python35-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python35
-      TOOLCHAIN: libcache\mingw32
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
@@ -63,7 +68,6 @@ install:
   - "%PYTHON%\\python.exe -m pip install six wheel future cython requests"
 
   # Patch up the mingw toolchains
-  - "%PYTHON%\\python.exe Windows\\get_toolchain.py"
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;C:\msys64\bin;%PATH%;
 
   # Build CyPari. 
