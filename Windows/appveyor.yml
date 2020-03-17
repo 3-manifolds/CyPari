@@ -64,7 +64,7 @@ install:
 
   # Patch up the mingw toolchains
   - "%PYTHON%\\python.exe Windows\\get_toolchain.py"
-  - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
+  - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;C:\msys64\bin;%PATH%;
 
   # Build CyPari. 
   - dir cypari
