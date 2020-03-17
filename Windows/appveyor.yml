@@ -8,11 +8,6 @@ branches:
   only:
     - master
 
-init:
-  # Temporary, until the i686 toolchain is added to the image.
-  - C:\Python38-x64\python.exe -m pip install requests
-  - C:\Python38-x64\python.exe Windows\get_toolchain.py
-
 environment:
   matrix:
 
@@ -65,10 +60,10 @@ install:
 
   # Install python packages
   - "%PYTHON%\\python.exe -m pip install --upgrade pip setuptools"
-  - "%PYTHON%\\python.exe -m pip install six wheel future cython requests"
+  - "%PYTHON%\\python.exe -m pip install six wheel future cython"
 
   # Patch up the mingw toolchains
-  - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;C:\msys64\bin;%PATH%;
+  - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
 
   # Build CyPari. 
   - dir cypari
