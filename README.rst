@@ -27,30 +27,30 @@ Windows does not allow functions in one shared library to access
 global data in another shared library.
 
 On linux or macOS the module should build and/or install with the
-usual commands:
+usual commands::
 
     python setup.py build
-
     python setup.py install
 
-To run doctests use:
+To run doctests use::
 
     python setup.py test
 
 All tests should pass on all platforms.
 
-To clean up the build area (but not remove Pari) use:
+To clean up the build area (but not remove PARI) use::
 
     python setup.py clean
 
-Note that the future module is required for Python 2.  (Install with
-pip install future).
+Note that the ``future`` module is required for Python 2.
+Install if necessary with::
+
+    pip install future
 
 For building on Windows we expect an msys64 system with the
-toolchains:
+toolchains::
 
     mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1 (for 32-bit builds)
-
     mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0 (for 64-bit builds)
     
 These toolchains support Microsoft's Universal C Runtime, which means
@@ -60,8 +60,9 @@ but the Python extension is built with an appropriate version of
 MSVC.
 
 It is also possible to build the Windows Python extension entirely
-with mingw for Python versions less than 3.5.  To do this, run
-setup.py build -cmingw32.
+with MinGW for Python versions less than 3.5.  To do this, run::
+
+    setup.py build -cmingw32
 
 Currently we support 32 and 64 bit Python 2.7, 3.4, 3.5, 3.6, 3.7 and
 3.8 on linux, macOS and Windows.

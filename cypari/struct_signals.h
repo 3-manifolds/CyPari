@@ -87,6 +87,7 @@ typedef struct
      */
 #if defined(__MINGW32__) || defined(_WIN32)
     volatile sig_atomic_t sig_mapped_to_FPE;
+    volatile void (*FPE_handler)(int);
 #endif
 } cysigs_t;
 
