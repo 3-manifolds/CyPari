@@ -6,9 +6,9 @@ consistent with the Sage cypari2 package that it inspired, but which
 can be distributed in binary form as a pip wheel and also works on
 Windows.  In particular, CyPari uses the automated build scripts
 written by Jeroen DeMeyer for cypari2.  Currently it uses Pari 2.11,
-which is several releases newer than the Pari used in the original
+which is several releases newer than the PARI used in the original
 version of CyPari.  The fact that the build process continues to work
-with each new release of Pari is a strong validation of Jeroen's
+with each new release of PARI is a strong validation of Jeroen's
 flexible build scheme.
 
 CyPari handles critical signals such as SIGSEGV when sent from within
@@ -21,7 +21,7 @@ wheel some changes are needed in the overall design compared to that
 used in Sage.  First it embeds the relevant parts of the cysignals
 module, since cysignals is not distributable as a wheel.  Second, it
 is statically linked with the pari library so that it does not depend
-on or interfere with the user's Pari installation. Finally, it uses a
+on or interfere with the user's PARI installation. Finally, it uses a
 single shared library for the extension module, due to the fact that
 Windows does not allow functions in one shared library to access
 global data in another shared library.
