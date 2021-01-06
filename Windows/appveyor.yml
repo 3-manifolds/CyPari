@@ -18,10 +18,10 @@ environment:
     # A build job will be started for each definition below.
 
     - PYTHON: C:\Python27-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64
+      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
     - PYTHON: C:\Python27
-      TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
     - PYTHON: C:\Python36-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
@@ -65,7 +65,7 @@ install:
   # Patch up the mingw toolchains
   - set PATH=%TOOLCHAIN%\bin;C:\Perl\bin;%PATH%;
 
-  # Build CyPari. 
+  # Build CyPari.
   - dir cypari
   - "%PYTHON%\\python.exe setup.py build"
 
@@ -78,7 +78,7 @@ build:
 test_script:
   # Put your test command here.
   - "%PYTHON%\\python.exe setup.py test"
-  
+
 after_test:
   # This step builds your wheels.
   - "%PYTHON%\\python.exe setup.py bdist_wheel"
