@@ -2,7 +2,7 @@
 #
 # https://ci.appveyor.com/project/nathan_dunfield/cypari-v7ul8
 
-image: Visual Studio 2015
+image: Visual Studio 2019
 
 branches:
   only:
