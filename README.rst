@@ -64,6 +64,6 @@ with MinGW for Python versions less than 3.5.  To do this, run::
 
     setup.py build -cmingw32
 
-Currently we support 32 and 64 bit Python 2.7, 3.4, 3.5, 3.6, 3.7 and
-3.8 on linux, macOS and Windows.
+Currently we support 32 and 64 bit Python 2.7, 3.6, 3.7, 3.8, 3.9 on linux,
+macOS and Windows.
 

@@ -1,7 +1,7 @@
 include build_pari.sh
 include README.rst
-include cypari_src/*.h
-include cypari_src/*.c
+include cypari/*.h
+include cypari/*.c
 include macOS/mac_paricfg.patch
 recursive-include pari_src *
 prune pari_src/Olinux-x86_64 

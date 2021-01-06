@@ -6,8 +6,8 @@
 
 set -e
 
-PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/unix/
-PARIVERSION=pari-2.11.3
+PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
+PARIVERSION=pari-2.11.4
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.2.0
 
@@ -35,7 +35,6 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     if [ ! -e ${GMPVERSION}.tar.bz2 ] ; then
         echo "Downloading GMP source archive ..." ;
         curl -O ${GMPURL}${GMPVERSION}.tar.bz2 ;
-        #wget ${GMPURL}${GMPVERSION}.tar.bz2 ;
     fi
     if [ ! -d "build/gmp_src" ] ; then
 	echo "Extracting gmp source code ..."
@@ -95,7 +94,6 @@ if [ ! -d "build/pari_src" ] ; then
     if [ ! -e ${PARIVERSION}.tar.gz ] ; then
         echo "Downloading Pari source archive ..." ;
         curl -O ${PARIURL}${PARIVERSION}.tar.gz ;
-        #wget ${PARIURL}${PARIVERSION}.tar.gz ;
     fi
     echo "Extracting Pari source code ..."
     if [ ! -d "build" ] ; then

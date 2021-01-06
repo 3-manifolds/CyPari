@@ -175,8 +175,8 @@ def python_major(python):
     proc = subprocess.Popen([python, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, errors = proc.communicate()
     # Python 2 writes to stderr, but Python 3 writes to stdout
-    return (output + errors).split()[1].split('.')[0]
-    
+    return (output + errors).decode().split()[1].split('.')[0]
+
 class CyPariRelease(Command):
     user_options = [('install', 'i', 'install the release into each Python')]
     def initialize_options(self):

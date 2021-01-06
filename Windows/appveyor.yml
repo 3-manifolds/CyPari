@@ -23,29 +23,29 @@ environment:
     - PYTHON: C:\Python27
       TOOLCHAIN: C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32
 
-    - PYTHON: C:\Python38-x64
+    - PYTHON: C:\Python36-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-#    - PYTHON: C:\Python38
-#      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+    - PYTHON: C:\Python36
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
     - PYTHON: C:\Python37-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-#    - PYTHON: C:\Python37
-#      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+    - PYTHON: C:\Python37
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
-    - PYTHON: C:\Python36-x64
+    - PYTHON: C:\Python38-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-#    - PYTHON: C:\Python36
-#      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+    - PYTHON: C:\Python38
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
-    - PYTHON: C:\Python35-x64
+    - PYTHON: C:\Python39-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-#    - PYTHON: C:\Python35
-#      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+    - PYTHON: C:\Python39
+      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
 install:
   # Note that you must use the environment variable %PYTHON% to refer to
