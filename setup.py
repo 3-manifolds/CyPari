@@ -188,8 +188,7 @@ class CyPariRelease(Command):
             shutil.rmtree('build')
         if os.path.exists('dist'):
             shutil.rmtree('dist')
-        for filename in glob('cypari/_pari*.c'):
-            os.remove(filename)
+        os.remove('cypari/_pari.c')
 
         pythons = os.environ.get('RELEASE_PYTHONS', sys.executable).split(',')
         print('releasing for: %s'%(', '.join(pythons)))
@@ -197,11 +196,6 @@ class CyPariRelease(Command):
             check_call([python, 'setup.py', 'clean'])
             check_call([python, 'setup.py', 'build'])
             check_call([python, 'setup.py', 'test'])
-            # Save a copy of the _pari.c file for each major version of Python.
-            _pari_c_name = '_pari_py%s.c'%python_major(python)
-            _pari_c_path = os.path.join('cypari', _pari_c_name)
-            if not os.path.exists(_pari_c_path):
-                os.rename(os.path.join('cypari', '_pari.c'), _pari_c_path)
             if sys.platform.startswith('linux'):
                 plat = get_platform().replace('linux', 'manylinux1')
                 plat = plat.replace('-', '_')
@@ -243,10 +237,6 @@ class CyPariBuildExt(build_ext):
                 os.mkdir('build')
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
-            # Find the correct _pari.c for our version of Python.
-            _pari_c_name = '_pari_py%d.c'%sys.version_info.major
-            os.rename(os.path.join('cypari', _pari_c_name),
-                      os.path.join('cypari', '_pari.c'))
             building_sdist = True
         
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
@@ -398,7 +388,6 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari'},
-    install_requires = ['six', 'future'],
     cmdclass = {
         'build_ext': CyPariBuildExt,
         'clean': CyPariClean,
