@@ -50,9 +50,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     fi
     if [ $(uname) = "Darwin" ] ; then
     #macOS -- build 64bits only
-	export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
+	export CFLAGS="-mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
 	export ABI=64
-	./configure --with-pic --build=x86_64-none-darwin --prefix=${GMPPREFIX}
+	./configure --with-pic --build=x86_64-none-darwin --enable-fat --prefix=${GMPPREFIX}
 	make install
         make distclean
 	cd ../..
@@ -110,7 +110,7 @@ fi
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
 #macOS -- build 64bits only
-    export CFLAGS='-mmacosx-version-min=10.5 -arch x86_64'
+    export CFLAGS='-mmacosx-version-min=10.9 -arch x86_64'
     ./Configure --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX} --host=x86_64-darwin
     cd Odarwin-x86_64
     make install
