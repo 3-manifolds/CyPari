@@ -398,7 +398,7 @@ setup(
     ext_modules = [_pari],
     zip_safe = False,
     long_description = long_description,
-    url = 'https://bitbucket.org/t3m/cypari',
+    url = 'https://github.com/3-manifolds/cypari',
     author = 'Marc Culler and Nathan M. Dunfield',
     author_email = 'culler@uic.edu, nathan@dunfield.info',
     license='GPLv2+',
