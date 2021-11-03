@@ -17,28 +17,35 @@ environment:
     # http://www.appveyor.com/docs/build-environment/#mingw-msys-cygwin
     # A build job will be started for each definition below.
 
-    - PYTHON: C:\Python36-x64
+    # - PYTHON: C:\Python36-x64
+    #   TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    # - PYTHON: C:\Python36
+    #   TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+
+    # - PYTHON: C:\Python37-x64
+    #   TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    # - PYTHON: C:\Python37
+    #   TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+
+    # - PYTHON: C:\Python38-x64
+    #   TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    # - PYTHON: C:\Python38
+    #   TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+
+    # - PYTHON: C:\Python39-x64
+    #   TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
+
+    # - PYTHON: C:\Python39
+    #   TOOLCHAIN:
+    #   C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
+
+    - PYTHON: C:\Python310-x64
       TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
 
-    - PYTHON: C:\Python36
-      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
-
-    - PYTHON: C:\Python37-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
-
-    - PYTHON: C:\Python37
-      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
-
-    - PYTHON: C:\Python38-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
-
-    - PYTHON: C:\Python38
-      TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
-
-    - PYTHON: C:\Python39-x64
-      TOOLCHAIN: C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64
-
-    - PYTHON: C:\Python39
+    - PYTHON: C:\Python310
       TOOLCHAIN: C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32
 
 install:
