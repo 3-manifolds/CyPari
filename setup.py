@@ -25,9 +25,6 @@ from distutils.command.sdist import sdist
 from distutils.util import get_platform
 from subprocess import Popen, PIPE
 
-# Disable M1 builds until we can test
-os.environ['_PYTHON_HOST_PLATFORM'] = 'macosx-10.9-x86_64'
-os.environ['ARCHFLAGS'] = '-arch x86_64'
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
@@ -90,6 +87,9 @@ else:
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
     GMPDIR = 'gmp'
+    # Disable M1 builds until we can test
+    os.environ['_PYTHON_HOST_PLATFORM'] = 'macosx-10.9-x86_64'
+    os.environ['ARCHFLAGS'] = '-arch x86_64'
 elif sys.platform == 'win32':
     if cpu_width == '64bit':
         if sys.version_info >= (3,5):
