@@ -66,9 +66,7 @@ for cls in (_pari.Gen, _pari.Pari):
 
 # We skip tests for the _close method, which is unused, marked dangerous,
 # and causes segfaults.
-bad_tests = (
-    '__test__.Pari._close (line 0)',
-)
+bad_tests = ['Pari._close (line 0)', 'Pari._close']
 
 def runtests(verbose=False):
     parser = DocTestParser()
@@ -81,7 +79,7 @@ def runtests(verbose=False):
             optionflags=doctest.ELLIPSIS|doctest.IGNORE_EXCEPTION_DETAIL)
         count = 0
         for test in finder.find(module, extraglobs=extra_globals):
-            if test.name.split('.', 2)[-1] in bad_tests:
+            if any(test.name.endswith(bad_test) for bad_test in bad_tests):
                 print('skipping %s'%test.name.split()[0])
                 continue
             count += 1
