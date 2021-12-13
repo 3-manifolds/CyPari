@@ -67,8 +67,10 @@ static void print_backtrace(void);
 
 static inline void reset_CPU(void)
 {
+#if defined(__x86_64__)
     /* Clear FPU tag word */
     asm("emms");
+#endif
 }
 
 

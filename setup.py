@@ -81,16 +81,13 @@ else:
     BASHPATH = os.environ['PATH']
     BASH = '/bin/bash'
 
-# We build the 32 bit and 64 bit versions of the Pari library in separate
-# directories, but in macOS we use lipo to combine them into a fat library.
-# On Windows we also build separately for the Universal CRT on Python >= 3.5
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
     GMPDIR = 'gmp'
-    # Disable M1 builds until we can test
-    os.environ['_PYTHON_HOST_PLATFORM'] = 'macosx-10.9-x86_64'
-    os.environ['ARCHFLAGS'] = '-arch x86_64'
+    os.environ['_PYTHON_HOST_PLATFORM'] = 'macosx-10.9-universal2'
+    os.environ['ARCHFLAGS'] = '-arch arm64 -arch x86_64'
 elif sys.platform == 'win32':
+    # On Windows we build separately for the Universal CRT on Python >= 3.5
     if cpu_width == '64bit':
         if sys.version_info >= (3,5):
             PARIDIR = 'pari64u'
