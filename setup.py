@@ -72,7 +72,7 @@ if sys.platform == 'win32':
         else:
             TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
             TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
-        
+
     WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
     BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
@@ -84,8 +84,11 @@ else:
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
     GMPDIR = 'gmp'
-    os.environ['_PYTHON_HOST_PLATFORM'] = 'macosx-10.9-universal2'
-    os.environ['ARCHFLAGS'] = '-arch arm64 -arch x86_64'
+    # We do not support building universal binaries directly.
+    os.environ['ARCHFLAGS'] = '-arch ' + platform.machine()
+    python_host_platforms = {'x86_64':'macosx-10.9-x86_64',
+                             'arm64': 'macosx-11-arm64'}
+    os.environ['_PYTHON_HOST_PLATFORM'] = python_host_platforms[platform.machine()]
 elif sys.platform == 'win32':
     # On Windows we build separately for the Universal CRT on Python >= 3.5
     if cpu_width == '64bit':
@@ -109,7 +112,7 @@ else:
     else:
         GMPDIR = 'gmp32'
         PARIDIR = 'pari32'
-    
+
 pari_include_dir = os.path.join('libcache', PARIDIR, 'include')
 pari_library_dir = os.path.join('libcache', PARIDIR, 'lib')
 pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
@@ -119,7 +122,7 @@ gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -150,7 +153,7 @@ class CyPariClean(Command):
 class CyPariTest(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -228,10 +231,10 @@ decls = b'''
 '''
 
 class CyPariBuildExt(build_ext):
-        
+
     def run(self):
         building_sdist = False
-        
+
         if os.path.exists('pari_src'):
             # We are building an sdist.  Move the Pari source code into build.
             if not os.path.exists('build'):
@@ -239,7 +242,7 @@ class CyPariBuildExt(build_ext):
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
             building_sdist = True
-        
+
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
@@ -264,7 +267,7 @@ class CyPariBuildExt(build_ext):
             not os.path.exists(os.path.join('cypari', 'auto_instance.pxi'))):
             import autogen
             autogen.rebuild()
-            
+
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
         # which version of Python we are using.  We need to handle 64
@@ -294,7 +297,7 @@ class CyPariBuildExt(build_ext):
                 output.write(code)
 
         # If we have Cython, check that .c files are up to date
-        try: 
+        try:
             from Cython.Build import cythonize
             cythonize([os.path.join('cypari', '_pari.pyx')],
                       compiler_directives = {'language_level':2})
@@ -305,7 +308,7 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
-    
+
     def _tarball_info(self, lib):
         lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
@@ -313,7 +316,7 @@ class CyPariSourceDist(sdist):
             if lib_match:
                 break
         return lib_match.group(), lib_match.groups()[0]
-    
+
     def run(self):
         tarball, dir = self._tarball_info('pari')
         check_call(['tar', 'xfz', tarball])
@@ -366,7 +369,7 @@ elif ext_compiler == 'msvc':
                 os.path.join('Windows', 'crt', 'get_output_format32.o')]
 
 link_args += [pari_static_library, gmp_static_library]
-    
+
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
@@ -414,4 +417,3 @@ setup(
         ],
     keywords = 'Pari, SageMath, SnapPy',
 )
-

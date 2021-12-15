@@ -50,25 +50,17 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     fi
     if [ $(uname) = "Darwin" ] ; then
 	export ABI=64
-        if /usr/bin/machine | grep arm > /dev/null ; then
-            GMP_HOST=arm64-none-darwin
+	if /usr/bin/machine | grep arm > /dev/null ; then
+	    GMP_HOST=arm64-none-darwin
+	    export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
 	else
-            GMP_HOST=x86_64-none-darwin
-        fi
-	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
-	./configure --with-pic --build=arm64-none-darwin --host=${GMP_HOST} --prefix=${GMPPREFIX}/arm
+	    GMP_HOST=x86_64-none-darwin
+	    export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
+	fi
+	./configure --with-pic --prefix=${GMPPREFIX}
 	make install
 	make distclean
-	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
-	./configure --with-pic --build=arm64-none-darwin --host=x86_64-none-darwin --enable-fat --prefix=${GMPPREFIX}/intel
-	make install
-        make distclean
-	cd ../../libcache
-        mkdir -p gmp/lib
-        mv gmp/arm/{include,share} gmp
-	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.10.dylib
-	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.10.a
-	cd ..
+	cd ../..
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
 	# Windows
@@ -126,33 +118,18 @@ if [ $(uname) = "Darwin" ] ; then
     # could be built on an Arm system with Rosetta installed. This would be done
     # by running the next two builds consecutively.
     if /usr/bin/machine | grep arm > /dev/null ; then
-        PARI_DIR=arm
-        PARI_HOST=arm64-darwin
-        PARI_BUILD_DIR=Odarwin-arm64
-        export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
+	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
+	PARIHOST=arm64
     else
-        PARI_DIR=intel
-        PARI_HOST=x86_64-darwin
-        PARI_BUILD_DIR=Odarwin-x86_64
-        export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9"
+	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9"
+	PARIHOST=x86_64
     fi
-    ./Configure --prefix=${PARIPREFIX}/${PARI_DIR} --with-gmp=${GMPPREFIX} --host=${PARI_HOST}
-    cd ${PARI_BUILD_DIR}
+    ./Configure --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX} --host=${PARIHOST}-darwin
+    cd Odarwin-${PARIHOST}
     make install
     make install-lib-sta
-    make install-doc
-    make clean
-    cd ../../../libcache
-    # Glue the two libraries together with lipo.
-    mkdir -p pari/lib
-    rm -rf pari/{include,share,bin}
-    mv pari/${PARI_DIR}/{include,share,bin} pari
-    # Weird pari glitch - gphelp can't find the doc directory
-    ln -s ../share/pari/doc pari/bin
-    # This assumes that the libraries for the other architecture has been put into place by hand.
-    lipo -create pari/arm/lib/libpari.a pari/intel/lib/libpari.a -output pari/lib/libpari.a
-    lipo -create pari/arm/lib/libpari.dylib pari/intel/lib/libpari.dylib -output pari/lib/libpari.dylib
-    cd ../build/pari_src
+    cd ${PARIPREFIX}
+    cd ../../build/pari_src
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
     # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
@@ -202,9 +179,5 @@ fi
 if [ -d src64 ] ; then
     cp src64/language/anal.h ${PARIPREFIX}/include/pari/
 else
-    cp src/language/anal.h $PARIPREFIX/include/pari	
+    cp src/language/anal.h $PARIPREFIX/include/pari
 fi
-
-
-    
-
