@@ -50,19 +50,6 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     fi
     if [ $(uname) = "Darwin" ] ; then
 	export ABI=64
-<<<<<<< Updated upstream
-	if /usr/bin/machine | grep arm > /dev/null ; then
-	    GMP_HOST=arm64-none-darwin
-	    export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
-	else
-	    GMP_HOST=x86_64-none-darwin
-	    export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
-	fi
-	./configure --with-pic --prefix=${GMPPREFIX}
-	make install
-	make distclean
-	cd ../..
-=======
         if /usr/bin/machine | grep arm > /dev/null ; then
 	    BUILD_SYSTEM=arm64-none-darwin
 	else
@@ -82,7 +69,6 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
 	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
 	cd ..
->>>>>>> Stashed changes
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
 	# Windows
