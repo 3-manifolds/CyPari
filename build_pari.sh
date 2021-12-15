@@ -55,9 +55,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	    export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
 	else
 	    GMP_HOST=x86_64-none-darwin
-	    export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
+	    export CFLAGS="-arch x86_64 -mmacosx-version-min=10.5 -mno-avx -mno-avx2 -mno-bmi2"
 	fi
-	./configure --with-pic --prefix=${GMPPREFIX}
+	./configure --with-pic --build=${GMP_HOST} --prefix=${GMPPREFIX}
 	make install
 	make distclean
 	cd ../..
@@ -121,7 +121,7 @@ if [ $(uname) = "Darwin" ] ; then
 	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
 	PARIHOST=arm64
     else
-	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9"
+	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.5 -mno-avx -mno-avx2 -mno-bmi2"
 	PARIHOST=x86_64
     fi
     ./Configure --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX} --host=${PARIHOST}-darwin
