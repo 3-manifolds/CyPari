@@ -50,6 +50,7 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     fi
     if [ $(uname) = "Darwin" ] ; then
 	export ABI=64
+<<<<<<< Updated upstream
 	if /usr/bin/machine | grep arm > /dev/null ; then
 	    GMP_HOST=arm64-none-darwin
 	    export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
@@ -61,6 +62,27 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	make install
 	make distclean
 	cd ../..
+=======
+        if /usr/bin/machine | grep arm > /dev/null ; then
+	    BUILD_SYSTEM=arm64-none-darwin
+	else
+            BUILD_SYSTEM=x86_64-none-darwin
+        fi
+	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
+	./configure --with-pic --build=${BUILD_SYSTEM} --host=arm64-none-darwin --prefix=${GMPPREFIX}/arm
+	make install
+	make distclean
+	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
+	./configure --with-pic --build=${BUILD_SYSTEM} --host=x86_64-none-darwin --enable-fat --prefix=${GMPPREFIX}/intel
+	make install
+        make distclean
+	cd ../../libcache
+        mkdir -p gmp/lib
+        mv gmp/arm/{include,share} gmp
+	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
+	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
+	cd ..
+>>>>>>> Stashed changes
     else
 	if [ $(uname | cut -b -5) = "MINGW" ] ; then
 	# Windows
@@ -114,22 +136,30 @@ fi
 
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
-    # Currently we can only build pari on the native CPU.  Possibly a fat library
-    # could be built on an Arm system with Rosetta installed. This would be done
-    # by running the next two builds consecutively.
-    if /usr/bin/machine | grep arm > /dev/null ; then
-	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
-	PARIHOST=arm64
-    else
-	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9"
-	PARIHOST=x86_64
-    fi
-    ./Configure --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX} --host=${PARIHOST}-darwin
-    cd Odarwin-${PARIHOST}
+    # Pari's Configure script does not support cross compiling unless the build
+    # system has an emulator for the target CPU.  But we can compile for multiple
+    # architectures if we have the build directories that Pari's Configure script
+    # constructs.  So we use canned copies of those build directories.
+    tar xvfz ../../Odarwin.tgz
+    cd Odarwin-arm64
     make install
     make install-lib-sta
-    cd ${PARIPREFIX}
-    cd ../../build/pari_src
+    make install-doc
+    make clean
+    cd ../Odarwin-x86_64
+    make install
+    make install-lib-sta
+    make clean
+    cd ../../../libcache
+    # Glue the two libraries together with lipo.
+    mkdir -p pari/lib
+    rm -rf pari/{include,share,bin}
+    cp -R pari/arm/{include,share,bin} pari
+    # Weird Pari glitch - gphelp can't find the doc directory
+    ln -s ../share/pari/doc pari/bin
+    lipo -create pari/arm/lib/libpari.a pari/intel/lib/libpari.a -output pari/lib/libpari.a
+    lipo -create pari/arm/lib/libpari.dylib pari/intel/lib/libpari.dylib -output pari/lib/libpari.dylib
+    cd ../build/pari_src
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
     # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.

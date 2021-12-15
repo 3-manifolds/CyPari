@@ -274,6 +274,7 @@ static inline void sig_retry(void)
 static inline void sig_error(void)
 {
     void (*old_handler)(int);
+    (void) old_handler;
     DEBUG( "sig_error called with count %d\n", cysigs.sig_on_count)
     if (unlikely(cysigs.sig_on_count <= 0))
     {

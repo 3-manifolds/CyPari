@@ -84,11 +84,6 @@ else:
 if sys.platform == 'darwin':
     PARIDIR = 'pari'
     GMPDIR = 'gmp'
-    # We do not support building universal binaries directly.
-    os.environ['ARCHFLAGS'] = '-arch ' + platform.machine()
-    python_host_platforms = {'x86_64':'macosx-10.9-x86_64',
-                             'arm64': 'macosx-11-arm64'}
-    os.environ['_PYTHON_HOST_PLATFORM'] = python_host_platforms[platform.machine()]
 elif sys.platform == 'win32':
     # On Windows we build separately for the Universal CRT on Python >= 3.5
     if cpu_width == '64bit':
