@@ -122,10 +122,13 @@ fi
 
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
+    # Run the configure script to build gphelp, needed by autogen.
+    ./Configure
     # Pari's Configure script does not support cross compiling unless the build
     # system has an emulator for the target CPU.  But we can compile for multiple
     # architectures if we have the build directories that Pari's Configure script
     # constructs.  So we use canned copies of those build directories.
+    rm -rf Odarwin*
     tar xvfz ../../Odarwin.tgz
     cd Odarwin-arm64
     make install
