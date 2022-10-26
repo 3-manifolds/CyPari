@@ -52,7 +52,7 @@ toolchains::
 
     mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1 (for 32-bit builds)
     mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0 (for 64-bit builds)
-    
+
 These toolchains support Microsoft's Universal C Runtime, which means
 that CyPari no longer requires installation of any special C runtime
 dll files.  The build process uses the mingw toolchains to build libpari.a
@@ -64,6 +64,5 @@ with MinGW for Python versions less than 3.5.  To do this, run::
 
     setup.py build -cmingw32
 
-Currently we support 32 and 64 bit Python 2.7, 3.6, 3.7, 3.8, 3.9 on linux,
+Currently we support 32 and 64 bit Python 2.7, 3.6-3.10 on linux,
 macOS and Windows.
-
