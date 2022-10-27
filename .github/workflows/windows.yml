@@ -18,6 +18,7 @@ jobs:
         with:
           update: false
           msystem: mingw64
+          pacboy: gcc:p
 
       - name: Install cibuildwheel
         run: |
