@@ -14,10 +14,10 @@ jobs:
         with:
           python-version: '3.8'
 
-      -uses: msys2/setup-msys2@v2
-       with:
-         update: false
-         msystem: mingw64
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: false
+          msystem: mingw64
 
       - name: Install cibuildwheel
         run: |
