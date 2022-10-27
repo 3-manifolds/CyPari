@@ -57,14 +57,14 @@ from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
 from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
-from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK)
+from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK, py_long)
 
 cdef extern from *:
-
     ctypedef struct PyLongObject:
         digit* ob_digit
 
-    Py_ssize_t* Py_SIZE_PTR "&Py_SIZE"(object)
+cdef extern from "Py_SET_SIZE.h":
+    void Py_SET_SIZE(py_long o, Py_ssize_t size)
 
 ####################################
 # Integers
@@ -114,8 +114,8 @@ cdef PyLong_FromINT(GEN g):
     # Actual correct computed size
     cdef Py_ssize_t sizedigits_final = 0
 
-    x = _PyLong_New(sizedigits)
-    cdef digit* D = (<PyLongObject*>x).ob_digit
+    cdef py_long x = _PyLong_New(sizedigits)
+    cdef digit* D = x.ob_digit
 
     cdef digit d
     cdef ulong w
@@ -142,13 +142,10 @@ cdef PyLong_FromINT(GEN g):
         if d:
             sizedigits_final = i+1
 
-    # Set correct size (use a pointer to hack around Cython's
-    # non-support for lvalues).
-    cdef Py_ssize_t* sizeptr = Py_SIZE_PTR(x)
     if signe(g) > 0:
-        sizeptr[0] = sizedigits_final
+        Py_SET_SIZE(x, sizedigits_final)
     else:
-        sizeptr[0] = -sizedigits_final
+        Py_SET_SIZE(x, -sizedigits_final)
 
     return x
 
@@ -273,9 +270,8 @@ cdef GEN gtoi(GEN g0) except NULL:
     return g
 
 
-cdef GEN PyLong_AsGEN(x):
-    cdef PyLongObject* L = <PyLongObject*>(x)
-    cdef const digit* D = L.ob_digit
+cdef GEN PyLong_AsGEN(py_long x):
+    cdef const digit* D = x.ob_digit
 
     # Size of the input
     cdef Py_ssize_t sizedigits
