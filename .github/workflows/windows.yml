@@ -1,22 +1,23 @@
-name: Linux Wheels
+name: Windows Wheels
 
 on: [push, pull_request]
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-
+    name: Build wheels on Windows
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v3
         name: Install Python
         with:
           python-version: '3.8'
+
+      -uses: msys2/setup-msys2@v2
+       with:
+         update: false
+         msystem: mingw64
 
       - name: Install cibuildwheel
         run: |
@@ -27,12 +28,10 @@ jobs:
           python -m cibuildwheel --output-dir wheelhouse
         env:
           # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
-          CIBW_SKIP: cp27-* cp35-* *-manylinux_i686 *musllinux* pp*
+          CIBW_BUILD: cp311-win_amd64
           CIBW_BEFORE_BUILD: |            
             pip install cython
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: auditwheel repair --strip -w {dest_dir} {wheel}
-          CIBW_TEST_COMMAND: python -m cypari.test
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
