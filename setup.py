@@ -60,8 +60,8 @@ if sys.platform == 'win32':
     BASHPATH = BASHPATH.decode('utf8')
     if sys.version_info >= (3,5):
         if cpu_width == '64bit':
-            TOOLCHAIN_W = r'C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64'
-            TOOLCHAIN_U = '/c/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64'
+            TOOLCHAIN_W = r'C:\ucrt64\'
+            TOOLCHAIN_U = '/c/ucrt64/'
         else:
             TOOLCHAIN_W = r'C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32'
             TOOLCHAIN_U = '/c/mingw-w64/i686-8.1.0-posix-dwarf-rt_v6-rev0/mingw32'
@@ -73,10 +73,10 @@ if sys.platform == 'win32':
             TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
             TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
 
-    WINPATH=r'%s\bin;C:\msys64\usr\local\bin;C:\msys64\usr\bin;'%TOOLCHAIN_W
+    WINPATH=r'%s\bin;C:\usr\local\bin;C:\usr\bin;'%TOOLCHAIN_W
     BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
-    BASH = r'C:\msys64\usr\bin\bash'
+    BASH = r'C:\usr\bin\bash'
 else:
     BASHPATH = os.environ['PATH']
     BASH = '/bin/bash'
