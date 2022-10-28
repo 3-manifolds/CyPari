@@ -18,7 +18,7 @@ jobs:
         with:
           update: true
           msystem: UCRT64
-          pacboy: gcc:p m4:p
+          pacboy: gcc:p m4
           path-type: inherit
 
       - name: Test build env
