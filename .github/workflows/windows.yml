@@ -18,10 +18,12 @@ jobs:
         with:
           update: true
           msystem: UCRT64
-          install: base-devel
+          pacboy: gcc:p
 
       - name: Test build env
         run: |
+          echo $PATH
+          which gcc
           gcc --version
           
 
