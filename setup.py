@@ -60,8 +60,8 @@ if sys.platform == 'win32':
     BASHPATH = BASHPATH.decode('utf8')
     if sys.version_info >= (3,5):
         if cpu_width == '64bit':
-            TOOLCHAIN_W = r'C:\ucrt64\'
-            TOOLCHAIN_U = '/c/ucrt64/'
+            TOOLCHAIN_W = r'C:\ucrt64'
+            TOOLCHAIN_U = '/c/ucrt64'
         else:
             TOOLCHAIN_W = r'C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32'
             TOOLCHAIN_U = '/c/mingw-w64/i686-8.1.0-posix-dwarf-rt_v6-rev0/mingw32'
