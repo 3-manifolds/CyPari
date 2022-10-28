@@ -34,7 +34,6 @@ jobs:
           python -m pip install cibuildwheel
 
       - name: Build wheels
-        shell: msys2 {0}
         run: |
           python -m cibuildwheel --output-dir wheelhouse
         env:
