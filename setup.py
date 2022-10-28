@@ -74,7 +74,7 @@ if sys.platform == 'win32':
             TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
 
     WINPATH=r'%s\bin;C:\usr\local\bin;C:\usr\bin;'%TOOLCHAIN_W
-    BASHPATH='%s/bin:/c/msys64/usr/bin:'%TOOLCHAIN_U + BASHPATH
+    BASHPATH='%s/bin:/c/usr/bin:'%TOOLCHAIN_U + BASHPATH
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
     BASH = r'C:\usr\bin\bash'
 else:
