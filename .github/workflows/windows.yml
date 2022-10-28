@@ -19,6 +19,7 @@ jobs:
           update: true
           msystem: UCRT64
           pacboy: gcc:p
+          path-type: inherit
 
       - name: Test build env
         shell: msys2 {0}
