@@ -21,6 +21,7 @@ jobs:
           pacboy: gcc:p
 
       - name: Test build env
+        shell: msys2 {0}
         run: |
           echo $PATH
           which gcc
