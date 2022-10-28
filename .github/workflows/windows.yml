@@ -17,7 +17,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: false
-          msystem: mingw64
+          msystem: UCRT64
           pacboy: gcc:p
 
       - name: Test build env
