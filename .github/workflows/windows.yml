@@ -28,6 +28,9 @@ jobs:
           which gcc
           which bash
           gcc --version
+          ls /c/
+          ls /c/ucrt64
+          ls /c/mingw-w64
         
       - name: Install cibuildwheel
         run: |
