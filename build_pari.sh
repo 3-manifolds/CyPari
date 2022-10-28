@@ -30,6 +30,9 @@ else
 fi
 
 echo Building gmp ...
+echo "PATH=$PATH"
+echo "$(gcc --version)"
+
 
 if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
     if [ ! -e ${GMPVERSION}.tar.bz2 ] ; then
