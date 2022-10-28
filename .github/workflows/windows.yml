@@ -26,22 +26,23 @@ jobs:
         run: |
           echo $PATH
           which gcc
+          which bash
           gcc --version
         
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel
+      # - name: Install cibuildwheel
+      #   run: |
+      #     python -m pip install cibuildwheel
 
-      - name: Build wheels
-        shell: msys2 {0}
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-        env:
-          # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
-          CIBW_BUILD: cp311-win_amd64
-          CIBW_BEFORE_BUILD: |            
-            pip install cython
+      # - name: Build wheels
+      #   shell: msys2 {0}
+      #   run: |
+      #     python -m cibuildwheel --output-dir wheelhouse
+      #   env:
+      #     # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
+      #     CIBW_BUILD: cp311-win_amd64
+      #     CIBW_BEFORE_BUILD: |            
+      #       pip install cython
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     path: ./wheelhouse/*.whl
