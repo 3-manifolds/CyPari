@@ -19,25 +19,27 @@ jobs:
           update: false
           msystem: UCRT64
           pacboy: gcc:p
+        run: |
+          gcc --version
 
       - name: Test build env
         run: |
           gcc --version
           
 
-      - name: Install cibuildwheel
-        run: |
-          python -m pip install cibuildwheel
+      # - name: Install cibuildwheel
+      #   run: |
+      #     python -m pip install cibuildwheel
 
-      - name: Build wheels
-        run: |
-          python -m cibuildwheel --output-dir wheelhouse
-        env:
-          # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
-          CIBW_BUILD: cp311-win_amd64
-          CIBW_BEFORE_BUILD: |            
-            pip install cython
+      # - name: Build wheels
+      #   run: |
+      #     python -m cibuildwheel --output-dir wheelhouse
+      #   env:
+      #     # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
+      #     CIBW_BUILD: cp311-win_amd64
+      #     CIBW_BEFORE_BUILD: |            
+      #       pip install cython
 
-      - uses: actions/upload-artifact@v3
-        with:
-          path: ./wheelhouse/*.whl
+      # - uses: actions/upload-artifact@v3
+      #   with:
+      #     path: ./wheelhouse/*.whl
