@@ -16,11 +16,9 @@ jobs:
 
       - uses: msys2/setup-msys2@v2
         with:
-          update: false
+          update: true
           msystem: UCRT64
           pacboy: gcc:p
-        run: |
-          gcc --version
 
       - name: Test build env
         run: |
