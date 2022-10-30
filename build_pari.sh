@@ -188,7 +188,7 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     make install-include
     make install-doc
     make install-cfg
-    # make install-bin-sta
+    make install-bin-sta
     cd ..
 else
 # linux
