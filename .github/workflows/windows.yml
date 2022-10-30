@@ -21,10 +21,10 @@ jobs:
           pacboy: gcc:p m4 bison
           path-type: inherit
 
-      - name: build PARI
-        shell: msys2 {0}
-        run: |
-          bash build_pari.sh
+      #- name: build PARI
+      #  shell: msys2 {0}
+      #  run: |
+      #    bash build_pari.sh
 
       - name: Install cibuildwheel
         shell: msys2 {0}

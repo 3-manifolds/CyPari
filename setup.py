@@ -225,9 +225,7 @@ class CyPariBuildExt(build_ext):
             if sys.platform == 'win32':
                 # This is meant to work even in a Windows Command Prompt
                 if cpu_width == '64bit':
-                    print("HERE", BASHPATH)
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
-                    print("DONE")
                 else:
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             elif sys.platform == 'darwin':
