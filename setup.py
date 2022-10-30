@@ -55,28 +55,10 @@ if sys.platform == 'win32':
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
     # and other needed utilities such as find.
-    bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
-    BASHPATH, _ = bash_proc.communicate()
-    BASHPATH = BASHPATH.decode('utf8')
-    if sys.version_info >= (3,5):
-        if cpu_width == '64bit':
-            TOOLCHAIN_W = r'C:\ucrt64'
-            TOOLCHAIN_U = '/c/ucrt64'
-        else:
-            TOOLCHAIN_W = r'C:\mingw-w64\i686-8.1.0-posix-dwarf-rt_v6-rev0\mingw32'
-            TOOLCHAIN_U = '/c/mingw-w64/i686-8.1.0-posix-dwarf-rt_v6-rev0/mingw32'
-    else:
-        if cpu_width == '64bit':
-            TOOLCHAIN_W = r'C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\mingw64'
-            TOOLCHAIN_U = '/c/mingw-w64/x86_64-6.3.0-posix-seh-rt_v5-rev1/mingw64'
-        else:
-            TOOLCHAIN_W = r'C:\mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1\mingw32'
-            TOOLCHAIN_U = '/c/mingw-w64/i686-6.3.0-posix-dwarf-rt_v5-rev1/mingw32'
-
-    WINPATH=r'%s\bin;C:\usr\local\bin;C:\usr\bin;'%TOOLCHAIN_W
-    BASHPATH='%s/bin:/c/usr/bin:'%TOOLCHAIN_U + BASHPATH
+    WINPATH=r'D:\a\_temp\msys64\ucrt64\bin;D:\a\_temp\msys64\usr\bin'
+    BASHPATH='/d/a/_temp/msys64/ucrt64/bin:/d/a/_temp/msys64/usr/bin'
     os.environ['PATH'] = ';'.join([WINPATH, os.environ['PATH']])
-    BASH = r'C:\usr\bin\bash'
+    BASH = r'D:\a\_temp\msys64\usr\bin\bash.exe'
 else:
     BASHPATH = os.environ['PATH']
     BASH = '/bin/bash'
@@ -242,7 +224,7 @@ class CyPariBuildExt(build_ext):
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
                 # This is meant to work even in a Windows Command Prompt
-                if cpu_width == 64:
+                if cpu_width == '64bit':
                     print("HERE", BASHPATH)
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
                     print("DONE")

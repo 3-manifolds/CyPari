@@ -186,8 +186,8 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     cd Omingw-*
     make install-lib-sta
     make install-include
-    # make install-doc
-    # make install-cfg
+    make install-doc
+    make install-cfg
     # make install-bin-sta
     cd ..
 else
