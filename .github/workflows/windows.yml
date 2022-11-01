@@ -17,7 +17,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
-          msystem: UCRT64
+          msystem: UCRT32
           pacboy: gcc:p m4 bison make patch
           path-type: inherit
 
@@ -37,7 +37,7 @@ jobs:
           python -m cibuildwheel --output-dir wheelhouse
         env:
           # Skip Python 2.7, 3.5, 32 bit Linux, and PyPy
-          CIBW_BUILD: cp311-win_amd64
+          CIBW_BUILD: cp311-win32
           CIBW_BEFORE_BUILD: |
             pip install cython
 
