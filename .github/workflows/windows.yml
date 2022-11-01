@@ -18,7 +18,7 @@ jobs:
         with:
           update: true
           msystem: UCRT64
-          pacboy: gcc:p m4 bison make
+          pacboy: gcc:p m4 bison make patch
           path-type: inherit
 
       #- name: build PARI
