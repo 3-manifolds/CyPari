@@ -17,7 +17,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
-          msystem: UCRT32
+          msystem: MINGW32
           pacboy: gcc:p m4 bison make patch
           path-type: inherit
 
