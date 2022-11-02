@@ -18,7 +18,13 @@ jobs:
         with:
           update: true
           msystem: MINGW32
-          pacboy: gcc:p m4 bison make patch
+          install: >-
+            base-devel
+            m4
+            bison
+            make
+            patch
+          pacboy: gcc:p
           path-type: inherit
 
       #- name: build PARI
