@@ -80,8 +80,8 @@ else:
     BASH = '/bin/bash'
 
 if sys.platform == 'darwin':
-    PARIDIR = 'pari'
     GMPDIR = 'gmp'
+    PARIDIR = 'pari'
 else:
     if cpu_width  == '64bit':
         GMPDIR = 'gmp64'
@@ -242,8 +242,6 @@ class CyPariBuildExt(build_ext):
                 else:
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(
                         BASHPATH, PARIDIR, GMPDIR)
-            elif sys.platform == 'darwin':
-                cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
                 cmd = r'export PATH="%s" ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
             if subprocess.call([BASH, '-c', cmd]):

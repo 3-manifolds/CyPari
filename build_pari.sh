@@ -3,20 +3,21 @@
 # On Windows it uses mingw32 or mingw64, depending on the MSys2 environment.
 # On linux the default system gcc is used to build for the host architecture.
 # There are two required arguments, to specify word sizes for gmp and pari.
+# For macOS these arguments should be pari and gmp.
 
 set -e
 
 if [ $# != 2 ]; then
     usage=failed;
 fi
-if [ "$1" != "pari32" ] && [ "$1" != "pari64" ]; then
+if [ "$1" != "pari32" ] && [ "$1" != "pari64" ] && [ "$1" != "pari" ]; then
     usage=failed;
 fi
-if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ]; then
+if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ] && [ "$2" != "gmp" ]; then
     usage=failed;
 fi
 if [ "$usage" = "failed" ]; then
-    echo "usage: build_pari.sh pari32|pari64 gmp32|gmp64"
+    echo "usage: build_pari.sh pari32|pari64|pari gmp32|gmp64|gmp"
     exit
 fi
 
