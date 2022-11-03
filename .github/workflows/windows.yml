@@ -14,10 +14,11 @@ jobs:
         with:
           python-version: '3.9'
 
-      - uses: myci-actions/export-env-var@1
+      - name: Extend bash bath 
+        uses: myci-actions/export-env-var@1
         with:
           name: PATH
-          value: "/c/msys64/bin:/c/msys64/ucrt64/bin:/c/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64":$PATH
+          value: '/c/msys64/bin:/c/msys64/ucrt64/bin:/c/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64':$PATH
     
       - name: Install cibuildwheel
         shell: bash
