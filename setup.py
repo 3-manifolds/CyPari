@@ -25,8 +25,8 @@ from distutils.command.sdist import sdist
 from distutils.util import get_platform
 from subprocess import Popen, PIPE
 
-MSYS64_W = os.environ.get('MSYS64_DIR', r'C:\msys64')
-MSYS64_U = os.environ.get('MSYS64_DIR', '/c/msys64')
+MSYS64_W = os.environ.get('MSYS64_DIR', r'D:a\_temp\msys64')
+MSYS64_U = os.environ.get('MSYS64_DIR', '/d/a/_temp/msys64')
 
 if sys.version_info < (3,5):
     ('CyPari requires Python 3.5 or newer')
