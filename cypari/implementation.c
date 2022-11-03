@@ -338,7 +338,7 @@ static void sigdie(int sig, const char* s)
 #include <stdlib.h>
 #include <pari/pari.h>
 #include "struct_signals.h"
-#include <windows.h>
+#include <Windows.h>
 #include <float.h>
 
 #ifndef __MINGW32__

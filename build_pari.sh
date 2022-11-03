@@ -1,10 +1,24 @@
 #! /bin/bash
-
 # On macOS this builds both arm and x86_64 PARI librariies for OS X >= 10.9.
 # On Windows it uses mingw32 or mingw64, depending on the MSys2 environment.
 # On linux the default system gcc is used to build for the host architecture.
+# There are two required arguments, to specify word sizes for gmp and pari.
 
 set -e
+
+if [ $# != 2 ]; then
+    usage=failed;
+fi
+if [ "$1" != "pari32" ] && [ "$1" != "pari64" ]; then
+    usage=failed;
+fi
+if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ]; then
+    usage=failed;
+fi
+if [ "$usage" = "failed" ]; then
+    echo "usage: build_pari.sh pari32|pari64 gmp32|gmp64"
+    exit
+fi
 
 PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
 PARIVERSION=pari-2.11.4
@@ -70,12 +84,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
 	cd ..
     else
-	if [ $(uname | cut -b -5) = "MINGW" ] ; then
+	if [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 	# Windows
-	    if [ "$2" = "gmp32u" ] || [ "$2" = "gmp64u" ] ; then
-		export CFLAGS='-DUNIVERSAL_CRT'
-	    fi
-	    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+	    if [ "$2" = "gmp32" ] ; then
 		export MSYSTEM=MINGW32
 		export ABI=32
 		BUILD=i686-w32-mingw32
@@ -94,7 +105,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 		BUILD=x86_64-none-none
 	    fi
 	fi
-	echo ./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
+	echo compiler is `which gcc`
+	echo linker is `which ld`
+	echo Configuring gmp with ./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	make install
 	make distclean
@@ -162,22 +175,16 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # configuration we just patch get_gmp and arch-osname to give the
     # right answers.
     patch -N -p1 < ../../Windows/pari_config.patch || true
-    # This allows using C99 format specifications in printf.
-    if [ "$1" = "pari32u" ] || [ "$1" = "pari64u" ] ; then
-	export CFLAGS='-DUNIVERSAL_CRT -D__USE_MINGW_ANSI_STDIO'
-    else
-	export CFLAGS=export CFLAGS='-D__USE_MINGW_ANSI_STDIO -Dprintf=__MINGW_PRINTF_FORMAT'
-    fi
-    if [ "$2" = "gmp32" ] || [ "$2" = "gmp32u" ] ; then
+    if [ "$2" = "gmp32" ] ; then
 	export MSYSTEM=MINGW32
     else
 	export MSYSTEM=MINGW64
     fi
-    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
+    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
 
     # When building for x86_64 parigen.h says #define long long long
     # and that macro breaks the bison compiler compiler.
-    if [ "$1" == "pari64" ] || [ "$1" == "pari64u" ] ; then
+    if [ "$1" == "pari64" ]; then
 	patch -N -p0 < ../../Windows/parigen.h.patch || true
     fi
     cd Omingw-*
