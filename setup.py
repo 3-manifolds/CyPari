@@ -61,8 +61,8 @@ if sys.platform == 'win32':
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
     # and other needed utilities such as find.
-    bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
-    BASHPATH, _ = bash_proc.communicate()
+    # bash_proc = Popen(['bash', '-c', 'echo $PATH'], stdout=PIPE, stderr=PIPE)
+    # BASHPATH, _ = bash_proc.communicate()
     if cpu_width == '64bit':
         TOOLCHAIN_W = MSYS64_W + r'\ucrt64\bin'
         TOOLCHAIN_U = MSYS64_U + '/ucrt64/bin'
@@ -72,7 +72,7 @@ if sys.platform == 'win32':
 
     WINPATH=r'{0};{1}\bin;%{1}\usr\local\bin;{1}\usr\bin;'.format(
         TOOLCHAIN_W, MSYS64_W)
-    BASHPATH='{0}:{1}'.format(TOOLCHAIN_U,BASHPATH.decode('utf-8'))
+    BASHPATH='{0}:{1}'.format(TOOLCHAIN_U, MSYS64_U)
     KIT_PATH=r'/c/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64'
     BASH = r'%s\usr\bin\bash'%MSYS64_W
 else:
