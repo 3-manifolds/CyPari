@@ -102,12 +102,19 @@ MSVC_include_dirs = [
     r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\shared'
 ]
 
-MSVC_extra_objects = [
+if cpu_width == '64bit':
+    MSVC_extra_objects = [
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64\Uuid.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64\kernel32.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x64\ucrt.lib',
     ]
-
+else:
+    MSVC_extra_objects = [
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\Uuid.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\kernel32.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x86\ucrt.lib',
+    ]
+    
 class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
@@ -342,18 +349,17 @@ elif ext_compiler == 'msvc':
         link_args += ['/DEBUG']
     # Add the mingw crt objects needed by libpari.
     if cpu_width == '64bit':
-        link_args += [
-            os.path.join('Windows', 'crt', 'libparicrt64.a'),
-            'legacy_stdio_definitions.lib',
-            os.path.join('Windows', 'crt', 'get_output_format64.o'),
-        ]
+         link_args += [
+             os.path.join('Windows', 'crt', 'libparicrt64.a'),
+             'legacy_stdio_definitions.lib',
+             os.path.join('Windows', 'crt', 'get_output_format64.o'),
+         ]
     else:
-        link_args += [
-            os.path.join('Windows', 'crt', 'libparicrt32.a'),
-            'advapi32.lib',
-            'legacy_stdio_definitions.lib', 'advapi32.lib',
-            os.path.join('Windows', 'crt', 'get_output_format32.o')
-        ]
+         link_args += [
+             os.path.join('Windows', 'crt', 'libparicrt32.a'),
+             'legacy_stdio_definitions.lib',
+             os.path.join('Windows', 'crt', 'get_output_format32.o')
+         ]
 
 link_args += [pari_static_library, gmp_static_library]
 
