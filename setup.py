@@ -113,6 +113,7 @@ else:
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\Uuid.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\kernel32.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x86\ucrt.lib',
+    r'C:\msys64\mingw32\lib\gcc\i686-w64-mingw32\12.2.0\libgcc.a'
     ]
     
 class CyPariClean(Command):
