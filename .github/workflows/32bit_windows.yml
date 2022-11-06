@@ -1,4 +1,4 @@
-name: 32 bit Windows Wheels
+name: Windows wheels for 32 bit Python
 
 on: [push, pull_request]
 
@@ -50,7 +50,7 @@ jobs:
           python -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS: x86
-          CIBW_SKIP: cp27-* cp35-* cp36-* cp37-* pp*
+          CIBW_SKIP: cp27-* cp35-* pp*
           CIBW_BEFORE_BUILD: |
             pip install cython
           CIBW_TEST_COMMAND: python -m cypari.test

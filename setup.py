@@ -109,15 +109,11 @@ if cpu_width == '64bit':
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x64\ucrt.lib',
     ]
 else:
-    find_proc = Popen([r'C:\msys64\usr\bin\find', '/c/msys64/mingw32/lib/gcc',
-                             '-name', 'libgcc.a'], stdout=PIPE, stderr=PIPE)
-    libgcc, _ = find_proc.communicate()
-    libgcc = os.path.abspath(libgcc.strip().decode('utf=8')[2:])
     MSVC_extra_objects = [
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\Uuid.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\kernel32.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x86\ucrt.lib',
-    libgcc
+    os.path.abspath(os.path.join('Windows', 'gcc', 'libgcc.a')),
     ]
     
 class CyPariClean(Command):
