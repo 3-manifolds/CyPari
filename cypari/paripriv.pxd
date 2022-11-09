@@ -23,10 +23,18 @@ cdef extern from "pari/paripriv.h":
     struct gp_data:
         pariout_t *fmt
         unsigned long flags
+        unsigned long primelimit
 
-    extern gp_data* GP_DATA
+cdef extern from *:
+    """
+    /* C code which Cython inserts verbatim into _pari.c.  This provides
+     * access to literals which are defined in pari header files.
+     */
+    static gp_data *pari_GP_DATA = GP_DATA;
+    """
+    gp_data* pari_GP_DATA
 
-cdef extern from "pari/anal.h":
+cdef extern from "pari/paridecl.h":
     char* closure_func_err()
 
 cdef extern from "long_hack.h":

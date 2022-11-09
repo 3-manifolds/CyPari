@@ -20,7 +20,6 @@ from PARI's include files.
 
 cdef extern from "pari/pari.h":
     ctypedef unsigned long ulong "pari_ulong"
-
     ctypedef long* GEN
     ctypedef char* byteptr
     ctypedef unsigned long pari_sp
@@ -50,13 +49,6 @@ cdef extern from "pari/pari.h":
         t_CLOSURE
         t_ERROR
         t_INFINITY
-
-    int BITS_IN_LONG
-    long DEFAULTPREC       #  64 bits precision
-    long MEDDEFAULTPREC    # 128 bits precision
-    long BIGDEFAULTPREC    # 192 bits precision
-
-    ulong CLONEBIT
 
     long    typ(GEN x)
     long    settyp(GEN x, long s)
@@ -137,6 +129,11 @@ cdef extern from "pari/pari.h":
     GEN set_gmael(GEN x, long i, long j, GEN z)    # gmael(x, i, j) = z
     GEN set_gcoeff(GEN x, long i, long j, GEN z)   # gcoeff(x, i, j) = z
     GEN set_uel(GEN x, long n, ulong z)            # uel(x, n) = z
+
+# As of 2.15.0 There are declarations in pari_priv.h which get picked up by autogen.
+
+cdef extern from "pari/paripriv.h":
+    pass
 
 # It is important that this gets included *after* all PARI includes
 cdef extern from "cypari.h":

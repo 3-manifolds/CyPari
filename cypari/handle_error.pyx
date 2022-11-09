@@ -23,6 +23,9 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+cdef extern from *:
+    char* closure_func_err()
+
 from cpython cimport PyErr_Occurred
 
 import sys

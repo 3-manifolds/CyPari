@@ -18,11 +18,14 @@ if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ] && [ "$2" != "gmp" ]; then
 fi
 if [ "$usage" = "failed" ]; then
     echo "usage: build_pari.sh pari32|pari64|pari gmp32|gmp64|gmp"
+    echo "For macOS use pari and gmp as arguments to build universal binaries."
     exit
 fi
 
-PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
-PARIVERSION=pari-2.11.4
+#PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
+#PARIVERSION=pari-2.11.4
+PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIVERSION=pari-2.15.1
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.2.1
 
@@ -34,15 +37,9 @@ if [[ $(pwd) =~ " " ]]; then
     exit 1
 fi
 
-if [ "$#" -eq 2 ] ; then
-    PARIPREFIX=$(pwd)/libcache/$1
-    PARILIBDIR=$(pwd)/libcache/$1/lib
-    GMPPREFIX=$(pwd)/libcache/$2
-else
-    PARIPREFIX=$(pwd)/libcache/pari
-    PARILIBDIR=$(pwd)/libcache/pari/lib
-    GMPPREFIX=$(pwd)/libcache/gmp
-fi
+PARIPREFIX=$(pwd)/libcache/$1
+PARILIBDIR=$(pwd)/libcache/$1/lib
+GMPPREFIX=$(pwd)/libcache/$2
 
 echo Building gmp ...
 
@@ -80,9 +77,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
         make distclean
 	cd ../../libcache
         mkdir -p gmp/lib
-        mv gmp/arm/{include,share} gmp
-	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
-	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
+        mv $2/arm/{include,share} gmp
+	lipo -create $2/arm/lib/libgmp.10.dylib $2/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
+	lipo -create $2/arm/lib/libgmp.a $2/intel/lib/libgmp.a -output gmp/lib/libgmp.a
 	cd ..
     else
 	if [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
@@ -136,33 +133,13 @@ fi
 
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
-    # Run the configure script to build gphelp, needed by autogen.
-    ./Configure
-    # Pari's Configure script does not support cross compiling unless the build
-    # system has an emulator for the target CPU.  But we can compile for multiple
-    # architectures if we have the build directories that Pari's Configure script
-    # constructs.  So we use canned copies of those build directories.
     rm -rf Odarwin*
-    tar xvfz ../../Odarwin.tgz
-    cd Odarwin-arm64
-    make install
-    make install-lib-sta
-    make install-doc
-    make clean
-    cd ../Odarwin-x86_64
+    export CFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.9"
+    ./Configure --host=universal-darwin --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX}
+    cd Odarwin-universal
     make install
     make install-lib-sta
     make clean
-    cd ../../../libcache
-    # Glue the two libraries together with lipo.
-    mkdir -p pari/lib
-    rm -rf pari/{include,share,bin}
-    cp -R pari/arm/{include,share,bin} pari
-    # Weird Pari glitch - gphelp can't find the doc directory
-    ln -s ../share/pari/doc pari/bin
-    lipo -create pari/arm/lib/libpari.a pari/intel/lib/libpari.a -output pari/lib/libpari.a
-    lipo -create pari/arm/lib/libpari.dylib pari/intel/lib/libpari.dylib -output pari/lib/libpari.dylib
-    cd ../build/pari_src
 elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 #Windows
     # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
@@ -202,9 +179,3 @@ else
     make install-lib-sta
 fi
 
-# We need this "private" header file.
-if [ -d src64 ] ; then
-    cp src64/language/anal.h ${PARIPREFIX}/include/pari/
-else
-    cp src/language/anal.h $PARIPREFIX/include/pari
-fi

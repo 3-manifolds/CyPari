@@ -26,6 +26,7 @@ Interrupt and signal handling for Cython
  * along with cysignals.  If not, see <http://www.gnu.org/licenses/>.
  *
  ****************************************************************************/
+
 #define ENABLE_DEBUG_CYSIGNALS 0
 #if ENABLE_DEBUG_CYSIGNALS
 #define DEBUG(...) fprintf(stderr, __VA_ARGS__); fflush(stderr);

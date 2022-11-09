@@ -1,10 +1,6 @@
-# Use sys.getdefaultencoding() to convert Unicode strings to <char*>
-#
-# cython: c_string_encoding=default
 """
-Sage class for PARI's GEN type
-
-See the ``Pari`` class for documentation and examples.
+The Gen class wrapping PARI's GEN type
+**************************************
 
 AUTHORS:
 
@@ -40,7 +36,8 @@ AUTHORS:
 - Luca De Feo (2016-09-06): Separate Sage-specific components from
   generic C-interface in ``Pari`` (:trac:`20241`)
 
-- Marc Culler and Nathan Dunfield: Adaptation for standalone use
+- Vincent Delecroix (2017-04-29): Python 3 support and doctest
+  conversion
 """
 
 #*****************************************************************************
@@ -48,9 +45,9 @@ AUTHORS:
 #       Copyright (C) ???? Justin Walker
 #       Copyright (C) ???? Gonzalo Tornaria
 #       Copyright (C) 2010 Robert Bradshaw <robertwb@math.washington.edu>
-#       Copyright (C) 2010-2016 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+#       Copyright (C) 2010-2018 Jeroen Demeyer <J.Demeyer@UGent.be>
 #       Copyright (C) 2016 Luca De Feo <luca.defeo@polytechnique.edu>
-#       Copyright (C) 2016-2017 Marc Culler and Nathan Dunfield
+#       Copyright (C) 2017 Vincent Delecroix <vincent.delecroix@labri.fr>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -58,48 +55,199 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-""" Sage's header -- not used by the standalone CyPari
-from __future__ import absolute_import, division, print_function
+cdef bint ellwp_flag1_bug = -1
+cdef inline bint have_ellwp_flag1_bug():
+    """
+    The PARI function ``ellwp(..., flag=1)`` has a bug in PARI versions
+    2.9.x where the derivative is a factor 2 too small.
 
-import types
-cimport cython
+    This function does a cached check for this bug, returning 1 if
+    the bug is there and 0 if not.
+    """
+    global ellwp_flag1_bug
+    if ellwp_flag1_bug >= 0:
+        return ellwp_flag1_bug
 
-from cpython.int cimport PyInt_Check
-from cpython.long cimport PyLong_Check
-from cpython.bytes cimport PyBytes_Check
-from cpython.unicode cimport PyUnicode_Check
-from cpython.float cimport PyFloat_AS_DOUBLE
-from cpython.complex cimport PyComplex_RealAsDouble, PyComplex_ImagAsDouble
-from cpython.object cimport Py_EQ, Py_NE, Py_LE, Py_GE, Py_LT, Py_GT
+    # Check whether our PARI/GP version is buggy or not. This
+    # computation should return 1.0, but in older PARI versions it
+    # returns 0.5.
+    sig_on()
+    cdef GEN res = gp_read_str(b"localbitprec(128); my(E=ellinit([0,1/4])); ellwp(E,ellpointtoz(E,[0,1/2]),1)[2]")
+    cdef double d = gtodouble(res)
+    sig_off()
 
-include "cysignals/memory.pxi"
-include "cysignals/signals.pxi"
+    if d == 1.0:
+        ellwp_flag1_bug = 0
+    elif d == 0.5:
+        ellwp_flag1_bug = 1
+    else:
+        raise AssertionError(f"unexpected result from ellwp() test: {d}")
+    return ellwp_flag1_bug
 
-from .paridecl cimport *
-from .paripriv cimport *
-from .convert cimport (integer_to_gen, gen_to_integer,
-                       new_gen_from_double, new_t_COMPLEX_from_double)
-from .pari_instance cimport (prec_bits_to_words, prec_words_to_bits,
-                             default_bitprec, get_var)
-from .stack cimport new_gen, new_gen_noclear, clear_stack
-from .closure cimport objtoclosure
-"""
 
-include 'auto_gen.pxi'
+# Compatibility wrappers
+cdef extern from *:
+    """
+    #if PARI_VERSION_CODE >= PARI_VERSION(2, 10, 1)
+    #define new_nf_nfzk nf_nfzk
+    #define new_nfeltup nfeltup
+    #else
+    static GEN new_nf_nfzk(GEN nf, GEN rnfeq)
+    {
+        GEN zknf, czknf;
+        nf_nfzk(nf, rnfeq, &zknf, &czknf);
+        return mkvec2(zknf, czknf);
+    }
 
-cdef pari_longword_to_int(pari_longword x):
-    return int(x)
+    static GEN new_nfeltup(GEN nf, GEN x, GEN arg)
+    {
+        GEN zknf = gel(arg, 1);
+        GEN czknf = gel(arg, 2);
+        return nfeltup(nf, x, zknf, czknf);
+    }
+    #endif
 
-@cython.final
+    #if PARI_VERSION_CODE >= PARI_VERSION(2, 12, 0)
+    #define old_nfbasis(x, yptr, p) nfbasis(mkvec2(x, p), yptr)
+    #else
+    #define old_nfbasis nfbasis
+    #endif
+    """
+    GEN new_nf_nfzk(GEN nf, GEN rnfeq)
+    GEN new_nfeltup(GEN nf, GEN x, GEN zknf)
+    GEN old_nfbasis(GEN x, GEN * y, GEN p)
+
+#cdef class Gen_base:
+    # The actual PARI GEN
+#    cdef GEN g
+
 cdef class Gen(Gen_base):
     """
-    Cython extension class that models the PARI GEN type.
+    Wrapper for a PARI ``GEN`` with memory management.
+
+    This wraps PARI objects which live either on the PARI stack or on
+    the PARI heap. Results from PARI computations appear on the PARI
+    stack and we try to keep them there. However, when the stack fills
+    up, we copy ("clone" in PARI speak) all live objects from the stack
+    to the heap. This happens transparently for the user.
     """
+    # There are 3 kinds of memory management for a GEN:
+    # * stack: GEN on the PARI stack
+    # * clone: refcounted clone on the PARI heap
+    # * constant: universal constant such as gen_0
+    #
+    # A priori, it makes sense to have separate classes for these cases.
+    # However, a GEN may be moved from the stack to the heap. This is
+    # easier to support when there is just one class. Second, the
+    # differences between the cases are really implementation details
+    # which should not affect the user.
+
+    # Base address of the GEN that we wrap. On the stack, this is the
+    # value of avma when new_gen() was called. For clones, this is the
+    # memory allocated by gclone(). For constants, this is NULL.
+    cdef GEN g
+    cdef GEN address
+    cdef pari_sp b
+    cdef dict refers_to
+
+    cdef inline pari_sp sp(self):
+        return <pari_sp>self.address
+
+    # The Gen objects on the PARI stack form a linked list, from the
+    # bottom to the top of the stack. This makes sense since we can only
+    # deallocate a Gen which is on the bottom of the PARI stack. If this
+    # is the last object on the stack, then next = top_of_stack
+    # (a singleton object).
+    #
+    # In the clone and constant cases, this is None.
+    cdef Gen next
+
+    # A cache for __getitem__. Initially, this is None but it will be
+    # turned into a dict when needed.
+    cdef dict itemcache
+
+    cdef inline int cache(self, key, value) except -1:
+        """
+        Add ``(key, value)`` to ``self.itemcache``.
+        """
+        if self.itemcache is None:
+            self.itemcache = {}
+        self.itemcache[key] = value
+
+    cdef Gen new_ref(self, GEN g)
+
+    cdef GEN fixGEN(self) except NULL
+
+    cdef GEN ref_target(self) except NULL
+
     def __init__(self):
         raise RuntimeError("PARI objects cannot be instantiated directly; use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
-        sig_free(<void*>self.b)
+        if self.next is not None:
+            # stack
+            remove_from_pari_stack(self)
+        elif self.address is not NULL:
+            # clone
+            gunclone_deep(self.address)
+
+    cdef Gen new_ref(self, GEN g):
+        """
+        Create a new ``Gen`` pointing to ``g``, which is a component
+        of ``self.g``.
+
+        In this case, ``g`` should point to some location in the memory
+        allocated by ``self``. This will not allocate any new memory:
+        the newly returned ``Gen`` will point to the memory allocated
+        for ``self``.
+
+        .. NOTE::
+
+            Usually, there is only one ``Gen`` pointing to a given PARI
+            ``GEN``.  This function can be used when a complicated
+            ``GEN`` is allocated with a single ``Gen`` pointing to it,
+            and one needs a ``Gen`` pointing to one of its components.
+
+            For example, doing ``x = pari("[1, 2]")`` allocates a ``Gen``
+            pointing to the list ``[1, 2]``.  To create a ``Gen`` pointing
+            to the first element, one can do ``x.new_ref(gel(x.fixGEN(), 1))``.
+            See :meth:`Gen.__getitem__` for an example of usage.
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari("[[1, 2], 3]")[0][1]  # indirect doctest
+        2
+        """
+        if self.next is not None:
+            raise TypeError("cannot create reference to PARI stack (call fixGEN() first)")
+        if is_on_stack(g):
+            raise ValueError("new_ref() called with GEN which does not belong to parent")
+
+        if self.address is not NULL:
+            gclone_refc(self.address)
+        return Gen_new(g, self.address)
+
+    cdef GEN fixGEN(self) except NULL:
+        """
+        Return the PARI ``GEN`` corresponding to ``self`` which is
+        guaranteed not to change.
+        """
+        if self.next is not None:
+            move_gens_to_heap(self.sp())
+        return self.g
+
+    cdef GEN ref_target(self) except NULL:
+        """
+        Return a PARI ``GEN`` corresponding to ``self`` which is usable
+        as target for a reference in another ``GEN``.
+
+        This increases the PARI refcount of ``self``.
+        """
+        if is_universal_constant(self.g):
+            return self.g
+        return gcloneref(self.fixGEN())
 
     def __repr__(self):
         """
@@ -107,14 +255,16 @@ cdef class Gen(Gen_base):
 
         OUTPUT: a Python string
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('vector(5,i,i)')
-            [1, 2, 3, 4, 5]
-            sage: pari('[1,2;3,4]')
-            [1, 2; 3, 4]
-            sage: pari('Str(hello)')
-            "hello"
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari('vector(5,i,i)')
+        [1, 2, 3, 4, 5]
+        >>> pari('[1,2;3,4]')
+        [1, 2; 3, 4]
+        >>> pari('Str(hello)')
+        "hello"
         """
         cdef char *c
         sig_on()
@@ -125,9 +275,9 @@ cdef class Gen(Gen_base):
         sig_unblock()
         sig_off()
 
-        s = String(c)
+        s = bytes(c)
         pari_free(c)
-        return s
+        return to_string(s)
 
     def __str__(self):
         """
@@ -138,34 +288,39 @@ cdef class Gen(Gen_base):
 
         OUTPUT: a Python string
 
-        EXAMPLES::
+        Examples:
 
-            sage: print(pari('vector(5,i,i)'))
-            [1, 2, 3, 4, 5]
-            sage: print(pari('[1,2;3,4]'))
-            [1, 2; 3, 4]
-            sage: print(pari('Str(hello)'))
-            hello
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> str(pari('vector(5,i,i)'))
+        '[1, 2, 3, 4, 5]'
+        >>> str(pari('[1,2;3,4]'))
+        '[1, 2; 3, 4]'
+        >>> str(pari('Str(hello)'))
+        'hello'
         """
         # Use __repr__ except for strings
         if typ(self.g) == t_STR:
-            return String(GSTR(self.g))
+            return to_string(GSTR(self.g))
         return repr(self)
 
     def __hash__(self):
         """
         Return the hash of self, computed using PARI's hash_GEN().
 
-        TESTS::
+        Tests:
 
-            sage: type(pari('1 + 2.0*I').__hash__())
-            <... 'int'>
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> type(pari('1 + 2.0*I').__hash__())
+        <... 'int'>
+        >>> L = pari("[42, 2/3, 3.14]")
+        >>> hash(L) == hash(L.__copy__())
+        True
+        >>> hash(pari.isprime(4)) == hash(pari(0))
+        True
         """
-        cdef long h
-        sig_on()
-        h = <long>hash_GEN(self.g)
-        sig_off()
-        return h
+        return hash_GEN(self.g)
 
     def __iter__(self):
         """
@@ -178,88 +333,82 @@ cdef class Gen(Gen_base):
 
         - items of a ``t_STR`` are of type ``str``
 
-        EXAMPLES:
+        Examples:
 
-        We can iterate over PARI vectors or columns::
+        We can iterate over PARI vectors or columns:
 
-            sage: L = pari("vector(10,i,i^2)")
-            sage: L.__iter__()
-            <generator object at ...>
-            sage: [x for x in L]
-            [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-            sage: list(L)
-            [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-            sage: list(pari("vector(10,i,i^2)~"))
-            [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> L = pari("vector(10,i,i^2)")
+        >>> L.__iter__()
+        <generator object at ...>
+        >>> [x for x in L]
+        [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+        >>> list(L)
+        [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+        >>> list(pari("vector(10,i,i^2)~"))
+        [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
 
-        For polynomials, we iterate over the list of coefficients::
+        For polynomials, we iterate over the list of coefficients:
 
-            sage: pol = pari("x^3 + 5/3*x"); list(pol)
-            [0, 5/3, 0, 1]
+        >>> pol = pari("x^3 + 5/3*x"); list(pol)
+        [0, 5/3, 0, 1]
 
         For power series or Laurent series, we get all coefficients starting
-        from the lowest degree term.  This includes trailing zeros::
+        from the lowest degree term.  This includes trailing zeros:
 
-            sage: list(pari('x^2 + O(x^8)'))
-            [1, 0, 0, 0, 0, 0]
-            sage: list(pari('x^-2 + O(x^0)'))
-            [1, 0]
+        >>> list(pari('x^2 + O(x^8)'))
+        [1, 0, 0, 0, 0, 0]
+        >>> list(pari('x^-2 + O(x^0)'))
+        [1, 0]
 
-        For matrices, we iterate over the columns::
+        For matrices, we iterate over the columns:
 
-            sage: M = pari.matrix(3,2,[1,4,2,5,3,6]); M
-            [1, 4; 2, 5; 3, 6]
-            sage: list(M)
-            [[1, 2, 3]~, [4, 5, 6]~]
+        >>> M = pari.matrix(3,2,[1,4,2,5,3,6]); M
+        [1, 4; 2, 5; 3, 6]
+        >>> list(M)
+        [[1, 2, 3]~, [4, 5, 6]~]
 
-        Other types are first converted to a vector using :meth:`Vec`::
+        Other types are first converted to a vector using :meth:`Vec`:
 
-            sage: Q = pari('Qfb(1, 2, 3)')
-            sage: tuple(Q)
-            (1, 2, 3)
-            sage: Q.Vec()
-            [1, 2, 3]
+        >>> Q = pari('Qfb(1, 2, 3)')
+        >>> tuple(Q)
+        (1, 2, 3)
+        >>> Q.Vec()
+        [1, 2, 3]
 
         We get an error for "scalar" types or for types which cannot be
-        converted to a PARI vector::
+        converted to a PARI vector:
 
-            sage: iter(pari(42))
-            Traceback (most recent call last):
-            ...
-            TypeError: PARI object of type 't_INT' is not iterable
-            sage: iter(pari("x->x"))
-            Traceback (most recent call last):
-            ...
-            PariError: incorrect type in gtovec (t_CLOSURE)
+        >>> iter(pari(42))
+        Traceback (most recent call last):
+        ...
+        TypeError: PARI object of type t_INT is not iterable
+        >>> iter(pari("x->x"))
+        Traceback (most recent call last):
+        ...
+        PariError: incorrect type in gtovec (t_CLOSURE)
 
-        For ``t_VECSMALL``, the items are Python integers::
+        For ``t_VECSMALL``, the items are Python integers:
 
-            sage: v = pari("Vecsmall([1,2,3,4,5,6])")
-            sage: list(v)
-            [1, 2, 3, 4, 5, 6]
-            sage: type(list(v)[0]).__name__
-            'int'
+        >>> v = pari("Vecsmall([1,2,3,4,5,6])")
+        >>> list(v)
+        [1, 2, 3, 4, 5, 6]
+        >>> type(list(v)[0]).__name__
+        'int'
 
-        For ``t_STR``, the items are Python strings::
+        For ``t_STR``, the items are Python strings:
 
-            sage: v = pari('"hello"')
-            sage: list(v)
-            ['h', 'e', 'l', 'l', 'o']
-
-        TESTS:
-
-        The following are deprecated::
-
-            sage: tuple(pari('3/5'))
-            doctest:...: DeprecationWarning: iterating a PARI 't_FRAC' is deprecated
-            (3, 5)
-            sage: tuple(pari('1 + 5*I'))
-            doctest:...: DeprecationWarning: iterating a PARI 't_COMPLEX' is deprecated
-            (1, 5)
+        >>> v = pari('"hello"')
+        >>> list(v)
+        ['h', 'e', 'l', 'l', 'o']
         """
+        # We return a generator expression instead of using "yield"
+        # because we want to raise an exception for non-iterable
+        # objects immediately when calling __iter__() and not while
+        # iterating.
         cdef long i
         cdef long t = typ(self.g)
-        cdef GEN x
 
         # First convert self to a vector type
         cdef Gen v
@@ -268,91 +417,76 @@ cdef class Gen(Gen_base):
             v = self
         elif t == t_POL:
             v = self.Vecrev()
-        elif t == t_FRAC or t == t_RFRAC or t == t_COMPLEX:
-            # Also treat as vector
-            # Deprecated, make this an error in the future
-            from warnings import warn
-            warn(f"iterating a PARI {self.type()} is deprecated", DeprecationWarning)
-            v = self
         elif is_scalar_t(t):
             raise TypeError(f"PARI object of type {self.type()} is not iterable")
         elif t == t_VECSMALL:
             # Special case: items of type int
-            x = self.g
-            return (x[i] for i in range(1, lg(x)))
+            return (self.g[i] for i in range(1, lg(self.g)))
         elif t == t_STR:
             # Special case: convert to str
-            return iter(String(GSTR(self.g)))
+            return iter(to_string(GSTR(self.g)))
         else:
             v = self.Vec()
 
         # Now iterate over the vector v
-        x = v.g
-        return (new_ref(gel(x, i), v) for i in range(1, lg(x)))
+        x = v.fixGEN()
+        return (v.new_ref(gel(x, i)) for i in range(1, lg(x)))
 
     def list(self):
         """
-        Convert self to a list of PARI gens.
+        Convert ``self`` to a Python list with :class:`Gen` components.
 
-        EXAMPLES:
+        Examples:
 
-        A PARI vector becomes a Python list::
+        A PARI vector becomes a Python list:
 
-            sage: L = pari("vector(10,i,i^2)").list()
-            sage: L
-            [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
-            sage: type(L)
-            <... 'list'>
-            sage: isinstance(L[0], Gen)
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        For polynomials, list() returns the list of coefficients::
+        >>> L = pari("vector(10,i,i^2)").list()
+        >>> L
+        [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
+        >>> type(L)
+        <... 'list'>
+        >>> type(L[0])
+        <... 'cypari._pari.Gen'>
 
-            sage: pol = pari("x^3 + 5/3*x"); pol.list()
-            [0, 5/3, 0, 1]
+        For polynomials, list() returns the list of coefficients:
+
+        >>> pol = pari("x^3 + 5/3*x"); pol.list()
+        [0, 5/3, 0, 1]
 
         For power series or Laurent series, we get all coefficients starting
-        from the lowest degree term.  This includes trailing zeros::
+        from the lowest degree term.  This includes trailing zeros:
 
-            sage: pari('x^2 + O(x^8)').list()
-            [1, 0, 0, 0, 0, 0]
-            sage: pari('x^-2 + O(x^0)').list()
-            [1, 0]
+        >>> pari('x^2 + O(x^8)').list()
+        [1, 0, 0, 0, 0, 0]
+        >>> pari('x^-2 + O(x^0)').list()
+        [1, 0]
 
-        For matrices, we get a list of columns::
+        For matrices, we get a list of columns:
 
-            sage: M = pari.matrix(3,2,[1,4,2,5,3,6]); M
-            [1, 4; 2, 5; 3, 6]
-            sage: M.list()
-            [[1, 2, 3]~, [4, 5, 6]~]
-
-        TESTS:
-
-        For "scalar" types, this is deprecated. Currently, we get a
-        1-element list containing ``self``::
-
-            sage: pari(42).list()
-            doctest:...: DeprecationWarning: calling list() on scalar PARI types is deprecated
-            [42]
+        >>> M = pari.matrix(3,2,[1,4,2,5,3,6]); M
+        [1, 4; 2, 5; 3, 6]
+        >>> M.list()
+        [[1, 2, 3]~, [4, 5, 6]~]
         """
-        if is_scalar_t(typ(self.g)):
-            # Deprecated, make this an error in the future
-            from warnings import warn
-            warn("calling list() on scalar PARI types is deprecated", DeprecationWarning)
-            return [self]
         return [x for x in self]
 
     def __reduce__(self):
         """
-        EXAMPLES::
+        Examples:
 
-            sage: from pickle import loads, dumps
-            sage: f = pari('x^3 - 3')
-            sage: loads(dumps(f)) == f
-            True
-            sage: f = pari('"hello world"')
-            sage: loads(dumps(f)) == f
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> from pickle import loads, dumps
+
+        >>> f = pari('x^3 - 3')
+        >>> loads(dumps(f)) == f
+        True
+        >>> f = pari('"hello world"')
+        >>> loads(dumps(f)) == f
+        True
         """
         s = repr(self)
         return (objtogen, (s,))
@@ -361,16 +495,19 @@ cdef class Gen(Gen_base):
         """
         Return ``left`` plus ``right``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(15) + pari(6)
-            21
-            sage: pari("x^3+x^2+x+1") + pari("x^2")
-            x^3 + 2*x^2 + x + 1
-            sage: 2e20 + pari("1e20")
-            3.00000000000000 E20
-            sage: -2 + pari(3)
-            1
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(15) + pari(6)
+        21
+        >>> pari("x^3+x^2+x+1") + pari("x^2")
+        x^3 + 2*x^2 + x + 1
+        >>> 2e20 + pari("1e20")
+        3.00000000000000 E20
+        >>> -2 + pari(3)
+        1
         """
         cdef Gen t0, t1
         try:
@@ -385,16 +522,19 @@ cdef class Gen(Gen_base):
         """
         Return ``left`` minus ``right``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(15) - pari(6)
-            9
-            sage: pari("x^3+x^2+x+1") - pari("x^2")
-            x^3 + x + 1
-            sage: 2e20 - pari("1e20")
-            1.00000000000000 E20
-            sage: -2 - pari(3)
-            -5
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(15) - pari(6)
+        9
+        >>> pari("x^3+x^2+x+1") - pari("x^2")
+        x^3 + x + 1
+        >>> 2e20 - pari("1e20")
+        1.00000000000000 E20
+        >>> -2 - pari(3)
+        -5
         """
         cdef Gen t0, t1
         try:
@@ -416,6 +556,7 @@ cdef class Gen(Gen_base):
         return new_gen(gmul(t0.g, t1.g))
 
     def __div__(left, right):
+        # Python 2 old-style division: same implementation as __truediv__
         cdef Gen t0, t1
         try:
             t0 = objtogen(left)
@@ -426,6 +567,15 @@ cdef class Gen(Gen_base):
         return new_gen(gdiv(t0.g, t1.g))
 
     def __truediv__(left, right):
+        """
+        Examples:
+
+        >>> from cypari import pari; pari = Pari()
+        >>> pari(11) / pari(4)
+        11/4
+        >>> pari("x^2 + 2*x + 3") / pari("x")
+        (x^2 + 2*x + 3)/x
+        """
         cdef Gen t0, t1
         try:
             t0 = objtogen(left)
@@ -435,38 +585,42 @@ cdef class Gen(Gen_base):
         sig_on()
         return new_gen(gdiv(t0.g, t1.g))
 
-    def _add_one(self):
+    def __floordiv__(left, right):
         """
-        Return self + 1.
+        Examples:
 
-        OUTPUT: pari gen
-
-        EXAMPLES::
-
-            sage: n = pari(5)
-            sage: n._add_one()
-            6
-            sage: n = pari('x^3')
-            sage: n._add_one()
-            x^3 + 1
+        >>> from cypari import pari; pari = Pari()
+        >>> pari(11) // pari(4)
+        2
+        >>> pari("x^2 + 2*x + 3") // pari("x")
+        x + 2
         """
+        cdef Gen t0, t1
+        try:
+            t0 = objtogen(left)
+            t1 = objtogen(right)
+        except Exception:
+            return NotImplemented
         sig_on()
-        return new_gen(gaddsg(1, self.g))
+        return new_gen(gdivent(t0.g, t1.g))
 
     def __mod__(left, right):
         """
         Return ``left`` modulo ``right``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(15) % pari(6)
-            3
-            sage: pari("x^3+x^2+x+1") % pari("x^2")
-            x + 1
-            sage: pari(-2) % 3
-            1
-            sage: -2 % pari(3)
-            1
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(15) % pari(6)
+        3
+        >>> pari("x^3+x^2+x+1") % pari("x^2")
+        x + 1
+        >>> pari(-2) % 3
+        1
+        >>> -2 % pari(3)
+        1
         """
         cdef Gen t0, t1
         try:
@@ -482,18 +636,21 @@ cdef class Gen(Gen_base):
         Return ``left`` to the power ``right`` (if ``m`` is ``None``) or
         ``Mod(left, m)^right`` if ``m`` is not ``None``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(5) ** pari(3)
-            125
-            sage: pari("x-1") ** 3
-            x^3 - 3*x^2 + 3*x - 1
-            sage: pow(pari(5), pari(28), int(29))
-            Mod(1, 29)
-            sage: 2 ** pari(-5)
-            1/32
-            sage: pari(2) ** -5
-            1/32
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(5) ** pari(3)
+        125
+        >>> pari("x-1") ** 3
+        x^3 - 3*x^2 + 3*x - 1
+        >>> pow(pari(5), pari(28), int(29))
+        Mod(1, 29)
+        >>> 2 ** pari(-5)
+        1/32
+        >>> pari(2) ** -5
+        1/32
         """
         cdef Gen t0, t1
         try:
@@ -515,18 +672,21 @@ cdef class Gen(Gen_base):
         Divide ``self`` by `2^n` (truncating or not, depending on the
         input type).
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(25) >> 3
-            3
-            sage: pari('25/2') >> 2
-            25/8
-            sage: pari('x') >> 3
-            1/8*x
-            sage: pari(1.0) >> 100
-            7.88860905221012 E-31
-            sage: 33 >> pari(2)
-            8
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(25) >> 3
+        3
+        >>> pari('25/2') >> 2
+        25/8
+        >>> pari("x") >> 3
+        1/8*x
+        >>> pari(1.0) >> 100
+        7.88860905221012 E-31
+        >>> 33 >> pari(2)
+        8
         """
         cdef Gen t0 = objtogen(self)
         sig_on()
@@ -536,18 +696,21 @@ cdef class Gen(Gen_base):
         """
         Multiply ``self`` by `2^n`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(25) << 3
-            200
-            sage: pari('25/32') << 2
-            25/8
-            sage: pari('x') << 3
-            8*x
-            sage: pari(1.0) << 100
-            1.26765060022823 E30
-            sage: 33 << pari(2)
-            132
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(25) << 3
+        200
+        >>> pari("25/32") << 2
+        25/8
+        >>> pari("x") << 3
+        8*x
+        >>> pari(1.0) << 100
+        1.26765060022823 E30
+        >>> 33 << pari(2)
+        132
         """
         cdef Gen t0 = objtogen(self)
         sig_on()
@@ -561,25 +724,28 @@ cdef class Gen(Gen_base):
         """
         Return the PARI attribute with the given name.
 
-        EXAMPLES::
+        Examples:
 
-            sage: K = pari("nfinit(x^2 - x - 1)")
-            sage: K.getattr("pol")
-            x^2 - x - 1
-            sage: K.getattr("disc")
-            5
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-            sage: K.getattr("reg")
-            Traceback (most recent call last):
-            ...
-            PariError: _.reg: incorrect type in reg (t_VEC)
-            sage: K.getattr("zzz")
-            Traceback (most recent call last):
-            ...
-            PariError: not a function in function call
+        >>> K = pari("nfinit(x^2 - x - 1)")
+        >>> K.getattr("pol")
+        x^2 - x - 1
+        >>> K.getattr("disc")
+        5
+
+        >>> K.getattr("reg")
+        Traceback (most recent call last):
+        ...
+        PariError: _.reg: incorrect type in reg (t_VEC)
+        >>> K.getattr("zzz")
+        Traceback (most recent call last):
+        ...
+        PariError: not a function in function call
         """
-        cdef bytes s = ("_." + attr).encode('ascii')
-        cdef char *t = s
+        attr = to_bytes(attr)
+        t = b"_." + attr
         sig_on()
         return new_gen(closure_callgen1(strtofunction(t), self.g))
 
@@ -587,35 +753,33 @@ cdef class Gen(Gen_base):
         """
         Given an INTMOD or POLMOD ``Mod(a,m)``, return the modulus `m`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(4).Mod(5).mod()
-            5
-            sage: pari("Mod(x, x*y)").mod()
-            y*x
-            sage: pari("[Mod(4,5)]").mod()
-            Traceback (most recent call last):
-            ...
-            TypeError: Not an INTMOD or POLMOD in mod()
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(4).Mod(5).mod()
+        5
+        >>> pari("Mod(x, x*y)").mod()
+        y*x
+        >>> pari("[Mod(4,5)]").mod()
+        Traceback (most recent call last):
+        ...
+        TypeError: Not an INTMOD or POLMOD in mod()
         """
         if typ(self.g) != t_INTMOD and typ(self.g) != t_POLMOD:
             raise TypeError("Not an INTMOD or POLMOD in mod()")
-        sig_on()
         # The hardcoded 1 below refers to the position in the internal
         # representation of a INTMOD or POLDMOD where the modulus is
         # stored.
-        return new_gen(gel(self.g, 1))
+        return self.new_ref(gel(self.fixGEN(), 1))
 
     # Special case: SageMath uses polred(), so mark it as not
     # obsolete: https://trac.sagemath.org/ticket/22165
     def polred(self, *args, **kwds):
         r'''
-        This function is :emphasis:`deprecated`, use :meth:`.polredbest` instead.
-
-        TESTS::
-
-            sage: pari('x^4 + 8').polred(2)
-            [0, x; 1/2*x^2 + 1, x^2 - 2*x + 3; -1/2*x^2 + 1, x^2 - 2*x + 3; 1/2*x^2, x^2 + 2; 1/4*x^3, x^4 + 2]
+        This function is :emphasis:`deprecated`,
+        use :meth:`~cypari._pari.Gen_base.polredbest` instead.
         '''
         import warnings
         with warnings.catch_warnings():
@@ -631,32 +795,34 @@ cdef class Gen(Gen_base):
         - ``self`` -- A PARI number field being the output of ``nfinit()``,
                       ``bnfinit()`` or ``bnrinit()``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**4 - 4*x**2 + 1).bnfinit()
-            sage: bnr = K.bnrinit(2*x)
-            sage: bnr.nf_get_pol()
-            x^4 - 4*x^2 + 1
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**4 - 4*x**2 + 1).bnfinit()
+        >>> bnr = K.bnrinit(2*x)
+        >>> bnr.nf_get_pol()
+        x^4 - 4*x^2 + 1
 
         For relative number fields, this returns the relative
-        polynomial::
+        polynomial:
 
-            sage: y = pari.varhigher('y')
-            sage: L = K.rnfinit(y**2 - 5)
-            sage: L.nf_get_pol()
-            y^2 - 5
+        >>> y = pari.varhigher('y')
+        >>> L = K.rnfinit(y**2 - 5)
+        >>> L.nf_get_pol()
+        y^2 - 5
 
-        An error is raised for invalid input::
+        An error is raised for invalid input:
 
-            sage: pari("[0]").nf_get_pol()
-            Traceback (most recent call last):
-            ...
-            PariError: incorrect type in pol (t_VEC)
-
+        >>> pari("[0]").nf_get_pol()
+        Traceback (most recent call last):
+        ...
+        PariError: incorrect type in pol (t_VEC)
         """
         sig_on()
-        return new_gen(member_pol(self.g))
+        return clone_gen(member_pol(self.g))
 
     def nf_get_diff(self):
         """
@@ -667,15 +833,18 @@ cdef class Gen(Gen_base):
         - ``self`` -- A PARI number field being the output of ``nfinit()``,
                       ``bnfinit()`` or ``bnrinit()``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**4 - 4*x**2 + 1).nfinit()
-            sage: K.nf_get_diff()
-            [12, 0, 0, 0; 0, 12, 8, 0; 0, 0, 4, 0; 0, 0, 0, 4]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**4 - 4*x**2 + 1).nfinit()
+        >>> K.nf_get_diff()
+        [12, 0, 0, 0; 0, 12, 8, 0; 0, 0, 4, 0; 0, 0, 0, 4]
         """
         sig_on()
-        return new_gen(member_diff(self.g))
+        return clone_gen(member_diff(self.g))
 
     def nf_get_sign(self):
         """
@@ -688,27 +857,30 @@ cdef class Gen(Gen_base):
         - ``self`` -- A PARI number field being the output of ``nfinit()``,
                       ``bnfinit()`` or ``bnrinit()``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**4 - 4*x**2 + 1).nfinit()
-            sage: s = K.nf_get_sign(); s
-            [4, 0]
-            sage: type(s); type(s[0])
-            <... 'list'>
-            <... 'int'>
-            sage: pari.polcyclo(15).nfinit().nf_get_sign()
-            [0, 4]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**4 - 4*x**2 + 1).nfinit()
+        >>> s = K.nf_get_sign(); s
+        [4, 0]
+        >>> type(s); type(s[0])
+        <... 'list'>
+        <... 'int'>
+        >>> pari.polcyclo(15).nfinit().nf_get_sign()
+        [0, 4]
         """
-        cdef pari_longword r1
-        cdef pari_longword r2
+        cdef long r1
+        cdef long r2
         cdef GEN sign
         sig_on()
         sign = member_sign(self.g)
         r1 = itos(gel(sign, 1))
         r2 = itos(gel(sign, 2))
         sig_off()
-        return [int(r1), int(r2)]
+        return [r1, r2]
 
     def nf_get_zk(self):
         """
@@ -720,29 +892,105 @@ cdef class Gen(Gen_base):
         - ``self`` -- A PARI number field being the output of ``nfinit()``,
                       ``bnfinit()`` or ``bnrinit()``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**4 - 4*x**2 + 1).nfinit()
-            sage: K.nf_get_zk()
-            [1, x, x^3 - 4*x, x^2 - 2]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**4 - 4*x**2 + 1).nfinit()
+        >>> K.nf_get_zk()
+        [1, x, x^3 - 4*x, x^2 - 2]
         """
         sig_on()
-        return new_gen(member_zk(self.g))
+        return clone_gen(member_zk(self.g))
+
+    def bnf_get_fu(self):
+        """
+        Return the fundamental units
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+
+        >>> (x**2 - 65).bnfinit().bnf_get_fu()
+        [Mod(x - 8, x^2 - 65)]
+        >>> (x**4 - x**2 + 1).bnfinit().bnf_get_fu()
+        [Mod(x - 1, x^4 - x^2 + 1)]
+        >>> p = x**8 - 40*x**6 + 352*x**4 - 960*x**2 + 576
+        >>> len(p.bnfinit().bnf_get_fu())
+        7
+        """
+        sig_on()
+        return clone_gen(member_fu(self.g))
+
+    def bnf_get_tu(self):
+        r"""
+        Return the torsion unit
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+
+        >>> for p in [x**2 - 65, x**4 - x**2 + 1, x**8 - 40*x**6 + 352*x**4 - 960*x**2 + 576]:
+        ...     bnf = p.bnfinit()
+        ...     n, z = bnf.bnf_get_tu()
+        ...     if pari.version() < (2,11,0) and z.lift().poldegree() == 0: z = z.lift()
+        ...     print([p, n, z])
+        [x^2 - 65, 2, -1]
+        [x^4 - x^2 + 1, 12, Mod(x, x^4 - x^2 + 1)]
+        [x^8 - 40*x^6 + 352*x^4 - 960*x^2 + 576, 2, -1]
+        """
+        sig_on()
+        return clone_gen(member_tu(self.g))
+
+    def bnfunit(self):
+        r"""
+        Deprecated in cypari 2.1.2
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+
+        >>> x = pari('x')
+
+        >>> import warnings
+        >>> with warnings.catch_warnings(record=True) as w:
+        ...     warnings.simplefilter('always')
+        ...     funits = (x**2 - 65).bnfinit().bnfunit()
+        ...     assert len(w) == 1
+        ...     assert issubclass(w[0].category, DeprecationWarning)
+        >>> funits
+        [Mod(x - 8, x^2 - 65)]
+        """
+        from warnings import warn
+        warn("'bnfunit' in cypari is deprecated, use 'bnf_get_fu'", DeprecationWarning)
+        return self.bnf_get_fu()
 
     def bnf_get_no(self):
         """
         Returns the class number of ``self``, a "big number field" (``bnf``).
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**2 + 65).bnfinit()
-            sage: K.bnf_get_no()
-            8
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**2 + 65).bnfinit()
+        >>> K.bnf_get_no()
+        8
         """
         sig_on()
-        return new_gen(bnf_get_no(self.g))
+        return clone_gen(bnf_get_no(self.g))
 
     def bnf_get_cyc(self):
         """
@@ -751,15 +999,18 @@ cdef class Gen(Gen_base):
 
         NOTE: ``self`` must be a "big number field" (``bnf``).
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**2 + 65).bnfinit()
-            sage: K.bnf_get_cyc()
-            [4, 2]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**2 + 65).bnfinit()
+        >>> K.bnf_get_cyc()
+        [4, 2]
         """
         sig_on()
-        return new_gen(bnf_get_cyc(self.g))
+        return clone_gen(bnf_get_cyc(self.g))
 
     def bnf_get_gen(self):
         """
@@ -768,15 +1019,18 @@ cdef class Gen(Gen_base):
 
         NOTE: ``self`` must be a "big number field" (``bnf``).
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**2 + 65).bnfinit()
-            sage: G = K.bnf_get_gen(); G
-            [[3, 2; 0, 1], [2, 1; 0, 1]]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**2 + 65).bnfinit()
+        >>> G = K.bnf_get_gen(); G
+        [[3, 2; 0, 1], [2, 1; 0, 1]]
         """
         sig_on()
-        return new_gen(bnf_get_gen(self.g))
+        return clone_gen(bnf_get_gen(self.g))
 
     def bnf_get_reg(self):
         """
@@ -784,19 +1038,52 @@ cdef class Gen(Gen_base):
 
         NOTE: ``self`` must be a "big number field" (``bnf``).
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari('x')
-            sage: K = (x**4 - 4*x**2 + 1).bnfinit()
-            sage: K.bnf_get_reg()
-            2.66089858019037...
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari('x')
+        >>> K = (x**4 - 4*x**2 + 1).bnfinit()
+        >>> K.bnf_get_reg()
+        2.66089858019037...
         """
         sig_on()
-        return new_gen(bnf_get_reg(self.g))
+        return clone_gen(bnf_get_reg(self.g))
 
-    def bnfunit(self):
+    def idealmoddivisor(self, Gen ideal):
+        """
+        Return a 'small' ideal equivalent to ``ideal`` in the
+        ray class group that the bnr structure ``self`` encodes.
+
+        INPUT:
+
+        - ``self`` -- a bnr structure as outputted from bnrinit.
+        - ``ideal`` -- an ideal in the underlying number field of
+          the bnr structure.
+
+        OUTPUT: An ideal representing the same ray class as ``ideal``
+        but with 'small' generators. If ``ideal`` is not coprime to
+        the modulus of the bnr, this results in an error.
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> i = pari('i')
+        >>> K = (i**4 - 2).bnfinit()
+        >>> R = K.bnrinit(5,1)
+        >>> R.idealmoddivisor(K[6][6][1])
+        [2, 0, 0, 0; 0, 1, 0, 0; 0, 0, 1, 0; 0, 0, 0, 1]
+        >>> R.idealmoddivisor(K.idealhnf(5))
+        Traceback (most recent call last):
+        ...
+        PariError: elements not coprime in idealaddtoone:
+            [5, 0, 0, 0; 0, 5, 0, 0; 0, 0, 5, 0; 0, 0, 0, 5]
+            [5, 0, 0, 0; 0, 5, 0, 0; 0, 0, 5, 0; 0, 0, 0, 5]
+        """
         sig_on()
-        return new_gen(bnf_get_fu(self.g))
+        return new_gen(idealmoddivisor(self.g, ideal.g))
 
     def pr_get_p(self):
         """
@@ -805,17 +1092,20 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a PARI prime ideal (as returned by
         ``idealprimedec`` for example).
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).nfinit()
-            sage: F = K.idealprimedec(5); F
-            [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]]]
-            sage: F[0].pr_get_p()
-            5
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).nfinit()
+        >>> F = K.idealprimedec(5); F
+        [[5, [-2, 1]~, 1, 1, [2, -1; 1, 2]], [5, [2, 1]~, 1, 1, [-2, -1; 1, -2]]]
+        >>> F[0].pr_get_p()
+        5
         """
         sig_on()
-        return new_gen(pr_get_p(self.g))
+        return clone_gen(pr_get_p(self.g))
 
     def pr_get_e(self):
         """
@@ -824,22 +1114,25 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a PARI prime ideal (as returned by
         ``idealprimedec`` for example).
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).nfinit()
-            sage: K.idealprimedec(2)[0].pr_get_e()
-            2
-            sage: K.idealprimedec(3)[0].pr_get_e()
-            1
-            sage: K.idealprimedec(5)[0].pr_get_e()
-            1
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).nfinit()
+        >>> K.idealprimedec(2)[0].pr_get_e()
+        2
+        >>> K.idealprimedec(3)[0].pr_get_e()
+        1
+        >>> K.idealprimedec(5)[0].pr_get_e()
+        1
         """
-        cdef pari_longword e
+        cdef long e
         sig_on()
         e = pr_get_e(self.g)
         sig_off()
-        return pari_longword_to_int(e)
+        return e
 
     def pr_get_f(self):
         """
@@ -848,22 +1141,25 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a PARI prime ideal (as returned by
         ``idealprimedec`` for example).
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).nfinit()
-            sage: K.idealprimedec(2)[0].pr_get_f()
-            1
-            sage: K.idealprimedec(3)[0].pr_get_f()
-            2
-            sage: K.idealprimedec(5)[0].pr_get_f()
-            1
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).nfinit()
+        >>> K.idealprimedec(2)[0].pr_get_f()
+        1
+        >>> K.idealprimedec(3)[0].pr_get_f()
+        2
+        >>> K.idealprimedec(5)[0].pr_get_f()
+        1
         """
-        cdef pari_longword f
+        cdef long f
         sig_on()
         f = pr_get_f(self.g)
         sig_off()
-        return pari_longword_to_int(f)
+        return f
 
     def pr_get_gen(self):
         """
@@ -873,19 +1169,22 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a PARI prime ideal (as returned by
         ``idealprimedec`` for example).
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).nfinit()
-            sage: g = K.idealprimedec(2)[0].pr_get_gen(); g
-            [1, 1]~
-            sage: g = K.idealprimedec(3)[0].pr_get_gen(); g
-            [3, 0]~
-            sage: g = K.idealprimedec(5)[0].pr_get_gen(); g
-            [-2, 1]~
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).nfinit()
+        >>> g = K.idealprimedec(2)[0].pr_get_gen(); g
+        [1, 1]~
+        >>> g = K.idealprimedec(3)[0].pr_get_gen(); g
+        [3, 0]~
+        >>> g = K.idealprimedec(5)[0].pr_get_gen(); g
+        [-2, 1]~
         """
         sig_on()
-        return new_gen(pr_get_gen(self.g))
+        return clone_gen(pr_get_gen(self.g))
 
     def bid_get_cyc(self):
         """
@@ -895,16 +1194,19 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a "big ideal" (``bid``) as returned by
         ``idealstar`` for example.
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).bnfinit()
-            sage: J = K.idealstar(4*i + 2)
-            sage: J.bid_get_cyc()
-            [4, 2]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).bnfinit()
+        >>> J = K.idealstar(4*i + 2)
+        >>> J.bid_get_cyc()
+        [4, 2]
         """
         sig_on()
-        return new_gen(bid_get_cyc(self.g))
+        return clone_gen(bid_get_cyc(self.g))
 
     def bid_get_gen(self):
         """
@@ -914,150 +1216,151 @@ cdef class Gen(Gen_base):
         NOTE: ``self`` must be a "big ideal" (``bid``) with generators,
         as returned by ``idealstar`` with ``flag`` = 2.
 
-        EXAMPLES::
+        Examples:
 
-            sage: i = pari('i')
-            sage: K = (i**2 + 1).bnfinit()
-            sage: J = K.idealstar(4*i + 2, 2)
-            sage: J.bid_get_gen()
-            [7, [-2, -1]~]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> i = pari('i')
+        >>> K = (i**2 + 1).bnfinit()
+        >>> J = K.idealstar(4*i + 2, 2)
+        >>> J.bid_get_gen()
+        [7, [-2, -1]~]
 
         We get an exception if we do not supply ``flag = 2`` to
-        ``idealstar``::
+        ``idealstar``:
 
-            sage: J = K.idealstar(3)
-            sage: J.bid_get_gen()
-            Traceback (most recent call last):
-            ...
-            PariError: missing bid generators. Use idealstar(,,2)
+        >>> J = K.idealstar(3)
+        >>> J.bid_get_gen()
+        Traceback (most recent call last):
+        ...
+        PariError: missing bid generators. Use idealstar(,,2)
         """
         sig_on()
-        return new_gen(bid_get_gen(self.g))
+        return clone_gen(bid_get_gen(self.g))
 
     def __getitem__(self, n):
         """
-        Return the nth entry of self. The indexing is 0-based, like in
-        Python. Note that this is *different* than the default behavior
-        of the PARI/GP interpreter.
+        Return the n-th entry of self.
 
-        EXAMPLES::
+        .. NOTE::
 
-            sage: p = pari('1 + 2*x + 3*x^2')
-            sage: p[0]
-            1
-            sage: p[2]
-            3
-            sage: p[100]
-            0
-            sage: p[-1]
-            0
-            sage: q = pari('x^2 + 3*x^3 + O(x^6)')
-            sage: q[3]
-            3
-            sage: q[5]
-            0
-            sage: q[6]
-            Traceback (most recent call last):
-            ...
-            IndexError: index out of range
-            sage: m = pari('[1,2;3,4]')
-            sage: m[0]
-            [1, 3]~
-            sage: m[1,0]
-            3
-            sage: l = pari('List([1,2,3])')
-            sage: l[1]
-            2
-            sage: s = pari('"hello, world!"')
-            sage: s[0]
-            'h'
-            sage: s[4]
-            'o'
-            sage: s[12]
-            '!'
-            sage: s[13]
-            Traceback (most recent call last):
-            ...
-            IndexError: index out of range
-            sage: v = pari('[1,2,3]')
-            sage: v[0]
-            1
-            sage: c = pari('Col([1,2,3])')
-            sage: c[1]
-            2
-            sage: sv = pari('Vecsmall([1,2,3])')
-            sage: sv[2]
-            3
-            sage: type(sv[2])
-            <... 'int'>
-            sage: [pari('3/5')[i] for i in range(2)]
-            [3, 5]
-            sage: [pari('1 + 5*I')[i] for i in range(2)]
-            [1, 5]
-            sage: [pari('Qfb(1, 2, 3)')[i] for i in range(3)]
-            [1, 2, 3]
-            sage: pari(57)[0]
-            Traceback (most recent call last):
-            ...
-            TypeError: PARI object of type 't_INT' cannot be indexed
-            sage: m = pari("[[1,2;3,4],5]") ; m[0][1,0]
-            3
-            sage: v = pari(list(range(20)))
-            sage: v[2:5]
-            [2, 3, 4]
-            sage: v[:]
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: v[10:]
-            [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: v[:5]
-            [0, 1, 2, 3, 4]
-            sage: v[5:5]
-            []
-            sage: v
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: v[-1]
-            Traceback (most recent call last):
-            ...
-            IndexError: index out of range
-            sage: v[:-3]
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
-            sage: v[5:]
-            [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: pari([])[::]
-            []
+            The indexing is 0-based, like everywhere else in Python,
+            but *unlike* in PARI/GP.
+
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> p = pari('1 + 2*x + 3*x^2')
+        >>> p[0]
+        1
+        >>> p[2]
+        3
+        >>> p[100]
+        0
+        >>> p[-1]
+        0
+        >>> q = pari('x^2 + 3*x^3 + O(x^6)')
+        >>> q[3]
+        3
+        >>> q[5]
+        0
+        >>> q[6]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> m = pari('[1,2;3,4]')
+        >>> m[0]
+        [1, 3]~
+        >>> m[1,0]
+        3
+        >>> l = pari('List([1,2,3])')
+        >>> l[1]
+        2
+        >>> s = pari('"hello, world!"')
+        >>> s[0]
+        'h'
+        >>> s[4]
+        'o'
+        >>> s[12]
+        '!'
+        >>> s[13]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> v = pari('[1,2,3]')
+        >>> v[0]
+        1
+        >>> c = pari('Col([1,2,3])')
+        >>> c[1]
+        2
+        >>> sv = pari('Vecsmall([1,2,3])')
+        >>> sv[2]
+        3
+        >>> type(sv[2])
+        <... 'int'>
+        >>> [pari('1 + 5*I')[i] for i in range(2)]
+        [1, 5]
+        >>> [pari('Qfb(1, 2, 3)')[i] for i in range(3)]
+        [1, 2, 3]
+        >>> pari(57)[0]
+        Traceback (most recent call last):
+        ...
+        TypeError: PARI object of type t_INT cannot be indexed
+        >>> m = pari("[[1,2;3,4],5]") ; m[0][1,0]
+        3
+        >>> v = pari(range(20))
+        >>> v[2:5]
+        [2, 3, 4]
+        >>> v[:]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[10:]
+        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[:5]
+        [0, 1, 2, 3, 4]
+        >>> v[5:5]
+        []
+        >>> v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> v[-1]
+        Traceback (most recent call last):
+        ...
+        IndexError: index out of range
+        >>> v[:-3]
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+        >>> v[5:]
+        [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> pari([])[::]
+        []
         """
+        cdef Py_ssize_t i, j, k
+        cdef object ind
         cdef int pari_type
-        cdef pari_longword i, j, l
 
         pari_type = typ(self.g)
 
         if isinstance(n, tuple):
             if pari_type != t_MAT:
-                raise TypeError("self must be of pari type t_MAT")
-            if len(n) != 2:
-                raise IndexError("index must be an integer or a 2-tuple (i,j)")
-            i = int(n[0])
-            j = int(n[1])
+                raise TypeError("tuple indices are only defined for matrices")
 
-            if i < 0 or i >= glength(<GEN>(self.g[1])):
+            i, j = n
+
+            if i < 0 or i >= glength(gel(self.g, 1)):
                 raise IndexError("row index out of range")
             if j < 0 or j >= glength(self.g):
                 raise IndexError("column index out of range")
 
-            ind = (i,j)
+            ind = (i, j)
 
-            if self.refers_to is not None and ind in self.refers_to:
-                return self.refers_to[ind]
+            if self.itemcache is not None and ind in self.itemcache:
+                return self.itemcache[ind]
             else:
-                ## In this case, we're being asked to return
-                ## a GEN that has no Gen pointing to it, so
-                ## we need to create such a gen, add it to
-                ## self.refers_to, and return it.
-                val = new_ref(gmael(self.g, j+1, i+1), self)
-                if self.refers_to is None:
-                    self.refers_to = {ind: val}
-                else:
-                    self.refers_to[ind] = val
+                # Create a new Gen as child of self
+                # and store it in itemcache
+                val = self.new_ref(gmael(self.fixGEN(), j+1, i+1))
+                self.cache(ind, val)
                 return val
 
         elif isinstance(n, slice):
@@ -1075,313 +1378,297 @@ cdef class Gen(Gen_base):
                     return self.vecextract('"'+str(start+1)+".."+str(stop)+'"')
                 if step==-1:
                     return self.vecextract('"'+str(start+1)+".."+str(stop+2)+'"')
-                # slow call
-                return objtogen(self[i] for i in inds)
+            # slow call
+            return objtogen(self[i] for i in inds)
 
+        # Index is not a tuple or slice, convert to integer
+        i = n
+
+        ## there are no "out of bounds" problems
+        ## for a polynomial or power series, so these go before
+        ## bounds testing
         if pari_type == t_POL:
-                return self.polcoeff(n)
+            sig_on()
+            return new_gen(polcoeff0(self.g, i, -1))
 
         elif pari_type == t_SER:
             bound = valp(self.g) + lg(self.g) - 2
-            if n >= bound:
+            if i >= bound:
                 raise IndexError("index out of range")
-            return self.polcoeff(n)
+            sig_on()
+            return new_gen(polcoeff0(self.g, i, -1))
 
-        elif pari_type in (t_INT, t_REAL, t_PADIC, t_QUAD, t_FFELT, t_INTMOD, t_POLMOD):
+        elif pari_type in (t_INT, t_REAL, t_FRAC, t_RFRAC, t_PADIC, t_QUAD, t_FFELT, t_INTMOD, t_POLMOD):
             # these are definitely scalar!
-            raise TypeError("PARI object of type %r cannot be indexed" % self.type())
+            raise TypeError(f"PARI object of type {self.type()} cannot be indexed")
 
-        # Assume the length fits in a long, even in 64 bit Windows.
-        elif n < 0 or n >= <long>glength(self.g):
+        elif i < 0 or i >= glength(self.g):
             raise IndexError("index out of range")
 
         elif pari_type == t_VEC or pari_type == t_MAT:
             #t_VEC    : row vector        [ code ] [  x_1  ] ... [  x_k  ]
             #t_MAT    : matrix            [ code ] [ col_1 ] ... [ col_k ]
-            if self.refers_to is not None and n in self.refers_to:
-                return self.refers_to[n]
+            ind = i
+            if self.itemcache is not None and ind in self.itemcache:
+                return self.itemcache[ind]
             else:
-                ## In this case, we're being asked to return
-                ## a GEN that has no Gen pointing to it, so
-                ## we need to create such a gen, add it to
-                ## self.refers_to, and return it.
-                val = new_ref(gel(self.g, n+1), self)
-                if self.refers_to is None:
-                    self.refers_to = {n: val}
-                else:
-                    self.refers_to[n] = val
+                # Create a new Gen as child of self
+                # and store it in itemcache
+                val = self.new_ref(gel(self.fixGEN(), i+1))
+                self.cache(ind, val)
                 return val
 
         elif pari_type == t_VECSMALL:
             #t_VECSMALL: vec. small ints  [ code ] [ x_1 ] ... [ x_k ]
-            return pari_longword_to_int(self.g[n+1])
+            return self.g[i+1]
 
         elif pari_type == t_STR:
             #t_STR    : string            [ code ] [ man_1 ] ... [ man_k ]
-            return chr( (<char *>(self.g+1))[n] )
+            return chr(GSTR(self.g)[i])
 
         elif pari_type == t_LIST:
-            return self.component(n+1)
-
-        #elif pari_type in (t_FRAC, t_RFRAC):
-            # generic code gives us:
-            #   [0] = numerator
-            #   [1] = denominator
-
-        #elif pari_type == t_COMPLEX:
-            # generic code gives us
-            #   [0] = real part
-            #   [1] = imag part
-
-        #elif type(self.g) in (t_QFR, t_QFI):
-            # generic code works ok
+            return self.component(i+1)
 
         else:
-            ## generic code, which currently handles cases
-            ## as mentioned above
-            return new_ref(gel(self.g,n+1), self)
+            # generic code for other types
+            return self.new_ref(gel(self.fixGEN(), i+1))
 
     def __setitem__(self, n, y):
         r"""
-        Set the nth entry to a reference to y.
+        Set the n-th entry to a reference to y.
 
+        .. NOTE::
 
-            -  The indexing is 0-based, like everywhere else in Python, but
-               *unlike* in PARI/GP.
+            - The indexing is 0-based, like everywhere else in Python,
+              but *unlike* in PARI/GP.
 
-            -  Assignment sets the nth entry to a reference to y, assuming y is
-               an object of type gen. This is the same as in Python, but
-               *different* than what happens in the gp interpreter, where
-               assignment makes a copy of y.
+            - Assignment sets the nth entry to a reference to y. This is
+              the same as in Python, but *different* than what happens in
+              the GP interpreter, where assignment makes a copy of y.
 
-            -  Because setting creates references it is *possible* to make
-               circular references, unlike in GP. Do *not* do this (see the
-               example below). If you need circular references, work at the Python
-               level (where they work well), not the PARI object level.
+            - Because setting creates references it is *possible* to make
+              circular references, unlike in GP. Do *not* do this (see the
+              example below). If you need circular references, work at the
+              Python level (where they work well), not the PARI object
+              level.
 
+        Examples:
 
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        EXAMPLES::
+        >>> l = pari.List([1,2,3])
+        >>> l[0] = 3
+        >>> l
+        List([3, 2, 3])
 
-            sage: v = pari(list(range(10)))
-            sage: v
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: v[0] = 10
-            sage: w = pari([5,8,-20])
-            sage: v
-            [10, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: v[1] = w
-            sage: v
-            [10, [5, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: w[0] = -30
-            sage: v
-            [10, [-30, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: t = v[1]; t[1] = 10 ; v
-            [10, [-30, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: v[1][0] = 54321 ; v
-            [10, [54321, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: w
-            [54321, 10, -20]
-            sage: v = pari([[[[0,1],2],3],4]) ; v[0][0][0][1] = 12 ; v
-            [[[[0, 12], 2], 3], 4]
-            sage: m = pari.matrix(2,2,list(range(4))) ; l = pari([5,6]) ; n = pari.matrix(2,2,[7,8,9,0]) ; m[1,0] = l ; l[1] = n ; m[1,0][1][1,1] = 1111 ; m
-            [0, 1; [5, [7, 8; 9, 1111]], 3]
-            sage: m = pari("[[1,2;3,4],5,6]") ; m[0][1,1] = 11 ; m
-            [[1, 2; 3, 11], 5, 6]
+        >>> v = pari(range(10))
+        >>> v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[0] = 10
+        >>> w = pari([5,8,-20])
+        >>> v
+        [10, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[1] = w
+        >>> v
+        [10, [5, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> w[0] = -30
+        >>> v
+        [10, [-30, 8, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> t = v[1]; t[1] = 10 ; v
+        [10, [-30, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[1][0] = 54321 ; v
+        [10, [54321, 10, -20], 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> w
+        [54321, 10, -20]
+        >>> v = pari([[[[0,1],2],3],4])
+        >>> v[0][0][0][1] = 12
+        >>> v
+        [[[[0, 12], 2], 3], 4]
+        >>> m = pari.matrix(2,2,range(4)) ; l = pari([5,6]) ; n = pari.matrix(2,2,[7,8,9,0]) ; m[1,0] = l ; l[1] = n ; m[1,0][1][1,1] = 1111 ; m
+        [0, 1; [5, [7, 8; 9, 1111]], 3]
+        >>> m = pari("[[1,2;3,4],5,6]") ; m[0][1,1] = 11 ; m
+        [[1, 2; 3, 11], 5, 6]
 
-        Finally, we create a circular reference::
+        Finally, we create a circular reference:
 
-            sage: v = pari([0])
-            sage: w = pari([v])
-            sage: v
-            [0]
-            sage: w
-            [[0]]
-            sage: v[0] = w
+        >>> v = pari([0])
+        >>> w = pari([v])
+        >>> v
+        [0]
+        >>> w
+        [[0]]
+        >>> v[0] = w
 
-        Now there is a circular reference. Accessing v[0] will crash Sage.
+        Now there is a circular reference. Accessing v[0] will crash Python.
 
-        ::
+        >>> s = pari.vector(2,[0,0])
+        >>> s[:1]
+        [0]
+        >>> s[:1]=[1]
+        >>> s
+        [1, 0]
+        >>> type(s[0])
+        <... 'cypari._pari.Gen'>
+        >>> s = pari(range(20)) ; s
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> s[0:10:2] = range(50,55) ; s
+        [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+        >>> s[10:20:3] = range(100,150) ; s
+        [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 100, 11, 12, 101, 14, 15, 102, 17, 18, 103]
 
-            sage: s=pari.vector(2,[0,0])
-            sage: s[:1]
-            [0]
-            sage: s[:1]=[1]
-            sage: s
-            [1, 0]
-            sage: isinstance(s[0], Gen)
-            True
-            sage: s = pari(list(range(20))) ; s
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: s[0:10:2] = list(range(50,55)) ; s
-            [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-            sage: s[10:20:3] = list(range(100,150)) ; s
-            [50, 1, 51, 3, 52, 5, 53, 7, 54, 9, 100, 11, 12, 101, 14, 15, 102, 17, 18, 103]
+        Tests:
 
-        TESTS::
-
-            sage: v = pari(list(range(10))) ; v
-            [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-            sage: v[:] = list(range(20, 30))
-            sage: v
-            [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
-            sage: isinstance(v[0], Gen)
-            True
+        >>> v = pari(range(10)) ; v
+        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+        >>> v[:] = range(20, 30)
+        >>> v
+        [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+        >>> type(v[0])
+        <... 'cypari._pari.Gen'>
         """
-        cdef pari_longword i, j, l
+        cdef Py_ssize_t i, j, step
         cdef Gen x = objtogen(y)
-        cdef Py_ssize_t ii, jj, step
 
-        sig_on()
-        try:
-            if isinstance(n, tuple):
-                if typ(self.g) != t_MAT:
-                    raise TypeError("cannot index PARI type %s by tuple" % typ(self.g))
+        if isinstance(n, tuple):
+            if typ(self.g) != t_MAT:
+                raise TypeError("cannot index PARI type %s by tuple" % typ(self.g))
 
-                if len(n) != 2:
-                    raise ValueError("matrix index must be of the form [row, column]")
+            i, j = n
 
-                i = n[0]
-                j = n[1]
-                ind = (i,j)
+            if i < 0 or i >= glength(gel(self.g, 1)):
+                raise IndexError("row i(=%s) must be between 0 and %s" % (i, self.nrows()-1))
+            if j < 0 or j >= glength(self.g):
+                raise IndexError("column j(=%s) must be between 0 and %s" % (j, self.ncols()-1))
 
-                if i < 0 or i >= glength(<GEN>(self.g[1])):
-                    raise IndexError("row i(=%s) must be between 0 and %s" % (i, self.nrows()-1))
-                if j < 0 or j >= glength(self.g):
-                    raise IndexError("column j(=%s) must be between 0 and %s" % (j, self.ncols()-1))
-                if self.refers_to is None:
-                    self.refers_to = {ind: x}
-                else:
-                    self.refers_to[ind] = x
-                (<GEN>(self.g)[j+1])[i+1] = <pari_longword>(x.g)
-                return
-
-            elif isinstance(n, slice):
-                l = glength(self.g)
-                inds = range(*n.indices(l))
-                k = len(inds)
-                if k > len(y):
-                    raise ValueError("attempt to assign sequence of size %s to slice of size %s" % (len(y), k))
-
-                # actually set the values
-                for i,j in enumerate(inds):
-                    self[j] = y[i]
-                return
-
-            i = int(n)
-
-            if i < 0 or i >= glength(self.g):
-                raise IndexError("index (%s) must be between 0 and %s" % (i, <pari_longword>glength(self.g)-1))
-
-            # so python memory manager will work correctly
-            # and not free x if PARI part of self is the
-            # only thing pointing to it.
-            if self.refers_to is None:
-                self.refers_to = {i: x}
-            else:
-                self.refers_to[i] = x
-
-            ## correct indexing for t_POLs
-            if typ(self.g) == t_POL:
-                i = i + 1
-
-            ## actually set the value
-            (self.g)[i+1] = <pari_longword>(x.g)
+            self.cache((i,j), x)
+            xt = x.ref_target()
+            set_gcoeff(self.g, i+1, j+1, xt)
             return
-        finally:
-            sig_off()
+
+        elif isinstance(n, slice):
+            l = glength(self.g)
+            inds = xrange(*n.indices(l))
+            k = len(inds)
+            if k > len(y):
+                raise ValueError("attempt to assign sequence of size %s to slice of size %s" % (len(y), k))
+
+            # actually set the values
+            for a, b in enumerate(inds):
+                sig_check()
+                self[b] = y[a]
+            return
+
+        # Index is not a tuple or slice, convert to integer
+        i = n
+
+        if i < 0 or i >= glength(self.g):
+            raise IndexError("index (%s) must be between 0 and %s" % (i, glength(self.g)-1))
+
+        self.cache(i, x)
+        xt = x.ref_target()
+        if typ(self.g) == t_LIST:
+            listput(self.g, xt, i+1)
+        else:
+            # Correct indexing for t_POLs
+            if typ(self.g) == t_POL:
+                i += 1
+            # Actually set the value
+            set_gel(self.g, i+1, xt)
 
     def __len__(self):
         return glength(self.g)
 
-    def __richcmp__(left, right, int op):
+    def __richcmp__(self, right, int op):
         """
-        Compare ``left`` and ``right`` using ``op``.
+        Compare ``self`` and ``right`` using ``op``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: a = pari(5)
-            sage: b = 10
-            sage: a < b
-            True
-            sage: a <= b
-            True
-            sage: a <= 5
-            True
-            sage: a > b
-            False
-            sage: a >= b
-            False
-            sage: a >= pari(10)
-            False
-            sage: a == 5
-            True
-            sage: a is 5
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-            sage: pari(2.5) > None
-            True
-            sage: pari(3) == pari(3)
-            True
-            sage: pari('x^2 + 1') == pari('I-1')
-            False
-            sage: pari('I') == pari('I')
-            True
+        >>> a = pari(5)
+        >>> b = 10
+        >>> a < b
+        True
+        >>> a <= b
+        True
+        >>> a <= 5
+        True
+        >>> a > b
+        False
+        >>> a >= b
+        False
+        >>> a >= pari(10)
+        False
+        >>> a == 5
+        True
+        >>> a is 5
+        False
+
+        >>> pari(2.5) > None
+        True
+        >>> pari(3) == pari(3)
+        True
+        >>> pari('x^2 + 1') == pari('I-1')
+        False
+        >>> pari(I) == pari(I)
+        True
 
         This does not define a total order.  An error is raised when
-        applying inequality operators to non-ordered types::
+        applying inequality operators to non-ordered types:
 
-            sage: pari("Mod(1,3)") <= pari("Mod(2,3)")
-            Traceback (most recent call last):
-            ...
-            PariError: forbidden comparison t_INTMOD , t_INTMOD
-            sage: pari("[0]") <= pari("0")
-            Traceback (most recent call last):
-            ...
-            PariError: forbidden comparison t_VEC (1 elts) , t_INT
+        >>> pari("Mod(1,3)") <= pari("Mod(2,3)")
+        Traceback (most recent call last):
+        ...
+        PariError: forbidden comparison t_INTMOD , t_INTMOD
+        >>> pari("[0]") <= pari("0")
+        Traceback (most recent call last):
+        ...
+        PariError: forbidden comparison t_VEC (1 elts) , t_INT
 
-        TESTS:
+        Tests:
 
-        Check that :trac:`16127` has been fixed::
+        Check that :trac:`16127` has been fixed:
 
-            sage: pari('1/2') < pari('1/3')
-            False
-            sage: pari(1) < pari('1/2')
-            False
+        >>> pari('1/2') < pari('1/3')
+        False
+        >>> pari(1) < pari('1/2')
+        False
 
-            sage: pari('O(x)') == 0
-            True
-            sage: pari('O(2)') == 0
-            True
+        >>> pari('O(x)') == 0
+        True
+        >>> pari('O(2)') == 0
+        True
         """
-        cdef Gen t0, t1
+        cdef Gen t1
         try:
-            t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
         cdef bint r
-        cdef GEN x = t0.g
+        cdef GEN x = self.g
         cdef GEN y = t1.g
         sig_on()
-        if op == Py_EQ:
+        if op == pari_EQ:
             r = (gequal(x, y) != 0)
-        elif op == Py_NE:
+        elif op == pari_NE:
             r = (gequal(x, y) == 0)
-        elif op == Py_LE:
+        elif op == pari_LE:
             r = (gcmp(x, y) <= 0)
-        elif op == Py_GE:
+        elif op == pari_GE:
             r = (gcmp(x, y) >= 0)
-        elif op == Py_LT:
+        elif op == pari_LT:
             r = (gcmp(x, y) < 0)
-        else:  # Py_GT
+        else:  # pari_GT
             r = (gcmp(x, y) > 0)
         sig_off()
         return r
 
-    def __cmp__(self, Gen other):
+    def cmp(self, right):
         """
-        Compare ``left`` and ``right``.
+        Compare ``self`` and ``right``.
 
         This uses PARI's ``cmp_universal()`` routine, which defines
         a total ordering on the set of all PARI objects (up to the
@@ -1394,126 +1681,134 @@ cdef class Gen(Gen_base):
             rationals or reals, this does not correspond to the natural
             ordering.
 
-        EXAMPLES::
+        Examples:
 
-            sage: cmp(pari(5), 5)
-            0
-            sage: cmp(pari(5), 10)
-            -1
-            sage: cmp(pari(2.5), None)
-            1
-            sage: cmp(pari(3), pari(3))
-            0
-            sage: cmp(pari('x^2 + 1'), pari('I-1'))
-            1
-            sage: cmp(pari('I'), pari('I'))
-            0
-
-        Beware when comparing rationals or reals::
-
-            sage: cmp(pari('2/3'), pari('2/5'))
-            -1
-            sage: two = pari('2.000000000000000000000000')
-            sage: cmp(two, pari(1.0))
-            1
-            sage: cmp(two, pari(2.0))
-            1
-            sage: cmp(two, pari(3.0))
-            1
-
-        Since :trac:`17026`, different elements with the same string
-        representation can be distinguished by ``cmp()``::
-
-            sage: a = pari(0); a
-            0
-            sage: b = pari("0*ffgen(ffinit(29, 10))"); b
-            0
-            sage: cmp(a, b)
-            -1
-
-            sage: x = pari("x"); x
-            x
-            sage: y = pari("ffgen(ffinit(3, 5))"); y
-            x
-            sage: cmp(x, y)
-            1
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(5).cmp(pari(5))
+        0
+        >>> pari('x^2 + 1').cmp(pari('I-1'))
+        1
+        >>> I = pari('I')
+        >>> I.cmp(I)
+        0
+        >>> pari('2/3').cmp(pari('2/5'))
+        -1
+        >>> two = pari('2.000000000000000000000000')
+        >>> two.cmp(pari(1.0))
+        1
+        >>> two.cmp(pari(2.0))
+        1
+        >>> two.cmp(pari(3.0))
+        1
+        >>> f = pari("0*ffgen(ffinit(29, 10))")
+        >>> pari(0).cmp(f)
+        -1
+        >>> pari("'x").cmp(f)
+        1
+        >>> pari("'x").cmp(0)
+        Traceback (most recent call last):
+        ...
+        TypeError: Cannot convert int to cypari._pari.Gen_base
         """
+        other = <Gen?>right
         sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
-        sig_off()
-        return r
-
-    def cmp_universal(Gen self, Gen other):
-        """
-        Provide access to Pari's cmp_universal function in Python 3.  In
-        Python 2 cmp_universal is used by the __cmp__ method.
-        """
-        sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
+        r = cmp_universal(self.g, other.g)
         sig_off()
         return r
 
     def __copy__(self):
         sig_on()
-        return new_gen(gcopy(self.g))
+        return clone_gen(self.g)
 
-    def __hex__(self):
+    def __oct__(self):
         """
-        Return the hexadecimal digits of self in lower case.
-
-        EXAMPLES::
-
-            sage: print(hex(pari(0)))
-            0
-            sage: print(hex(pari(15)))
-            f
-            sage: print(hex(pari(16)))
-            10
-            sage: print(hex(pari(16938402384092843092843098243)))
-            36bb1e3929d1a8fe2802f083
-            sage: print(hex(long(16938402384092843092843098243)))
-            0x36bb1e3929d1a8fe2802f083L
-            sage: print(hex(pari(-16938402384092843092843098243)))
-            -36bb1e3929d1a8fe2802f083
+        Return the octal digits of self in lower case.
         """
         cdef GEN x
-        cdef int lx
-        cdef GEN xp
-        cdef pari_ulongword w
+        cdef long lx
+        cdef long *xp
+        cdef long w
         cdef char *s
         cdef char *sp
-        cdef char *hexdigits
-        hexdigits = "0123456789abcdef"
+        cdef char *octdigits = "01234567"
         cdef int i, j
-        cdef pari_longword size
+        cdef int size
         x = self.g
         if typ(x) != t_INT:
-            raise TypeError("Gen must be of PARI type t_INT")
+            raise TypeError("gen must be of PARI type t_INT")
         if not signe(x):
             return "0"
-        lx = lgefint(x)-2  # number of words
-        size = lx*2*sizeof(pari_ulongword)
-        s = <char *>sig_malloc(size+2) # 1 char for sign, 1 char for '\0'
-        sp = s + size + 1
+        lx = lgefint(x) - 2  # number of words
+        size = lx * 4 * sizeof(long)
+        s = <char *>check_malloc(size+3) # 1 char for sign, 1 char for 0, 1 char for '\0'
+        sp = s + size + 3 - 1 # last character
         sp[0] = 0
         xp = int_LSW(x)
         for i from 0 <= i < lx:
             w = xp[0]
-            for j from 0 <= j < 2*sizeof(pari_longword):
-                sp = sp-1
-                sp[0] = hexdigits[w & 15]
-                w = w>>4
+            for j in range(4*sizeof(long)):
+                sp -= 1
+                sp[0] = octdigits[w & 7]
+                w >>= 3
             xp = int_nextW(xp)
         # remove leading zeros!
         while sp[0] == c'0':
-            sp = sp+1
+            sp += 1
+        sp -= 1
+        sp[0] = c'0'
         if signe(x) < 0:
-            sp = sp-1
+            sp -= 1
             sp[0] = c'-'
-        k = <object>sp
+        k = <bytes> sp
         sig_free(s)
         return k
-    
+
+    def __hex__(self):
+        """
+        Return the hexadecimal digits of self in lower case.
+        """
+        cdef GEN x
+        cdef long lx
+        cdef long *xp
+        cdef long w
+        cdef char *s
+        cdef char *sp
+        cdef char *hexdigits = "0123456789abcdef"
+        cdef int i, j
+        cdef int size
+        x = self.g
+        if typ(x) != t_INT:
+            raise TypeError("gen must be of PARI type t_INT")
+        if not signe(x):
+            return "0x0"
+        lx = lgefint(x) - 2  # number of words
+        size = lx*2*sizeof(long)
+        s = <char *>check_malloc(size+4) # 1 char for sign, 2 chars for 0x, 1 char for '\0'
+        sp = s + size + 4 - 1 # last character
+        sp[0] = 0
+        xp = int_LSW(x)
+        for i from 0 <= i < lx:
+            w = xp[0]
+            for j in range(2*sizeof(long)):
+                sp -= 1
+                sp[0] = hexdigits[w & 15]
+                w >>= 4
+            xp = int_nextW(xp)
+        # remove leading zeros!
+        while sp[0] == c'0':
+            sp = sp + 1
+        sp -= 1
+        sp[0] = c'x'
+        sp -= 1
+        sp[0] = c'0'
+        if signe(x) < 0:
+            sp -= 1
+            sp[0] = c'-'
+        k = <bytes> sp
+        sig_free(s)
+        return k
+
     def __int__(self):
         """
         Convert ``self`` to a Python integer.
@@ -1521,30 +1816,34 @@ cdef class Gen(Gen_base):
         If the number is too large to fit into a Python ``int``, a
         Python ``long`` is returned instead.
 
-        EXAMPLES::
+        Examples:
 
-            sage: int(pari(0))
-            0
-            sage: int(pari(10))
-            10
-            sage: int(pari(-10))
-            -10
-            sage: str(int(pari(123456789012345678901234567890)))
-            '123456789012345678901234567890'
-            sage: str(int(pari(-123456789012345678901234567890)))
-            '-123456789012345678901234567890'
-            sage: int(pari(2**31-1))
-            2147483647
-            sage: int(pari(-2**31))
-            -2147483648
-            sage: int(pari("Pol(10)"))
-            10
-            sage: int(pari("Mod(2, 7)"))
-            2
-            sage: int(pari(2**63-1)) == 9223372036854775807
-            True
-            sage: int(pari(2**63+2)) == 9223372036854775810
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> int(pari(0))
+        0
+        >>> int(pari(10))
+        10
+        >>> int(pari(-10))
+        -10
+        >>> int(pari(123456789012345678901234567890)) == 123456789012345678901234567890
+        True
+        >>> int(pari(-123456789012345678901234567890)) == -123456789012345678901234567890
+        True
+        >>> int(pari(2**31-1))
+        2147483647
+        >>> int(pari(-2**31))
+        -2147483648
+        >>> int(pari("Pol(10)"))
+        10
+        >>> int(pari("Mod(2, 7)"))
+        2
+
+        >>> int(pari(2**63-1)) == 9223372036854775807
+        True
+        >>> int(pari(2**63+2)) == 9223372036854775810
+        True
         """
         return gen_to_integer(self)
 
@@ -1553,25 +1852,35 @@ cdef class Gen(Gen_base):
         Coerce ``self`` (which must be a :class:`Gen` of type
         ``t_INT``) to a Python integer.
 
-        EXAMPLES::
- 
-            >>> from operator import index
-            >>> i = pari(2)
-            >>> i.__index__()
-            2
-            >>> L = [0, 1, 2, 3, 4]
-            >>> L[i]
-            2
-            >>> pari("2^100").__index__() == 1267650600228229401496703205376
-            True
-            >>> pari("2.5").__index__()
-            Traceback (most recent call last):
-            ...
-            TypeError: cannot coerce 2.50000000000000 (type t_REAL) to integer
+        Examples:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> from operator import index
+        >>> i = pari(2)
+        >>> index(i)
+        2
+        >>> L = [0, 1, 2, 3, 4]
+        >>> L[i]
+        2
+        >>> print(index(pari("2^100")))
+        1267650600228229401496703205376
+        >>> index(pari("2.5"))
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot coerce 2.50000000000000 (type t_REAL) to integer
+
+        >>> for i in [0,1,2,15,16,17,1213051238]:
+        ...     assert bin(pari(i)) == bin(i)
+        ...     assert bin(pari(-i)) == bin(-i)
+        ...     assert oct(pari(i)) == oct(i)
+        ...     assert oct(pari(-i)) == oct(-i)
+        ...     assert hex(pari(i)) == hex(i)
+        ...     assert hex(pari(-i)) == hex(-i)
         """
         if typ(self.g) != t_INT:
-            msg = "cannot coerce {0!r} (type {1}) to integer".format(self, self.type())
-            raise TypeError(msg)
+            raise TypeError(f"cannot coerce {self!r} (type {self.type()}) to integer")
         return gen_to_integer(self)
 
     def python_list_small(self):
@@ -1579,20 +1888,22 @@ cdef class Gen(Gen_base):
         Return a Python list of the PARI gens. This object must be of type
         t_VECSMALL, and the resulting list contains python 'int's.
 
-        EXAMPLES::
+        Examples:
 
-            sage: v=pari([1,2,3,10,102,10]).Vecsmall()
-            sage: w = v.python_list_small()
-            sage: w
-            [1, 2, 3, 10, 102, 10]
-            sage: type(w[0])
-            <... 'int'>
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> v=pari([1,2,3,10,102,10]).Vecsmall()
+        >>> w = v.python_list_small()
+        >>> w
+        [1, 2, 3, 10, 102, 10]
+        >>> type(w[0])
+        <... 'int'>
         """
         cdef long n
         if typ(self.g) != t_VECSMALL:
             raise TypeError("Object (=%s) must be of type t_VECSMALL." % self)
-        return [pari_longword_to_int(self.g[n+1])
-                for n in range(<long>glength(self.g))]
+        return [self.g[n+1] for n in range(glength(self.g))]
 
     def python_list(self):
         """
@@ -1607,26 +1918,30 @@ cdef class Gen(Gen_base):
            elements of the input gen.
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: v = pari([1,2,3,10,102,10])
-            sage: w = v.python_list()
-            sage: w
-            [1, 2, 3, 10, 102, 10]
-            sage: isinstance(w[0], Gen)
-            True
-            sage: pari("[1,2,3]").python_list()
-            [1, 2, 3]
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-            sage: pari("[1,2,3]~").python_list()
-            [1, 2, 3]
+        >>> v = pari([1,2,3,10,102,10])
+        >>> w = v.python_list()
+        >>> w
+        [1, 2, 3, 10, 102, 10]
+        >>> type(w[0])
+        <... 'cypari._pari.Gen'>
+        >>> pari("[1,2,3]").python_list()
+        [1, 2, 3]
+
+        >>> pari("[1,2,3]~").python_list()
+        [1, 2, 3]
         """
+        # TODO: deprecate
         cdef long n
         cdef Gen t
 
         if typ(self.g) != t_VEC and typ(self.g) != t_COL:
             raise TypeError("Object (=%s) must be of type t_VEC or t_COL." % self)
-        return [self[n] for n in range(<long>glength(self.g))]
+        return [self[n] for n in range(glength(self.g))]
 
     def python(self):
         """
@@ -1634,39 +1949,55 @@ cdef class Gen(Gen_base):
 
         See :func:`~sage.libs.cypari.convert.gen_to_python` for more informations.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('1.2').python()
-            1.2
-            sage: pari('389/17').python()
-            Fraction(389, 17)
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('1.2').python()
+        1.2
+        >>> pari('389/17').python()
+        Fraction(389, 17)
         """
+        from .convert import gen_to_python
         return gen_to_python(self)
+
+    def sage(self, locals=None):
+        r"""
+        Return the closest SageMath equivalent of the given PARI object.
+
+        INPUT:
+
+        - ``locals`` -- optional dictionary used in fallback cases that
+          involve ``sage_eval``
+
+        See :func:`~sage.libs.pari.convert_sage.gen_to_sage` for more information.
+        """
+        from sage.libs.pari.convert_sage import gen_to_sage
+        return gen_to_sage(self, locals)
 
     def __long__(self):
         """
         Convert ``self`` to a Python ``long``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: long(pari(0))
-            0L
-            sage: long(pari(10))
-            10L
-            sage: long(pari(-10))
-            -10L
-            sage: long(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            sage: long(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
-            sage: long(pari(2**31-1))
-            2147483647L
-            sage: long(pari(-2**31))
-            -2147483648L
-            sage: long(pari("Pol(10)"))
-            10L
-            sage: long(pari("Mod(2, 7)"))
-            2L
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> import sys
+
+        >>> if sys.version_info.major == 3:
+        ...     long = int
+        >>> assert isinstance(long(pari(0)), long)
+        >>> assert long(pari(0)) == 0
+        >>> assert long(pari(10)) == 10
+        >>> assert long(pari(-10)) == -10
+        >>> assert long(pari(123456789012345678901234567890)) == 123456789012345678901234567890
+        >>> assert long(pari(-123456789012345678901234567890)) == -123456789012345678901234567890
+        >>> assert long(pari(2**31-1)) == 2147483647
+        >>> assert long(pari(-2**31)) == -2147483648
+        >>> assert long(pari("Pol(10)")) == 10
+        >>> assert long(pari("Mod(2, 7)")) == 2
         """
         x = gen_to_integer(self)
         if isinstance(x, long):
@@ -1686,47 +2017,72 @@ cdef class Gen(Gen_base):
 
     def __complex__(self):
         r"""
-        Return ``self`` as a Python ``complex``
-        value.
+        Return ``self`` as a Python ``complex`` value.
 
-        EXAMPLES::
+        Examples:
 
-            sage: g = pari(-1.0)**(0.2); g
-            0.809016994374947 + 0.587785252292473*I
-            sage: g.__complex__()
-            (0.8090169943749475+0.5877852522924731j)
-            sage: complex(g)
-            (0.8090169943749475+0.5877852522924731j)
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        ::
+        >>> g = pari(-1.0)**(0.2); g
+        0.809016994374947 + 0.587785252292473*I
+        >>> g.__complex__()
+        (0.8090169943749475+0.5877852522924731j)
+        >>> complex(g)
+        (0.8090169943749475+0.5877852522924731j)
 
-            sage: g = pari('Mod(3,5)'); g
-            Mod(3, 5)
-            sage: complex(g)
-            Traceback (most recent call last):
-            ...
-            PariError: incorrect type in greal/gimag (t_INTMOD)
+        >>> g = pari('2/3')
+        >>> complex(g)
+        (0.6666666666666666+0j)
+
+        >>> g = pari.quadgen(-23)
+        >>> complex(g)
+        (0.5+2.3979157616563596j)
+
+        >>> g = pari.quadgen(5) + pari('2/3')
+        >>> complex(g)
+        (2.2847006554165614+0j)
+
+        >>> g = pari('Mod(3,5)'); g
+        Mod(3, 5)
+        >>> complex(g)
+        Traceback (most recent call last):
+        ...
+        PariError: incorrect type in gtofp (t_INTMOD)
         """
         cdef double re, im
         sig_on()
-        re = gtodouble(greal(self.g))
-        im = gtodouble(gimag(self.g))
-        sig_off()
+        # First convert to floating point (t_REAL or t_COMPLEX)
+        # Note: DEFAULTPREC means 64 bits of precision
+        fp = gtofp(self.g, pari_DEFAULTPREC)
+        if typ(fp) == t_REAL:
+            re = rtodbl(fp)
+            im = 0
+        elif typ(fp) == t_COMPLEX:
+            re = gtodouble(gel(fp, 1))
+            im = gtodouble(gel(fp, 2))
+        else:
+            sig_off()
+            raise AssertionError("unrecognized output from gtofp()")
+        clear_stack()
         return complex(re, im)
 
     def __nonzero__(self):
         """
-        EXAMPLES::
+        Examples:
 
-            sage: pari('1').__nonzero__()
-            True
-            sage: pari('x').__nonzero__()
-            True
-            sage: bool(pari(0))
-            False
-            sage: a = pari('Mod(0,3)')
-            sage: a.__nonzero__()
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('1').__nonzero__()
+        True
+        >>> pari('x').__nonzero__()
+        True
+        >>> bool(pari(0))
+        False
+        >>> a = pari('Mod(0,3)')
+        >>> a.__nonzero__()
+        False
         """
         return not gequal0(self.g)
 
@@ -1734,29 +2090,32 @@ cdef class Gen(Gen_base):
         r"""
         Check whether `a` and `b` are equal using PARI's ``gequal``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: a = pari(1); b = pari(1.0); c = pari('"some_string"')
-            sage: a.gequal(a)
-            True
-            sage: b.gequal(b)
-            True
-            sage: c.gequal(c)
-            True
-            sage: a.gequal(b)
-            True
-            sage: a.gequal(c)
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        WARNING: this relation is not transitive::
+        >>> a = pari(1); b = pari(1.0); c = pari('"some_string"')
+        >>> a.gequal(a)
+        True
+        >>> b.gequal(b)
+        True
+        >>> c.gequal(c)
+        True
+        >>> a.gequal(b)
+        True
+        >>> a.gequal(c)
+        False
 
-            sage: a = pari('[0]'); b = pari(0); c = pari('[0,0]')
-            sage: a.gequal(b)
-            True
-            sage: b.gequal(c)
-            True
-            sage: a.gequal(c)
-            False
+        WARNING: this relation is not transitive:
+
+        >>> a = pari('[0]'); b = pari(0); c = pari('[0,0]')
+        >>> a.gequal(b)
+        True
+        >>> b.gequal(c)
+        True
+        >>> a.gequal(c)
+        False
         """
         cdef Gen t0 = objtogen(b)
         sig_on()
@@ -1768,18 +2127,21 @@ cdef class Gen(Gen_base):
         r"""
         Check whether `a` is equal to zero.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(0).gequal0()
-            True
-            sage: pari(1).gequal0()
-            False
-            sage: pari(1e-100).gequal0()
-            False
-            sage: pari("0.0 + 0.0*I").gequal0()
-            True
-            sage: (pari('ffgen(3^20)')*0).gequal0()
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(0).gequal0()
+        True
+        >>> pari(1).gequal0()
+        False
+        >>> pari(1e-100).gequal0()
+        False
+        >>> pari("0.0 + 0.0*I").gequal0()
+        True
+        >>> (pari('ffgen(3^20)')*0).gequal0()
+        True
         """
         sig_on()
         cdef int ret = gequal0(a.g)
@@ -1790,23 +2152,26 @@ cdef class Gen(Gen_base):
         r"""
         Check whether `a` is equal to the ``long int`` `b` using PARI's ``gequalsg``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: a = pari(1); b = pari(2.0); c = pari('3*matid(3)')
-            sage: a.gequal_long(1)
-            True
-            sage: a.gequal_long(-1)
-            False
-            sage: a.gequal_long(0)
-            False
-            sage: b.gequal_long(2)
-            True
-            sage: b.gequal_long(-2)
-            False
-            sage: c.gequal_long(3)
-            True
-            sage: c.gequal_long(-3)
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> a = pari(1); b = pari(2.0); c = pari('3*matid(3)')
+        >>> a.gequal_long(1)
+        True
+        >>> a.gequal_long(-1)
+        False
+        >>> a.gequal_long(0)
+        False
+        >>> b.gequal_long(2)
+        True
+        >>> b.gequal_long(-2)
+        False
+        >>> c.gequal_long(3)
+        True
+        >>> c.gequal_long(-3)
+        False
         """
         sig_on()
         cdef int ret = gequalsg(b, a.g)
@@ -1815,49 +2180,43 @@ cdef class Gen(Gen_base):
 
     def isprime(self, long flag=0):
         """
-        isprime(x, flag=0): Returns True if x is a PROVEN prime number, and
-        False otherwise.
+        Return True if x is a PROVEN prime number, and False otherwise.
 
         INPUT:
 
+        - ``flag`` -- If flag is 0 or omitted, use a combination of
+          algorithms. If flag is 1, the primality is  certified by the
+          Pocklington-Lehmer Test. If flag is 2, the primality is
+          certified using the APRCL test. If flag is 3, use ECPP.
 
-        -  ``flag`` - int 0 (default): use a combination of
-           algorithms. 1: certify primality using the Pocklington-Lehmer Test.
-           2: certify primality using the APRCL test.
+        OUTPUT: bool
 
+        Examples:
 
-        OUTPUT:
-
-
-        -  ``bool`` - True or False
-
-
-        EXAMPLES::
-
-            sage: pari(9).isprime()
-            False
-            sage: pari(17).isprime()
-            True
-            sage: n = pari(561)    # smallest Carmichael number
-            sage: n.isprime()      # not just a pseudo-primality test!
-            False
-            sage: n.isprime(1)
-            False
-            sage: n.isprime(2)
-            False
-            sage: n = pari(2**31-1)
-            sage: n.isprime(1)
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(9).isprime()
+        False
+        >>> pari(17).isprime()
+        True
+        >>> n = pari(561)    # smallest Carmichael number
+        >>> n.isprime()      # not just a pseudo-primality test!
+        False
+        >>> n.isprime(1)
+        False
+        >>> n.isprime(2)
+        False
+        >>> n = pari(2**31-1)
+        >>> n.isprime(1)
+        True
         """
-        cdef GEN x
         sig_on()
         x = gisprime(self.g, flag)
-        if typ(x) != t_INT:
-            # case flag=1 with prime input: x is the certificate
-            return True, new_gen(x)
-        else:
-            sig_off()
-            return signe(x) != 0
+        # PARI-2.9 may return a primality certificate if flag==1.
+        # So a non-INT is interpreted as True
+        cdef bint ret = (typ(x) != t_INT) or (signe(x) != 0)
+        clear_stack()
+        return ret
 
     def ispseudoprime(self, long flag=0):
         """
@@ -1883,18 +2242,20 @@ cdef class Gen(Gen_base):
            (True, cert) where ``cert`` is a primality certificate.
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(9).ispseudoprime()
-            False
-            sage: pari(17).ispseudoprime()
-            True
-            sage: n = pari(561)     # smallest Carmichael number
-            sage: n.ispseudoprime(2)
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(9).ispseudoprime()
+        False
+        >>> pari(17).ispseudoprime()
+        True
+        >>> n = pari(561)     # smallest Carmichael number
+        >>> n.ispseudoprime(2)
+        False
         """
         sig_on()
-        cdef pari_longword t = ispseudoprime(self.g, flag)
+        cdef long t = ispseudoprime(self.g, flag)
         sig_off()
         return t != 0
 
@@ -1917,26 +2278,28 @@ cdef class Gen(Gen_base):
         -  ``g`` - what it is a power of
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(9).ispower()
-            (2, 3)
-            sage: pari(17).ispower()
-            (1, 17)
-            sage: pari(17).ispower(2)
-            (False, None)
-            sage: pari(17).ispower(1)
-            (1, 17)
-            sage: pari(2).ispower()
-            (1, 2)
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(9).ispower()
+        (2, 3)
+        >>> pari(17).ispower()
+        (1, 17)
+        >>> pari(17).ispower(2)
+        (False, None)
+        >>> pari(17).ispower(1)
+        (1, 17)
+        >>> pari(2).ispower()
+        (1, 2)
         """
-        cdef long n
+        cdef int n
         cdef GEN x
         cdef Gen t0
 
         if k is None:
             sig_on()
-            n = <long>gisanypower(self.g, &x)
+            n = gisanypower(self.g, &x)
             if n == 0:
                 sig_off()
                 return 1, self
@@ -1945,7 +2308,7 @@ cdef class Gen(Gen_base):
         else:
             t0 = objtogen(k)
             sig_on()
-            n = <long>ispower(self.g, t0.g, &x)
+            n = ispower(self.g, t0.g, &x)
             if n == 0:
                 sig_off()
                 return False, None
@@ -1974,22 +2337,24 @@ cdef class Gen(Gen_base):
             If you don't need a proof that `p` is prime, you can use
             :meth:`ispseudoprimepower` instead.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(9).isprimepower()
-            (2, 3)
-            sage: pari(17).isprimepower()
-            (1, 17)
-            sage: pari(18).isprimepower()
-            (0, 18)
-            sage: pari(3**12345).isprimepower()
-            (12345, 3)
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(9).isprimepower()
+        (2, 3)
+        >>> pari(17).isprimepower()
+        (1, 17)
+        >>> pari(18).isprimepower()
+        (0, 18)
+        >>> pari(3**12345).isprimepower()
+        (12345, 3)
         """
         cdef GEN x
         cdef long n
 
         sig_on()
-        n = <long>isprimepower(self.g, &x)
+        n = isprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2014,19 +2379,22 @@ cdef class Gen(Gen_base):
           and `k` the power.
         - Otherwise, `k = 0` and `p` is ``self``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(3**12345).ispseudoprimepower()
-            (12345, 3)
-            sage: p = pari(2**1500 + 1465)         # nextprime(2^1500)
-            sage: (p**11).ispseudoprimepower()[0]  # very fast
-            11
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(3**12345).ispseudoprimepower()
+        (12345, 3)
+        >>> p = pari(2**1500 + 1465)         # nextprime(2^1500)
+        >>> (p**11).ispseudoprimepower()[0]  # very fast
+        11
         """
         cdef GEN x
         cdef long n
 
         sig_on()
-        n = <long>ispseudoprimepower(self.g, &x)
+        n = ispseudoprimepower(self.g, &x)
         if n == 0:
             sig_off()
             return 0, self
@@ -2037,10 +2405,13 @@ cdef class Gen(Gen_base):
         """
         Return the maximum of the elements of the vector/matrix `x`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari([1, '-5/3', 8.0]).vecmax()
-            8.00000000000000
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari([1, '-5/3', 8.0]).vecmax()
+        8.00000000000000
         """
         sig_on()
         return new_gen(vecmax(x.g))
@@ -2049,115 +2420,18 @@ cdef class Gen(Gen_base):
         """
         Return the minimum of the elements of the vector/matrix `x`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari([1, '-5/3', 8.0]).vecmin()
-            -5/3
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari([1, '-5/3', 8.0]).vecmin()
+        -5/3
         """
         sig_on()
         return new_gen(vecmin(x.g))
 
-    def Col(x, long n = 0):
-        """
-        Transform the object `x` into a column vector with minimal size `|n|`.
-
-        INPUT:
-
-        - ``x`` -- gen
-
-        - ``n`` -- Make the column vector of minimal length `|n|`. If `n > 0`,
-          append zeros; if `n < 0`, prepend zeros.
-
-        OUTPUT:
-
-        A PARI column vector (type ``t_COL``)
-
-        EXAMPLES::
-
-            sage: pari(1.5).Col()
-            [1.50000000000000]~
-            sage: pari([1,2,3,4]).Col()
-            [1, 2, 3, 4]~
-            sage: pari('[1,2; 3,4]').Col()
-            [[1, 2], [3, 4]]~
-            sage: pari('"CyPari"').Col()
-            ["C", "y", "P", "a", "r", "i"]~
-            sage: pari('x + 3*x^3').Col()
-            [3, 0, 1, 0]~
-            sage: pari('x + 3*x^3 + O(x^5)').Col()
-            [1, 0, 3, 0]~
-
-        We demonstate the `n` argument::
-
-            sage: pari([1,2,3,4]).Col(2)
-            [1, 2, 3, 4]~
-            sage: pari([1,2,3,4]).Col(-2)
-            [1, 2, 3, 4]~
-            sage: pari([1,2,3,4]).Col(6)
-            [1, 2, 3, 4, 0, 0]~
-            sage: pari([1,2,3,4]).Col(-6)
-            [0, 0, 1, 2, 3, 4]~
-
-        See also :meth:`Vec` (create a row vector) for more examples
-        and :meth:`Colrev` (create a column in reversed order).
-        """
-        sig_on()
-        return new_gen(_Vec_append(gtocol(x.g), gen_0, n))
-
-    def Colrev(x, long n = 0):
-        """
-        Transform the object `x` into a column vector with minimal size `|n|`.
-        The order of the resulting vector is reversed compared to :meth:`Col`.
-
-        INPUT:
-
-        - ``x`` -- gen
-
-        - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
-          prepend zeros; if `n < 0`, append zeros.
-
-        OUTPUT:
-
-        A PARI column vector (type ``t_COL``)
-
-        EXAMPLES::
-
-            sage: pari(1.5).Colrev()
-            [1.50000000000000]~
-            sage: pari([1,2,3,4]).Colrev()
-            [4, 3, 2, 1]~
-            sage: pari('[1,2; 3,4]').Colrev()
-            [[3, 4], [1, 2]]~
-            sage: pari('x + 3*x^3').Colrev()
-            [0, 1, 0, 3]~
-
-        We demonstate the `n` argument::
-
-            sage: pari([1,2,3,4]).Colrev(2)
-            [4, 3, 2, 1]~
-            sage: pari([1,2,3,4]).Colrev(-2)
-            [4, 3, 2, 1]~
-            sage: pari([1,2,3,4]).Colrev(6)
-            [0, 0, 4, 3, 2, 1]~
-            sage: pari([1,2,3,4]).Colrev(-6)
-            [4, 3, 2, 1, 0, 0]~
-        """
-        sig_on()
-        # Create a non-reversed column vector
-        cdef GEN v = _Vec_append(gtocol(x.g), gen_0, n)
-        # Reverse it in-place
-        cdef GEN L = v + 1
-        cdef GEN R = v + (lg(v)-1)
-        cdef pari_longword t
-        while (L < R):
-            t = L[0]
-            L[0] = R[0]
-            R[0] = t
-            L += 1
-            R -= 1
-        return new_gen(v)
-
-    def Ser(f, v=-1, long precision=-1):
+    def Ser(f, v=None, long precision=-1):
         """
         Return a power series or Laurent series in the variable `v`
         constructed from the object `f`.
@@ -2196,31 +2470,34 @@ cdef class Gen(Gen_base):
            This function will not transform objects containing
            variables of higher priority than `v`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(2).Ser()
-            2 + O(x^16)
-            sage: pari('Mod(0, 7)').Ser()
-            Mod(0, 7)*x^15 + O(x^16)
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-            sage: x = pari([1, 2, 3, 4, 5])
-            sage: x.Ser()
-            1 + 2*x + 3*x^2 + 4*x^3 + 5*x^4 + O(x^16)
-            sage: f = x.Ser('v'); print(f)
-            1 + 2*v + 3*v^2 + 4*v^3 + 5*v^4 + O(v^16)
-            sage: pari(1)/f
-            1 - 2*v + v^2 + 6*v^5 - 17*v^6 + 16*v^7 - 5*v^8 + 36*v^10 - 132*v^11 + 181*v^12 - 110*v^13 + 25*v^14 + 216*v^15 + O(v^16)
+        >>> pari(2).Ser()
+        2 + O(x^16)
+        >>> pari('Mod(0, 7)').Ser()
+        Mod(0, 7)*x^15 + O(x^16)
 
-            sage: pari('x^5').Ser(precision=20)
-            x^5 + O(x^25)
-            sage: pari('1/x').Ser(precision=1)
-            x^-1 + O(x^0)
+        >>> x = pari([1, 2, 3, 4, 5])
+        >>> x.Ser()
+        1 + 2*x + 3*x^2 + 4*x^3 + 5*x^4 + O(x^16)
+        >>> f = x.Ser('v'); print(f)
+        1 + 2*v + 3*v^2 + 4*v^3 + 5*v^4 + O(v^16)
+        >>> pari(1)/f
+        1 - 2*v + v^2 + 6*v^5 - 17*v^6 + 16*v^7 - 5*v^8 + 36*v^10 - 132*v^11 + 181*v^12 - 110*v^13 + 25*v^14 + 216*v^15 + O(v^16)
+
+        >>> pari('x^5').Ser(precision=20)
+        x^5 + O(x^25)
+        >>> pari('1/x').Ser(precision=1)
+        x^-1 + O(x^0)
 
         """
         if precision < 0:
-            precision = <long>precdl  # Global PARI series precision
+            precision = precdl  # Global PARI series precision
         sig_on()
-        cdef long vn = <long>get_var(v)
+        cdef long vn = get_var(v)
         if typ(f.g) == t_VEC:
             # The precision flag is ignored for vectors, so we first
             # convert the vector to a polynomial.
@@ -2246,19 +2523,22 @@ cdef class Gen(Gen_base):
            string
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari([1,2,['abc',1]]).Str()
-            "[1, 2, [abc, 1]]"
-            sage: pari([1,1, 1.54]).Str()
-            "[1, 1, 1.54000000000000]"
-            sage: pari(1).Str()       # 1 is automatically converted to string rep
-            "1"
-            sage: x = pari('x')       # PARI variable "x"
-            sage: x.Str()             # is converted to string rep.
-            "x"
-            sage: x.Str().type()
-            't_STR'
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari([1,2,['abc',1]]).Str()
+        "[1, 2, [abc, 1]]"
+        >>> pari([1,1, 1.54]).Str()
+        "[1, 1, 1.54000000000000]"
+        >>> pari(1).Str()       # 1 is automatically converted to string rep
+        "1"
+        >>> x = pari('x')       # PARI variable "x"
+        >>> x.Str()             # is converted to string rep.
+        "x"
+        >>> x.Str().type()
+        't_STR'
         """
         cdef char* c
         sig_on()
@@ -2286,18 +2566,21 @@ cdef class Gen(Gen_base):
 
         - PARI string (type ``t_STR``)
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('"~/subdir"').Strexpand()     # random
-            "/home/johndoe/subdir"
-            sage: pari('"$SHELL"').Strexpand()  # random
-            "/bin/bash"
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        TESTS::
+        >>> pari('"~/subdir"').Strexpand()
+        "..."
+        >>> pari('"$SHELL"').Strexpand()
+        "..."
 
-            sage: a = pari('"$HOME"')
-            sage: a.Strexpand() != a
-            True
+        Tests:
+
+        >>> a = pari('"$HOME"')
+        >>> a.Strexpand() != a
+        True
         """
         if typ(x.g) != t_VEC:
             x = list_of_Gens_to_Gen([x])
@@ -2318,167 +2601,25 @@ cdef class Gen(Gen_base):
 
         - PARI string (type ``t_STR``)
 
-        EXAMPLES::
+        Examples:
 
-            sage: v=pari('x^2')
-            sage: v.Strtex()
-            "x^2"
-            sage: v=pari(['1/x^2','x'])
-            sage: v.Strtex()
-            "\\frac{1}{x^2}x"
-            sage: v=pari(['1 + 1/x + 1/(y+1)','x-1'])
-            sage: v.Strtex()
-            "\\frac{ \\left(y\n + 2\\right) \\*x\n + \\left(y\n + 1\\right) }{ \\left(y\n + 1\\right) \\*x}x\n - 1"
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> v = pari('x^2')
+        >>> v.Strtex()
+        "x^2"
+        >>> v = pari(['1/x^2','x'])
+        >>> v.Strtex()
+        "\\frac{1}{x^2}x"
+        >>> v = pari(['1 + 1/x + 1/(y+1)','x-1'])
+        >>> v.Strtex()
+        "\\frac{ \\left(y\n + 2\\right) \\*x\n + \\left(y\n + 1\\right) }{ \\left(y\n + 1\\right) \\*x}x\n - 1"
         """
         if typ(x.g) != t_VEC:
             x = list_of_Gens_to_Gen([x])
         sig_on()
         return new_gen(Strtex(x.g))
-
-    def Vec(x, long n = 0):
-        """
-        Transform the object `x` into a vector with minimal size `|n|`.
-
-        INPUT:
-
-        - ``x`` -- gen
-
-        - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
-          append zeros; if `n < 0`, prepend zeros.
-
-        OUTPUT:
-
-        A PARI vector (type ``t_VEC``)
-
-        EXAMPLES::
-
-            sage: pari(1).Vec()
-            [1]
-            sage: pari('x^3').Vec()
-            [1, 0, 0, 0]
-            sage: pari('x^3 + 3*x - 2').Vec()
-            [1, 0, 3, -2]
-            sage: pari([1,2,3]).Vec()
-            [1, 2, 3]
-            sage: pari('[1, 2; 3, 4]').Vec()
-            [[1, 3]~, [2, 4]~]
-            sage: pari('"CyPari"').Vec()
-            ["C", "y", "P", "a", "r", "i"]
-            sage: pari('2*x^2 + 3*x^3 + O(x^5)').Vec()
-            [2, 3, 0]
-            sage: pari('2*x^-2 + 3*x^3 + O(x^5)').Vec()
-            [2, 0, 0, 0, 0, 3, 0]
-
-        Note the different term ordering for polynomials and series::
-
-            sage: pari('1 + x + 3*x^3 + O(x^5)').Vec()
-            [1, 1, 0, 3, 0]
-            sage: pari('1 + x + 3*x^3').Vec()
-            [3, 0, 1, 1]
-
-        We demonstate the `n` argument::
-
-            sage: pari([1,2,3,4]).Vec(2)
-            [1, 2, 3, 4]
-            sage: pari([1,2,3,4]).Vec(-2)
-            [1, 2, 3, 4]
-            sage: pari([1,2,3,4]).Vec(6)
-            [1, 2, 3, 4, 0, 0]
-            sage: pari([1,2,3,4]).Vec(-6)
-            [0, 0, 1, 2, 3, 4]
-
-        See also :meth:`Col` (create a column vector) and :meth:`Vecrev`
-        (create a vector in reversed order).
-        """
-        sig_on()
-        return new_gen(_Vec_append(gtovec(x.g), gen_0, n))
-
-    def Vecrev(x, long n = 0):
-        """
-        Transform the object `x` into a vector with minimal size `|n|`.
-        The order of the resulting vector is reversed compared to :meth:`Vec`.
-
-        INPUT:
-
-        - ``x`` -- gen
-
-        - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
-          prepend zeros; if `n < 0`, append zeros.
-
-        OUTPUT:
-
-        A PARI vector (type ``t_VEC``)
-
-        EXAMPLES::
-
-            sage: pari(1).Vecrev()
-            [1]
-            sage: pari('x^3').Vecrev()
-            [0, 0, 0, 1]
-            sage: pari('x^3 + 3*x - 2').Vecrev()
-            [-2, 3, 0, 1]
-            sage: pari([1, 2, 3]).Vecrev()
-            [3, 2, 1]
-            sage: pari('Col([1, 2, 3])').Vecrev()
-            [3, 2, 1]
-            sage: pari('[1, 2; 3, 4]').Vecrev()
-            [[2, 4]~, [1, 3]~]
-            sage: pari('"CyPari"').Vecrev()
-            ["i", "r", "a", "P", "y", "C"]
-
-        We demonstate the `n` argument::
-
-            sage: pari([1,2,3,4]).Vecrev(2)
-            [4, 3, 2, 1]
-            sage: pari([1,2,3,4]).Vecrev(-2)
-            [4, 3, 2, 1]
-            sage: pari([1,2,3,4]).Vecrev(6)
-            [0, 0, 4, 3, 2, 1]
-            sage: pari([1,2,3,4]).Vecrev(-6)
-            [4, 3, 2, 1, 0, 0]
-        """
-        sig_on()
-        return new_gen(_Vec_append(gtovecrev(x.g), gen_0, -n))
-
-    def Vecsmall(x, long n = 0):
-        """
-        Transform the object `x` into a ``t_VECSMALL`` with minimal size `|n|`.
-
-        INPUT:
-
-        - ``x`` -- gen
-
-        - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
-          append zeros; if `n < 0`, prepend zeros.
-
-        OUTPUT:
-
-        A PARI vector of small integers (type ``t_VECSMALL``)
-
-        EXAMPLES::
-
-            sage: pari([1,2,3]).Vecsmall()
-            Vecsmall([1, 2, 3])
-            sage: pari('"CyPari"').Vecsmall()
-            Vecsmall([67, 121, 80, 97, 114, 105])
-            sage: pari(1234).Vecsmall()
-            Vecsmall([1234])
-            sage: pari('x^2 + 2*x + 3').Vecsmall()
-            Vecsmall([1, 2, 3])
-
-        We demonstate the `n` argument::
-
-            sage: pari([1,2,3]).Vecsmall(2)
-            Vecsmall([1, 2, 3])
-            sage: pari([1,2,3]).Vecsmall(-2)
-            Vecsmall([1, 2, 3])
-            sage: pari([1,2,3]).Vecsmall(6)
-            Vecsmall([1, 2, 3, 0, 0, 0])
-            sage: pari([1,2,3]).Vecsmall(-6)
-            Vecsmall([0, 0, 0, 1, 2, 3])
-        """
-        sig_on()
-        return new_gen(_Vec_append(gtovecsmall(x.g), <GEN>0, n))
 
     def bittest(x, long n):
         """
@@ -2498,32 +2639,35 @@ cdef class Gen(Gen_base):
         -  ``bool`` - a Python bool
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: x = pari(6)
-            sage: x.bittest(0)
-            False
-            sage: x.bittest(1)
-            True
-            sage: x.bittest(2)
-            True
-            sage: x.bittest(3)
-            False
-            sage: pari(-3).bittest(0)
-            True
-            sage: pari(-3).bittest(1)
-            False
-            sage: [pari(-3).bittest(n) for n in range(10)]
-            [True, False, True, True, True, True, True, True, True, True]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> x = pari(6)
+        >>> x.bittest(0)
+        False
+        >>> x.bittest(1)
+        True
+        >>> x.bittest(2)
+        True
+        >>> x.bittest(3)
+        False
+        >>> pari(-3).bittest(0)
+        True
+        >>> pari(-3).bittest(1)
+        False
+        >>> [pari(-3).bittest(n) for n in range(10)]
+        [True, False, True, True, True, True, True, True, True, True]
         """
         sig_on()
-        cdef long b = <long>bittest(x.g, n)
+        cdef long b = bittest(x.g, n)
         sig_off()
         return b != 0
 
     lift_centered = Gen_base.centerlift
 
-    def padicprime(x):
+    def padicprime(self):
         """
         The uniformizer of the p-adic ring this element lies in, as a t_INT.
 
@@ -2535,36 +2679,20 @@ cdef class Gen(Gen_base):
 
         - ``p`` - gen, of type t_INT
 
-        EXAMPLES::
+        Examples:
 
-            sage: y = pari('11^-10 + 5*11^-7 + 11^-6 + O(11)')
-            sage: y.padicprime()
-            11
-            sage: y.padicprime().type()
-            't_INT'
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> y = pari('11^-10 + 5*11^-7 + 11^-6 + O(11)')
+        >>> y.padicprime()
+        11
+        >>> y.padicprime().type()
+        't_INT'
         """
-        sig_on()
-        return new_gen(gel(x.g, 2))
+        return self.new_ref(gel(self.fixGEN(), 2))
 
-    def precision(x, long n=-1):
-        """
-        Change the precision of `x` to be `n`, where `n` is an integer.
-        If `n` is omitted, output the real precision of `x`.
-
-        INPUT:
-
-        -  ``x`` - gen
-
-        -  ``n`` - (optional) int
-
-        OUTPUT: gen
-        """
-        if n <= 0:
-            return <long>precision(x.g)
-        sig_on()
-        return new_gen(precision0(x.g, n))
-
-    def round(x, estimate=False):
+    def round(x, bint estimate=False):
         """
         round(x,estimate=False): If x is a real number, returns x rounded
         to the nearest integer (rounding up). If the optional argument
@@ -2596,25 +2724,26 @@ cdef class Gen(Gen_base):
         - if estimate is True, return rounded version of x and error
           estimate in bits, both as gens.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('1.5').round()
-            2
-            sage: pari('1.5').round(True)
-            (2, -1) # Py3
-            (2, -1L) # Py2
-            sage: pari('1.5 + 2.1*I').round()
-            2 + 2*I
-            sage: pari('1.0001').round(True)
-            (1, -14) # Py3
-            (1, -14L) # Py2
-            sage: pari('(2.4*x^2 - 1.7)/x').round()
-            (2*x^2 - 2)/x
-            sage: pari('(2.4*x^2 - 1.7)/x').truncate()
-            2.40000000000000*x
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('1.5').round()
+        2
+        >>> pari('1.5').round(True)
+        (2, -1)
+        >>> pari('1.5 + 2.1*I').round()
+        2 + 2*I
+        >>> pari('1.0001').round(True)
+        (1, -14)
+        >>> pari('(2.4*x^2 - 1.7)/x').round()
+        (2*x^2 - 2)/x
+        >>> pari('(2.4*x^2 - 1.7)/x').truncate()
+        2.40000000000000*x
         """
         cdef int n
-        cdef pari_longword e
+        cdef long e
         cdef Gen y
         sig_on()
         if not estimate:
@@ -2634,28 +2763,31 @@ cdef class Gen(Gen_base):
 
         OUTPUT: int (a Python int)
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('0').sizeword()
-            2
-            sage: pari('1').sizeword()
-            3
-            sage: pari('1000000').sizeword()
-            3
-            sage: pari('10^100').sizeword()
-            13      # 32-bit
-            8       # 64-bit
-            sage: pari(1.0).sizeword()
-            4       # 32-bit
-            3       # 64-bit
-            sage: pari('x').sizeword()
-            7
-            sage: pari('x^20').sizeword()
-            26
-            sage: pari('[x, I]').sizeword()
-            16
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('0').sizeword()
+        2
+        >>> pari('1').sizeword()
+        3
+        >>> pari('1000000').sizeword()
+        3
+
+        >>> import sys
+        >>> bitness = '64' if sys.maxsize > (1 << 32) else '32'
+        >>> pari('10^100').sizeword() == (13 if bitness == '32' else 8)
+        True
+        >>> pari(1.0).sizeword() == (4 if bitness == '32' else 3)
+        True
+
+        >>> pari('x + 1').sizeword()
+        10
+        >>> pari('[x + 1, 1]').sizeword()
+        16
         """
-        return <long>gsizeword(x.g)
+        return gsizeword(x.g)
 
     def sizebyte(x):
         """
@@ -2669,15 +2801,19 @@ cdef class Gen(Gen_base):
 
         OUTPUT: int (a Python int)
 
-        EXAMPLE::
+        Examples:
 
-            sage: pari('1').sizebyte()
-            12           # 32-bit
-            24           # 64-bit
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> import sys
+        >>> bitness = '64' if sys.maxsize > (1 << 32) else '32'
+        >>> pari('1').sizebyte() == (12 if bitness == '32' else 24)
+        True
         """
-        return <long>gsizebyte(x.g)
+        return gsizebyte(x.g)
 
-    def truncate(x, estimate=False):
+    def truncate(x, bint estimate=False):
         """
         truncate(x,estimate=False): Return the truncation of x. If estimate
         is True, also return the number of error bits.
@@ -2711,34 +2847,37 @@ cdef class Gen(Gen_base):
         - if estimate is True, return rounded version of x and error
           estimate in bits, both as gens.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('(x^2+1)/x').round()
-            (x^2 + 1)/x
-            sage: pari('(x^2+1)/x').truncate()
-            x
-            sage: pari('1.043').truncate()
-            1
-            sage: pari('1.043').truncate(True)
-            (1, -5)
-            sage: pari('1.6').truncate()
-            1
-            sage: pari('1.6').round()
-            2
-            sage: pari('1/3 + 2 + 3^2 + O(3^3)').truncate()
-            34/3
-            sage: pari('sin(x+O(x^10))').truncate()
-            1/362880*x^9 - 1/5040*x^7 + 1/120*x^5 - 1/6*x^3 + x
-            sage: pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
-            x + O(x^10)
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('(x^2+1)/x').round()
+        (x^2 + 1)/x
+        >>> pari('(x^2+1)/x').truncate()
+        x
+        >>> pari('1.043').truncate()
+        1
+        >>> pari('1.043').truncate(True)
+        (1, -5)
+        >>> pari('1.6').truncate()
+        1
+        >>> pari('1.6').round()
+        2
+        >>> pari('1/3 + 2 + 3^2 + O(3^3)').truncate()
+        34/3
+        >>> pari('sin(x+O(x^10))').truncate()
+        1/362880*x^9 - 1/5040*x^7 + 1/120*x^5 - 1/6*x^3 + x
+        >>> pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
+        x + O(x^10)
         """
-        cdef pari_longword e
+        cdef long e
         cdef Gen y
         sig_on()
         if not estimate:
             return new_gen(gtrunc(x.g))
         y = new_gen(gcvtoi(x.g, &e))
-        return y, pari_longword_to_int(e)
+        return y, e
 
     def _valp(x):
         """
@@ -2746,18 +2885,19 @@ cdef class Gen(Gen_base):
         or a Laurent series (t_SER).  If x is a different type, this
         will give a bogus number.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('1/x^2 + O(x^10)')._valp()
-            -2
-            sage: pari('O(x^10)')._valp()
-            10
-            sage: pari('(1145234796 + O(3^10))/771966234')._valp()
-            -2
-            sage: pari('O(2^10)')._valp()
-            10
-            sage: pari('x')._valp()   # random
-            -35184372088832
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('1/x^2 + O(x^10)')._valp()
+        -2
+        >>> pari('O(x^10)')._valp()
+        10
+        >>> pari('(1145234796 + O(3^10))/771966234')._valp()
+        -2
+        >>> pari('O(2^10)')._valp()
+        10
         """
         # This is a simple macro, so we don't need sig_on()
         return valp(x.g)
@@ -2769,12 +2909,15 @@ cdef class Gen(Gen_base):
         rational number. The argument `x` should be of type
         integer.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(18).bernfrac()
-            43867/798
-            sage: [pari(n).bernfrac() for n in range(10)]
-            [1, -1/2, 1/6, 0, -1/30, 0, 1/42, 0, -1/30, 0]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(18).bernfrac()
+        43867/798
+        >>> [pari(n).bernfrac() for n in range(10)]
+        [1, -1/2, 1/6, 0, -1/30, 0, 1/42, 0, -1/30, 0]
         """
         sig_on()
         return new_gen(bernfrac(self))
@@ -2785,20 +2928,18 @@ cdef class Gen(Gen_base):
         but `B_x` is returned as a real number (with the current
         precision).
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(18).bernreal()
-            54.9711779448622
-            sage: old_prec = pari.set_real_precision(192)
-            sage: pari(18).bernreal(precision=192)
-            54.97117794486215538847117794486215538847117794486215538...
-            sage: pari.set_real_precision(old_prec)
-            192
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(18).bernreal()
+        54.9711779448622
         """
         sig_on()
         return new_gen(bernreal(self, prec_bits_to_words(precision)))
 
-    def besselk(Gen nu, x, flag=None, unsigned long precision=0):
+    def besselk(nu, x, unsigned long precision=0):
         """
         nu.besselk(x): K-Bessel function (modified Bessel function
         of the second kind) of index nu, which can be complex, and argument
@@ -2817,20 +2958,19 @@ cdef class Gen(Gen_base):
 
         -  ``x`` - real number (positive or negative)
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(complex(2, 1)).besselk(3)
-            0.0455907718407551 + 0.0289192946582081*I
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        ::
+        >>> pari(complex(2, 1)).besselk(3)
+        0.0455907718407551 + 0.0289192946582081*I
 
-            sage: pari(complex(2, 1)).besselk(-3)
-            -4.34870874986752 - 5.38744882697109*I
+        >>> pari(complex(2, 1)).besselk(-3)
+        -4.34870874986752 - 5.38744882697109*I
 
-        ::
-
-            sage: pari(complex(2, 1)).besselk(300)
-            3.74224603319728 E-132 + 2.49071062641525 E-134*I
+        >>> pari(complex(2, 1)).besselk(300)
+        3.74224603319728 E-132 + 2.49071062641525 E-134*I
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
@@ -2858,7 +2998,7 @@ cdef class Gen(Gen_base):
         - See page 262, Prop 5.6.12, of Cohen's book "A Course in
           Computational Algebraic Number Theory".
 
-        EXAMPLES:
+        Examples:
         """
         sig_on()
         if n <= 0:
@@ -2882,19 +3022,30 @@ cdef class Gen(Gen_base):
 
         TODO: Add more explanation, copied from the PARI manual.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(10).polylog(3)
-            5.64181141475134 - 8.32820207698027*I
-            sage: pari(10).polylog(3,0)
-            5.64181141475134 - 8.32820207698027*I
-            sage: pari(10).polylog(3,1)
-            0.523778453502411
-            sage: pari(10).polylog(3,2)
-            -0.400459056163451
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(10).polylog(3)
+        5.64181141475134 - 8.32820207698027*I
+        >>> pari(10).polylog(3,0)
+        5.64181141475134 - 8.32820207698027*I
+        >>> pari(10).polylog(3,1)
+        0.523778453502411
+        >>> pari(10).polylog(3,2)
+        -0.400459056163451
         """
         sig_on()
         return new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
+
+    def sqrtint(x):
+        r""" docstring needed.
+        """
+        cdef GEN ans
+        sig_on()
+        ans = sqrtint(x.g)
+        return new_gen(ans)
 
     def sqrtn(x, n, unsigned long precision=0):
         r"""
@@ -2933,26 +3084,33 @@ cdef class Gen(Gen_base):
            roots
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: s, z = pari(2).sqrtn(5)
-            sage: z
-            0.309016994374947 + 0.951056516295154*I
-            sage: s
-            1.14869835499704
-            sage: s**5
-            2.00000000000000
-            sage: z**5
-            1.00000000000000 - 2.710505431 E-20*I       # 32-bit
-            1.00000000000000 - 2.71050543121376 E-20*I  # 64-bit
-            sage: (s*z)**5
-            2.00000000000000 + 0.E-19*I
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> s, z = pari(2).sqrtn(5)
+        >>> z
+        0.309016994374947 + 0.951056516295154*I
+        >>> s
+        1.14869835499704
+        >>> s**5
+        2.00000000000000
+        >>> (s*z)**5
+        2.00000000000000 + 0.E-19*I
+
+
+        >>> import sys
+        >>> bitness = '64' if sys.maxsize > (1 << 32) else '32'
+        >>> s = str(z**5)
+        >>> s == ('1.00000000000000 - 2.710505431 E-20*I' if bitness == '32' else '1.00000000000000 - 2.71050543121376 E-20*I')
+        True
         """
-        cdef GEN zetan
+        cdef GEN ans, zetan
         cdef Gen t0 = objtogen(n)
         sig_on()
-        ans = new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision)))
-        return ans, new_gen(zetan)
+        ans = gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision))
+        return new_gens2(ans, zetan)
 
     def ffprimroot(self):
         r"""
@@ -2968,13 +3126,14 @@ cdef class Gen(Gen_base):
         - A generator of the multiplicative group of the finite field
           generated by ``self``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: b = pari(9).ffgen().ffprimroot()
-            sage: b  # random
-            a + 1
-            sage: b.fforder()
-            8
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> b = pari(9).ffgen().ffprimroot()
+        >>> b.fforder()
+        8
         """
         sig_on()
         return new_gen(ffprimroot(self.g, NULL))
@@ -2983,12 +3142,15 @@ cdef class Gen(Gen_base):
         r"""
         Return the Fibonacci number of index x.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(18).fibonacci()
-            2584
-            sage: [pari(n).fibonacci() for n in range(10)]
-            [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(18).fibonacci()
+        2584
+        >>> [pari(n).fibonacci() for n in range(10)]
+        [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
         """
         sig_on()
         return new_gen(fibo(self))
@@ -3003,28 +3165,31 @@ cdef class Gen(Gen_base):
         cdef Gen g
         sig_on()
         if find_root:
-            t = <long>itos(gissquareall(x.g, &G))
+            t = itos(gissquareall(x.g, &G))
             if t:
                 return True, new_gen(G)
             else:
                 clear_stack()
                 return False, None
         else:
-            t = <long>itos(gissquare(x.g))
-            sig_off()
+            t = itos(gissquare(x.g))
+            clear_stack()
             return t != 0
 
     def issquarefree(self):
         """
-        EXAMPLES::
+        Examples:
 
-            sage: pari(10).issquarefree()
-            True
-            sage: pari(20).issquarefree()
-            False
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(10).issquarefree()
+        True
+        >>> pari(20).issquarefree()
+        False
         """
         sig_on()
-        cdef long t = <long>issquarefree(self.g)
+        cdef long t = issquarefree(self.g)
         sig_off()
         return t != 0
 
@@ -3032,10 +3197,13 @@ cdef class Gen(Gen_base):
         """
         Return the sum of the divisors of `n`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(10).sumdiv()
-            18
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(10).sumdiv()
+        18
         """
         sig_on()
         return new_gen(sumdiv(n.g))
@@ -3044,10 +3212,13 @@ cdef class Gen(Gen_base):
         """
         Return the sum of the k-th powers of the divisors of n.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(10).sumdivk(2)
-            130
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(10).sumdivk(2)
+        130
         """
         sig_on()
         return new_gen(sumdivk(n.g, k))
@@ -3063,18 +3234,21 @@ cdef class Gen(Gen_base):
 
         - ``n`` -- integer or factorisation matrix
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(3).Zn_issquare(4)
-            False
-            sage: pari(4).Zn_issquare(pari(30).factor())
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(3).Zn_issquare(4)
+        False
+        >>> pari(4).Zn_issquare(pari(30).factor())
+        True
 
         """
         cdef Gen t0 = objtogen(n)
         sig_on()
-        cdef long t = <long>Zn_issquare(self.g, t0.g)
-        sig_off()
+        cdef long t = Zn_issquare(self.g, t0.g)
+        clear_stack()
         return t != 0
 
     def Zn_sqrt(self, n):
@@ -3088,14 +3262,17 @@ cdef class Gen(Gen_base):
 
         - ``n`` -- integer or factorisation matrix
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(3).Zn_sqrt(4)
-            Traceback (most recent call last):
-            ...
-            ValueError: 3 is not a square modulo 4
-            sage: pari(4).Zn_sqrt(pari(30).factor())
-            22
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(3).Zn_sqrt(4)
+        Traceback (most recent call last):
+        ...
+        ValueError: 3 is not a square modulo 4
+        >>> pari(4).Zn_sqrt(pari(30).factor())
+        22
 
         """
         cdef Gen t0 = objtogen(n)
@@ -3103,7 +3280,7 @@ cdef class Gen(Gen_base):
         sig_on()
         s = Zn_sqrt(self.g, t0.g)
         if s == NULL:
-            sig_off()
+            clear_stack()
             raise ValueError("%s is not a square modulo %s" % (self, n))
         return new_gen(s)
 
@@ -3121,31 +3298,30 @@ cdef class Gen(Gen_base):
            return a list of Python ints instead of a PARI Gen wrapper.
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0, -1, 1, -10, -20]).ellinit()
-            sage: e.ellan(3)
-            [1, -2, -1]
-            sage: e.ellan(20)
-            [1, -2, -1, 2, 1, 2, -2, 0, -2, -2, 1, -2, 4, 4, -1, -4, -2, 4, 0, 2]
-            sage: e.ellan(-1)
-            []
-            sage: v = e.ellan(10, python_ints=True); v
-            [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
-            sage: type(v)
-            <... 'list'>
-            sage: type(v[0])
-            <... 'int'>
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.ellan(3)
+        [1, -2, -1]
+        >>> e.ellan(20)
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2, 1, -2, 4, 4, -1, -4, -2, 4, 0, 2]
+        >>> e.ellan(-1)
+        []
+        >>> v = e.ellan(10, python_ints=True); v
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        >>> type(v)
+        <... 'list'>
+        >>> type(v[0])
+        <... 'int'>
         """
         sig_on()
-        cdef GEN g = anell(self.g, n)
-        if python_ints:
-            v = [pari_longword_to_int(gtolong(gel(g, i+1)))
-                 for i in range(<long>glength(g))]
-            clear_stack()
-            return v
-        else:
-            return new_gen(g)
+        cdef Gen g = new_gen(ellan(self.g, n))
+        if not python_ints:
+            return g
+        return [gtolong(gel(g.g, i+1)) for i in range(glength(g.g))]
 
     def ellaplist(self, long n, python_ints=False):
         r"""
@@ -3171,32 +3347,35 @@ cdef class Gen(Gen_base):
             If this is not the case, use the function ellminimalmodel first
             before using ellaplist (or you will get INCORRECT RESULTS!)
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0, -1, 1, -10, -20]).ellinit()
-            sage: v = e.ellaplist(10); v
-            [-2, -1, 1, -2]
-            sage: isinstance(v, Gen)
-            True
-            sage: v.type()
-            't_VEC'
-            sage: e.ellan(10)
-            [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
-            sage: v = e.ellaplist(10, python_ints=True); v
-            [-2, -1, 1, -2]
-            sage: type(v)
-            <... 'list'>
-            sage: type(v[0])
-            <... 'int'>
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        TESTS::
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> v = e.ellaplist(10); v
+        [-2, -1, 1, -2]
+        >>> type(v)
+        <... 'cypari._pari.Gen'>
+        >>> v.type()
+        't_VEC'
+        >>> e.ellan(10)
+        [1, -2, -1, 2, 1, 2, -2, 0, -2, -2]
+        >>> v = e.ellaplist(10, python_ints=True); v
+        [-2, -1, 1, -2]
+        >>> type(v)
+        <... 'list'>
+        >>> type(v[0])
+        <... 'int'>
 
-            sage: v = e.ellaplist(1)
-            sage: v, isinstance(v, Gen)
-            ([], True)
-            sage: v = e.ellaplist(1, python_ints=True)
-            sage: v, isinstance(v, list)
-            ([], True)
+        Tests:
+
+        >>> v = e.ellaplist(1)
+        >>> v, type(v)
+        ([], <... 'cypari._pari.Gen'>)
+        >>> v = e.ellaplist(1, python_ints=True)
+        >>> v, type(v)
+        ([], <... 'list'>)
         """
         if python_ints:
             return [int(x) for x in self.ellaplist(n)]
@@ -3225,19 +3404,22 @@ cdef class Gen(Gen_base):
         If the point or the curve have inexact coefficients, an attempt is
         made to take this into account.
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0,1,1,-2,0]).ellinit()
-            sage: e.ellisoncurve([1,0])
-            True
-            sage: e.ellisoncurve([1,1])
-            False
-            sage: e.ellisoncurve([1,0.00000000000000001])
-            False
-            sage: e.ellisoncurve([1,0.000000000000000001])
-            True
-            sage: e.ellisoncurve([0])
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([0,1,1,-2,0]).ellinit()
+        >>> e.ellisoncurve([1,0])
+        True
+        >>> e.ellisoncurve([1,1])
+        False
+        >>> e.ellisoncurve([1,0.00000000000000001])
+        False
+        >>> e.ellisoncurve([1,0.000000000000000001])
+        True
+        >>> e.ellisoncurve([0])
+        True
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
@@ -3263,25 +3445,24 @@ cdef class Gen(Gen_base):
         -  ``gen`` - change of coordinates
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([1,2,3,4,5]).ellinit()
-            sage: F, ch = e.ellminimalmodel()
-            sage: F[:5]
-            [1, -1, 0, 4, 3]
-            sage: ch
-            [1, -1, 0, -1]
-            sage: e.ellchangecurve(ch)[:5]
-            [1, -1, 0, 4, 3]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([1,2,3,4,5]).ellinit()
+        >>> F, ch = e.ellminimalmodel()
+        >>> F[:5]
+        [1, -1, 0, 4, 3]
+        >>> ch
+        [1, -1, 0, -1]
+        >>> e.ellchangecurve(ch)[:5]
+        [1, -1, 0, 4, 3]
         """
         cdef GEN x, y
-        cdef Gen model, change
-        cdef pari_sp t
         sig_on()
         x = ellminimalmodel(self.g, &y)
-        change = new_gen_noclear(y)
-        model = new_gen(x)
-        return model, change
+        return new_gens2(x, y)
 
     def elltors(self):
         """
@@ -3306,57 +3487,81 @@ cdef class Gen(Gen_base):
            cyclic groups
 
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([1,0,1,-19,26]).ellinit()
-            sage: e.elltors()
-            [12, [6, 2], [[1, 2], [3, -2]]]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([1,0,1,-19,26]).ellinit()
+        >>> e.elltors()
+        [12, [6, 2], [[1, 2], [3, -2]]]
         """
         sig_on()
         return new_gen(elltors(self.g))
 
-    def omega(self, unsigned long precision=0):
+    def omega(self):
         """
         Return the basis for the period lattice of this elliptic curve.
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0, -1, 1, -10, -20]).ellinit()
-            sage: e.omega()
-            [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.omega()
+        [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
+
+        The precision is determined by the ``ellinit`` call:
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit(precision=256)
+        >>> e.omega().bitprecision()
+        256
+
+        This also works over quadratic imaginary number fields:
+
+        >>> e = pari.ellinit([0, -1, 1, -10, -20], "nfinit(y^2 - 2)")
+        >>> if pari.version() >= (2, 10, 1):
+        ...     w = e.omega()
         """
         sig_on()
-        return new_gen(ellR_omega(self.g, prec_bits_to_words(precision)))
+        return new_gen(member_omega(self.g))
 
     def disc(self):
         """
         Return the discriminant of this object.
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0, -1, 1, -10, -20]).ellinit()
-            sage: e.disc()
-            -161051
-            sage: _.factor()
-            [-1, 1; 11, 5]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.disc()
+        -161051
+        >>> _.factor()
+        [-1, 1; 11, 5]
         """
         sig_on()
-        return new_gen(member_disc(self.g))
+        return clone_gen(member_disc(self.g))
 
     def j(self):
         """
         Return the j-invariant of this object.
 
-        EXAMPLES::
+        Examples:
 
-            sage: e = pari([0, -1, 1, -10, -20]).ellinit()
-            sage: e.j()
-            -122023936/161051
-            sage: _.factor()
-            [-1, 1; 2, 12; 11, -5; 31, 3]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> e = pari([0, -1, 1, -10, -20]).ellinit()
+        >>> e.j()
+        -122023936/161051
+        >>> _.factor()
+        [-1, 1; 2, 12; 11, -5; 31, 3]
         """
         sig_on()
-        return new_gen(member_j(self.g))
+        return clone_gen(member_j(self.g))
 
     def _eltabstorel(self, x):
         """
@@ -3371,17 +3576,19 @@ cdef class Gen(Gen_base):
             PARI ``rnf`` structure.  This method may raise errors or
             return undefined results if called with invalid arguments.
 
-        TESTS::
+        Tests:
 
-            sage: K = pari('y^2 + 1').nfinit()
-            sage: rnfeq = K._nf_rnfeq('x^2 + 2')
-            sage: f_abs = rnfeq[0]; f_abs
-            x^4 + 6*x^2 + 1
-            sage: x_rel = rnfeq._eltabstorel('x'); x_rel
-            Mod(x + Mod(-y, y^2 + 1), x^2 + 2)
-            sage: f_abs(x_rel)
-            Mod(0, x^2 + 2)
+        >>> from cypari import pari
+        >>> pari = Pari()
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+        >>> f_abs = rnfeq[0]; f_abs
+        x^4 + 6*x^2 + 1
+        >>> x_rel = rnfeq._eltabstorel('x'); x_rel
+        Mod(x + Mod(-y, y^2 + 1), x^2 + 2)
+        >>> f_abs(x_rel)
+        Mod(0, x^2 + 2)
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
@@ -3400,13 +3607,15 @@ cdef class Gen(Gen_base):
             PARI ``rnf`` structure.  This method may raise errors or
             return undefined results if called with invalid arguments.
 
-        TESTS::
+        Tests:
 
-            sage: K = pari('y^2 + 1').nfinit()
-            sage: rnfeq = K._nf_rnfeq('x^2 + 2')
-            sage: rnfeq._eltabstorel_lift('x')
-            x + Mod(-y, y^2 + 1)
+        >>> from cypari import pari
+        >>> pari = Pari()
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+        >>> rnfeq._eltabstorel_lift('x')
+        x + Mod(-y, y^2 + 1)
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
@@ -3425,21 +3634,23 @@ cdef class Gen(Gen_base):
             PARI ``rnf`` structure.  This method may raise errors or
             return undefined results if called with invalid arguments.
 
-        TESTS::
+        Tests:
 
-            sage: K = pari('y^2 + 1').nfinit()
-            sage: rnfeq = K._nf_rnfeq('x^2 + 2')
-            sage: rnfeq._eltreltoabs('x')
-            1/2*x^3 + 7/2*x
-            sage: rnfeq._eltreltoabs('y')
-            1/2*x^3 + 5/2*x
+        >>> from cypari import pari
+        >>> pari = Pari()
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+        >>> rnfeq._eltreltoabs('x')
+        1/2*x^3 + 7/2*x
+        >>> rnfeq._eltreltoabs('y')
+        1/2*x^3 + 5/2*x
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
         return new_gen(eltreltoabs(self.g, t0.g))
 
-    def galoissubfields(self, long flag=0, v=-1):
+    def galoissubfields(self, long flag=0, v=None):
         """
         List all subfields of the Galois group ``self``.
 
@@ -3462,14 +3673,17 @@ cdef class Gen(Gen_base):
         A vector of all subfields of this group.  Each entry is as
         described in the :meth:`galoisfixedfield` method.
 
-        EXAMPLES::
+        Examples:
 
-            sage: G = pari('x^6 + 108').galoisinit()
-            sage: G.galoissubfields(flag=1)
-            [x, x^2 + 972, x^3 + 54, x^3 + 864, x^3 - 54, x^6 + 108]
-            sage: G = pari('x^4 + 1').galoisinit()
-            sage: G.galoissubfields(flag=2, v='z')[3]
-            [z^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> G = pari('x^6 + 108').galoisinit()
+        >>> G.galoissubfields(flag=1)
+        [x, x^2 + 972, x^3 + 54, x^3 + 864, x^3 - 54, x^6 + 108]
+        >>> G = pari('x^4 + 1').galoisinit()
+        >>> G.galoissubfields(flag=2, v='z')[3]
+        [...^2 + 2, Mod(x^3 + x, x^4 + 1), [x^2 - z*x - 1, x^2 + z*x - 1]]
 
         .. _galoissubfields: http://pari.math.u-bordeaux.fr/dochtml/html.stable/Functions_related_to_general_number_fields.html#galoissubfields
         """
@@ -3480,17 +3694,20 @@ cdef class Gen(Gen_base):
         """
         Return the valuation of the number field element `x` at the prime `p`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: nf = pari('x^2 + 1').nfinit()
-            sage: p = nf.idealprimedec(5)[0]
-            sage: nf.nfeltval('50 - 25*x', p)
-            3
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> nf = pari('x^2 + 1').nfinit()
+        >>> p = nf.idealprimedec(5)[0]
+        >>> nf.nfeltval('50 - 25*x', p)
+        3
         """
         cdef Gen t0 = objtogen(x)
         cdef Gen t1 = objtogen(p)
         sig_on()
-        cdef long v = <long>nfval(self.g, t0.g, t1.g)
+        v = nfval(self.g, t0.g, t1.g)
         sig_off()
         return v
 
@@ -3516,32 +3733,43 @@ cdef class Gen(Gen_base):
             - a matrix: a partial factorization of the discriminant
               of ``x``.
 
-        .. NOTE::
+        Examples:
 
-            In earlier versions of Sage, other bits in ``flag`` were
-            defined but these are now simply ignored.
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        EXAMPLES::
-
-            sage: pari('x^3 - 17').nfbasis()
-            [1, x, 1/3*x^2 - 1/3*x + 1/3]
+        >>> pari('x^3 - 17').nfbasis()
+        [1, x, 1/3*x^2 - 1/3*x + 1/3]
 
         We test ``flag`` = 1, noting it gives a wrong result when the
         discriminant (-4 * `p`^2 * `q` in the example below) has a big square
-        factor::
+        factor:
 
-            sage: p = pari(10**10).nextprime(); q = (p+1).nextprime()
-            sage: x = pari('x'); f = x**2 + p**2*q
-            sage: pari(f).nfbasis(1)   # Wrong result
-            [1, x]
-            sage: pari(f).nfbasis()    # Correct result
-            [1, 1/10000000019*x]
-            sage: pari(f).nfbasis(fa=10**6)   # Check primes up to 10^6: wrong result
-            [1, x]
-            sage: pari(f).nfbasis(fa="[2,2; %s,2]"%p)    # Correct result and faster
-            [1, 1/10000000019*x]
-            sage: pari(f).nfbasis(fa=[2,p])              # Equivalent with the above
-            [1, 1/10000000019*x]
+        >>> p = pari(10**10).nextprime(); q = (p+1).nextprime()
+        >>> x = pari('x'); f = x**2 + p**2*q
+        >>> pari(f).nfbasis(1)   # Wrong result
+        [1, x]
+        >>> pari(f).nfbasis()    # Correct result
+        [1, 1/10000000019*x]
+        >>> pari(f).nfbasis(fa=10**6)   # Check primes up to 10^6: wrong result
+        [1, x]
+        >>> pari(f).nfbasis(fa="[2,2; %s,2]"%p)    # Correct result and faster
+        [1, 1/10000000019*x]
+        >>> pari(f).nfbasis(fa=[2,p])              # Equivalent with the above
+        [1, 1/10000000019*x]
+
+        The following alternative syntax closer to PARI/GP can be used
+
+        >>> pari.nfbasis([f, 1])
+        [1, x]
+        >>> pari.nfbasis(f)
+        [1, 1/10000000019*x]
+        >>> pari.nfbasis([f, 10**6])
+        [1, x]
+        >>> pari.nfbasis([f, "[2,2; %s,2]"%p])
+        [1, 1/10000000019*x]
+        >>> pari.nfbasis([f, [2,p]])
+        [1, 1/10000000019*x]
         """
         cdef Gen t0
         cdef GEN g0
@@ -3553,33 +3781,32 @@ cdef class Gen(Gen_base):
         else:
             g0 = NULL
         sig_on()
-        return new_gen(nfbasis(self.g, NULL, g0))
+        return new_gen(old_nfbasis(self.g, NULL, g0))
 
     def nfbasis_d(self, long flag=0, fa=None):
         """
         Like :meth:`nfbasis`, but return a tuple ``(B, D)`` where `B`
         is the integral basis and `D` the discriminant.
 
-        EXAMPLES::
+        Examples:
 
-            sage: F = pari('x^3 - 2').nfinit()
-            sage: F[0].nfbasis_d()
-            ([1, x, x^2], -108)
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        ::
+        >>> F = pari('x^3 - 2').nfinit()
+        >>> F[0].nfbasis_d()
+        ([1, x, x^2], -108)
 
-            sage: G = pari('x^5 - 11').nfinit()
-            sage: G[0].nfbasis_d()
-            ([1, x, x^2, x^3, x^4], 45753125)
+        >>> G = pari('x^5 - 11').nfinit()
+        >>> G[0].nfbasis_d()
+        ([1, x, x^2, x^3, x^4], 45753125)
 
-        ::
-
-            sage: pari([-2,0,0,1]).Polrev().nfbasis_d()
-            ([1, x, x^2], -108)
+        >>> pari([-2,0,0,1]).Polrev().nfbasis_d()
+        ([1, x, x^2], -108)
         """
         cdef Gen t0
         cdef GEN g0
-        cdef GEN disc
+        cdef GEN ans, disc
         if fa is not None:
             t0 = objtogen(fa)
             g0 = t0.g
@@ -3588,9 +3815,8 @@ cdef class Gen(Gen_base):
         else:
             g0 = NULL
         sig_on()
-        B = new_gen_noclear(nfbasis(self.g, &disc, g0))
-        D = new_gen(disc)
-        return B, D
+        ans = old_nfbasis(self.g, &disc, g0)
+        return new_gens2(ans, disc)
 
     def nfbasistoalg_lift(nf, x):
         r"""
@@ -3607,17 +3833,20 @@ cdef class Gen(Gen_base):
 
          - ``nf.nfbasistoalg(x).lift()``
 
-        EXAMPLES::
+        Examples:
 
-            sage: K = pari('x^3 - 17').nfinit()
-            sage: K.nf_get_zk()
-            [1, 1/3*x^2 - 1/3*x + 1/3, x]
-            sage: K.nfbasistoalg_lift(42)
-            42
-            sage: K.nfbasistoalg_lift("[3/2, -5, 0]~")
-            -5/3*x^2 + 5/3*x - 1/6
-            sage: K.nf_get_zk() * pari("[3/2, -5, 0]~")
-            -5/3*x^2 + 5/3*x - 1/6
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> K = pari('x^3 - 17').nfinit()
+        >>> K.nf_get_zk()
+        [1, 1/3*x^2 - 1/3*x + 1/3, x]
+        >>> K.nfbasistoalg_lift(42)
+        42
+        >>> K.nfbasistoalg_lift("[3/2, -5, 0]~")
+        -5/3*x^2 + 5/3*x - 1/6
+        >>> K.nf_get_zk() * pari("[3/2, -5, 0]~")
+        -5/3*x^2 + 5/3*x - 1/6
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
@@ -3639,16 +3868,71 @@ cdef class Gen(Gen_base):
             :meth:`_eltabstorel`, :meth:`_eltabstorel_lift` and
             :meth:`_eltreltoabs`.
 
-        TESTS::
+        Tests:
 
-            sage: K = pari('y^2 + 1').nfinit()
-            sage: K._nf_rnfeq('x^2 + 2')
-            [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
+        >>> from cypari import pari
+        >>> pari = Pari()
 
+        >>> K = pari('y^2 + 1').nfinit()
+        >>> K._nf_rnfeq('x^2 + 2')
+        [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
         """
         cdef Gen t0 = objtogen(relpol)
         sig_on()
         return new_gen(nf_rnfeq(self.g, t0.g))
+
+    def _nf_nfzk(self, rnfeq):
+        """
+        Return data for constructing relative number field elements
+        from elements of the base field.
+
+        INPUT:
+
+        - ``rnfeq`` -- relative number field data as returned by
+          :meth:`_nf_rnfeq`
+
+        .. NOTE::
+
+            The output of this method is suitable for the method
+            :meth:`_nfeltup`.
+        """
+        cdef Gen t0 = objtogen(rnfeq)
+        sig_on()
+        return new_gen(new_nf_nfzk(self.g, t0.g))
+
+    def _nfeltup(self, x, nfzk):
+        """
+        Construct a relative number field element from an element of
+        the base field.
+
+        INPUT:
+
+        - ``x`` -- element of the base field
+
+        - ``nfzk`` -- relative number field data as returned by
+          :meth:`_nf_nfzk`
+
+        .. WARNING::
+
+            This is a low-level version of :meth:`rnfeltup` that only
+            needs the output of :meth:`_nf_nfzk`, not a full PARI
+            ``rnf`` structure.  This method may raise errors or return
+            undefined results if called with invalid arguments.
+
+        Tests:
+
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> nf = pari('nfinit(y^2 - 2)')
+        >>> nfzk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
+        >>> nf._nfeltup('y', nfzk)
+        -1/2*x^3 + 9/2*x
+        """
+        cdef Gen t0 = objtogen(x)
+        cdef Gen t1 = objtogen(nfzk)
+        sig_on()
+        return clone_gen(new_nfeltup(self.g, t0.g, t1.g))
 
     def eval(self, *args, **kwds):
         """
@@ -3667,137 +3951,176 @@ cdef class Gen(Gen_base):
 
         In no case is mixing unnamed and keyword arguments allowed.
 
-        EXAMPLES::
+        Examples:
 
-            sage: f = pari('x^2 + 1')
-            sage: f.type()
-            't_POL'
-            sage: f.eval(pari('I'))
-            0
-            sage: f.eval(x=2)
-            5
-            sage: (1/f).eval(x=1)
-            1/2
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        The notation ``f(x)`` is an alternative for ``f.eval(x)``::
+        >>> f = pari('x^2 + 1')
+        >>> f.type()
+        't_POL'
+        >>> f.eval(pari('I'))
+        0
+        >>> f.eval(x=2)
+        5
+        >>> (1/f).eval(x=1)
+        1/2
 
-            sage: f(3) == f.eval(3)
-            True
+        The notation ``f(x)`` is an alternative for ``f.eval(x)``:
 
-        Evaluating power series::
+        >>> f(3) == f.eval(3)
+        True
 
-            sage: f = pari('1 + x + x^3 + O(x^7)')
-            sage: f(2*pari('y')**2)
-            1 + 2*y^2 + 8*y^6 + O(y^14)
+        >>> f = pari('Mod(x^2 + x + 1, 3)')
+        >>> f(2)
+        Mod(1, 3)
+
+        Evaluating a power series:
+
+        >>> f = pari('1 + x + x^3 + O(x^7)')
+        >>> f(2*pari('y')**2)
+        1 + 2*y^2 + 8*y^6 + O(y^14)
 
         Substituting zero is sometimes possible, and trying to do so
-        in illegal cases can raise various errors::
+        in illegal cases can raise various errors:
 
-            sage: pari('1 + O(x^3)').eval(0)
-            1
-            sage: pari('1/x').eval(0)
-            Traceback (most recent call last):
-            ...
-            PariError: impossible inverse in gdiv: 0
-            sage: pari('1/x + O(x^2)').eval(0)
-            Traceback (most recent call last):
-            ...
-            PariError: impossible inverse in gsubst: 0
-            sage: pari('1/x + O(x^2)').eval(pari('O(x^3)'))
-            Traceback (most recent call last):
-            ...
-            PariError: impossible inverse in gdiv: O(x^3)
-            sage: pari('O(x^0)').eval(0)
-            Traceback (most recent call last):
-            ...
-            PariError: forbidden substitution t_SER , t_INT
+        >>> pari('1 + O(x^3)').eval(0)
+        1
+        >>> pari('1/x').eval(0)
+        Traceback (most recent call last):
+        ...
+        PariError: impossible inverse in gdiv: 0
+        >>> pari('1/x + O(x^2)').eval(0)
+        Traceback (most recent call last):
+        ...
+        PariError: impossible inverse in gsubst: 0
+        >>> pari('1/x + O(x^2)').eval(pari('O(x^3)'))
+        Traceback (most recent call last):
+        ...
+        PariError: impossible inverse in ...
+        >>> pari('O(x^0)').eval(0)
+        Traceback (most recent call last):
+        ...
+        PariError: forbidden substitution t_SER , t_INT
 
-        Evaluating multivariate polynomials::
+        Evaluating multivariate polynomials:
 
-            sage: f = pari('y^2 + x^3')
-            sage: f(1)    # Dangerous, depends on PARI variable ordering
-            y^2 + 1
-            sage: f(x=1)  # Safe
-            y^2 + 1
-            sage: f(y=1)
-            x^3 + 1
-            sage: f(1, 2)
-            Traceback (most recent call last):
-            ...
-            TypeError: evaluating PARI t_POL takes exactly 1 argument (2 given)
-            sage: f(y='x', x='2*y')
-            x^2 + 8*y^3
-            sage: f()
-            x^3 + y^2
+        >>> f = pari('y^2 + x^3')
+        >>> f(1)    # Dangerous, depends on PARI variable ordering
+        y^2 + 1
+        >>> f(x=1)  # Safe
+        y^2 + 1
+        >>> f(y=1)
+        x^3 + 1
+        >>> f(1, 2)
+        Traceback (most recent call last):
+        ...
+        TypeError: evaluating PARI t_POL takes exactly 1 argument (2 given)
+        >>> f(y='x', x='2*y')
+        x^2 + 8*y^3
+        >>> f()
+        x^3 + y^2
 
-        It's not an error to substitute variables which do not appear::
+        It's not an error to substitute variables which do not appear:
 
-            sage: f.eval(z=37)
-            x^3 + y^2
-            sage: pari(42).eval(t=0)
-            42
+        >>> f.eval(z=37)
+        x^3 + y^2
+        >>> pari(42).eval(t=0)
+        42
 
-        We can define and evaluate closures as follows::
+        We can define and evaluate closures as follows:
 
-            sage: T = pari('n -> n + 2')
-            sage: T.type()
-            't_CLOSURE'
-            sage: T.eval(3)
-            5
+        >>> T = pari('n -> n + 2')
+        >>> T.type()
+        't_CLOSURE'
+        >>> T.eval(3)
+        5
 
-            sage: T = pari('() -> 42')
-            sage: T()
-            42
+        >>> T = pari('() -> 42')
+        >>> T()
+        42
 
-            sage: pr = pari('s -> print(s)')
-            sage: pr.eval('"hello world"')
-            hello world
+        >>> pr = pari('s -> print(s)')
+        >>> pr.eval('"hello world"')
+        hello world
 
-            sage: f = pari('myfunc(x,y) = x*y')
-            sage: f.eval(5, 6)
-            30
+        >>> f = pari('myfunc(x,y) = x*y')
+        >>> f.eval(5, 6)
+        30
 
         Default arguments work, missing arguments are treated as zero
-        (like in GP)::
+        (like in GP):
 
-            sage: f = pari("(x, y, z=1.0) -> [x, y, z]")
-            sage: f(1, 2, 3)
-            [1, 2, 3]
-            sage: f(1, 2)
-            [1, 2, 1.00000000000000]
-            sage: f(1)
-            [1, 0, 1.00000000000000]
-            sage: f()
-            [0, 0, 1.00000000000000]
+        >>> f = pari("(x, y, z=1.0) -> [x, y, z]")
+        >>> f(1, 2, 3)
+        [1, 2, 3]
+        >>> f(1, 2)
+        [1, 2, 1.00000000000000]
+        >>> f(1)
+        [1, 0, 1.00000000000000]
+        >>> f()
+        [0, 0, 1.00000000000000]
 
-        Variadic closures are supported as well (:trac:`18623`)::
+        Variadic closures are supported as well (:trac:`18623`):
 
-            sage: f = pari("(v[..])->length(v)")
-            sage: f('a', f)
-            2
-            sage: g = pari("(x,y,z[..])->[x,y,z]")
-            sage: g(), g(1), g(1,2), g(1,2,3), g(1,2,3,4)
-            ([0, 0, []], [1, 0, []], [1, 2, []], [1, 2, [3]], [1, 2, [3, 4]])
+        >>> f = pari("(v[..])->length(v)")
+        >>> f('a', f)
+        2
+        >>> g = pari("(x,y,z[..])->[x,y,z]")
+        >>> g(), g(1), g(1,2), g(1,2,3), g(1,2,3,4)
+        ([0, 0, []], [1, 0, []], [1, 2, []], [1, 2, [3]], [1, 2, [3, 4]])
 
         Using keyword arguments, we can substitute in more complicated
-        objects, for example a number field::
+        objects, for example a number field:
 
-            sage: nf = pari('x^2 + 1').nfinit()
-            sage: nf
-            [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
-            sage: nf(x='y')
-            [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+        >>> nf = pari('x^2 + 1').nfinit()
+        >>> nf
+        [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], ..., [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+        >>> nf(x='y')
+        [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], ..., [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+
+        Tests:
+
+        >>> T = pari('n -> 1/n')
+        >>> T.type()
+        't_CLOSURE'
+        >>> T(0)
+        Traceback (most recent call last):
+        ...
+        PariError: _/_: impossible inverse in gdiv: 0
+        >>> pari('() -> 42')(1,2,3)
+        Traceback (most recent call last):
+        ...
+        PariError: too many parameters in user-defined function call
+        >>> pari('n -> n')(n=2)
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot evaluate a PARI closure using keyword arguments
+        >>> pari('x + y')(4, y=1)
+        Traceback (most recent call last):
+        ...
+        TypeError: mixing unnamed and keyword arguments not allowed when evaluating a PARI object
+        >>> pari("12345")(4)
+        Traceback (most recent call last):
+        ...
+        TypeError: cannot evaluate PARI t_INT using unnamed arguments
+        """
+        return self(*args, **kwds)
+
+    def __call__(self, *args, **kwds):
+        """
+        Evaluate ``self`` with the given arguments. See ``eval``.
         """
         cdef long t = typ(self.g)
         cdef Gen t0
         cdef GEN result
-        cdef pari_longword arity
-        cdef Py_ssize_t nargs = len(args)
-        cdef Py_ssize_t nkwds = len(kwds)
+        cdef long arity
+        cdef long nargs = len(args)
+        cdef long nkwds = len(kwds)
 
         # Closure must be evaluated using *args
         if t == t_CLOSURE:
-            if nkwds > 0:
+            if nkwds:
                 raise TypeError("cannot evaluate a PARI closure using keyword arguments")
             if closure_is_variadic(self.g):
                 arity = closure_arity(self.g) - 1
@@ -3805,15 +4128,15 @@ cdef class Gen(Gen_base):
             t0 = objtogen(args)
             sig_on()
             result = closure_callgenvec(self.g, t0.g)
-            if result == gnil:
+            if result is gnil:
                 clear_stack()
                 return None
             return new_gen(result)
 
         # Evaluate univariate polynomials, rational functions and
         # series using *args
-        if nargs > 0:
-            if nkwds > 0:
+        if nargs:
+            if nkwds:
                 raise TypeError("mixing unnamed and keyword arguments not allowed when evaluating a PARI object")
             if not (t == t_POL or t == t_RFRAC or t == t_SER):
                 raise TypeError("cannot evaluate PARI %s using unnamed arguments" % self.type())
@@ -3829,118 +4152,68 @@ cdef class Gen(Gen_base):
                 return new_gen(gsubst(self.g, varn(self.g), t0.g))
 
         # Call substvec() using **kwds
-        vstr = [k for k in kwds]               # Variables as Python strings
-        t0 = objtogen([kwds[k] for k in kwds])  # Replacements
+        cdef list V = [to_bytes(k) for k in kwds]  # Variables as Python byte strings
+        t0 = objtogen(kwds.values())               # Replacements
 
         sig_on()
         cdef GEN v = cgetg(nkwds+1, t_VEC)  # Variables as PARI polynomials
         cdef long i
         for i in range(nkwds):
-            set_gel(v, i+1, pol_x(get_var(vstr[i])))
+            varname = <bytes>V[i]
+            set_gel(v, i+1, pol_x(fetch_user_var(varname)))
         return new_gen(gsubstvec(self.g, v, t0.g))
 
-    def __call__(self, *args, **kwds):
+    def arity(self):
         """
-        Evaluate ``self`` with the given arguments.
+        Return the number of arguments of this ``t_CLOSURE``.
 
-        This has the same effect as :meth:`eval`.
-
-        EXAMPLES::
-
-            sage: f = pari('Mod(x^2 + x + 1, 3)')
-            sage: f.type()
-            't_POL'
-            sage: f(2)
-            Mod(1, 3)
-
-        TESTS::
-
-            sage: T = pari('n -> 1/n')
-            sage: T.type()
-            't_CLOSURE'
-            sage: T(0)
-            Traceback (most recent call last):
-            ...
-            PariError: _/_: impossible inverse in gdiv: 0
-            sage: pari('() -> 42')(1,2,3)
-            Traceback (most recent call last):
-            ...
-            PariError: too many parameters in user-defined function call
-            sage: pari('n -> n')(n=2)
-            Traceback (most recent call last):
-            ...
-            TypeError: cannot evaluate a PARI closure using keyword arguments
-            sage: pari('x + y')(4, y=1)
-            Traceback (most recent call last):
-            ...
-            TypeError: mixing unnamed and keyword arguments not allowed when evaluating a PARI object
-            sage: pari("12345")(4)
-            Traceback (most recent call last):
-            ...
-            TypeError: cannot evaluate PARI t_INT using unnamed arguments
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari("() -> 42").arity()
+        0
+        >>> pari("(x) -> x").arity()
+        1
+        >>> pari("(x,y,z) -> x+y+z").arity()
+        3
         """
-        return self.eval(*args, **kwds)
+        if typ(self.g) != t_CLOSURE:
+            raise TypeError(f"arity() requires a t_CLOSURE")
+        return closure_arity(self.g)
 
     def factorpadic(self, p, long r=20):
         """
         p-adic factorization of the polynomial ``pol`` to precision ``r``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pol = pari('x^2 - 1')**2
-            sage: pari(pol).factorpadic(5)
-            [(1 + O(5^20))*x + (1 + O(5^20)), 2; (1 + O(5^20))*x + (4 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + O(5^20)), 2]
-            sage: pari(pol).factorpadic(5,3)
-            [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pol = pari('x^2 - 1')**2
+        >>> pari(pol).factorpadic(5)
+        [(1 + O(5^20))*x + (1 + O(5^20)), 2; (1 + O(5^20))*x + (4 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + 4*5^12 + 4*5^13 + 4*5^14 + 4*5^15 + 4*5^16 + 4*5^17 + 4*5^18 + 4*5^19 + O(5^20)), 2]
+        >>> pari(pol).factorpadic(5,3)
+        [(1 + O(5^3))*x + (1 + O(5^3)), 2; (1 + O(5^3))*x + (4 + 4*5 + 4*5^2 + O(5^3)), 2]
         """
         cdef Gen t0 = objtogen(p)
         sig_on()
         return new_gen(factorpadic(self.g, t0.g, r))
 
-    def poldegree(self, var=-1):
-        """
-        Return the degree of this polynomial.
-        """
-        sig_on()
-        cdef long n = <long>poldegree(self.g, get_var(var))
-        sig_off()
-        return n
-
-    def polisirreducible(self):
-        """
-        f.polisirreducible(): Returns True if f is an irreducible
-        non-constant polynomial, or False if f is reducible or constant.
-        """
-        sig_on()
-        cdef long t = <long>isirreducible(self.g)
-        clear_stack()
-        return t != 0
-
-    def polroots(self, unsigned long precision=0):
-        """
-        Complex roots of the given polynomial using Schonhage's method,
-        as modified by Gourdon.
-        """
-        sig_on()
-        return new_gen(cleanroots(self.g, prec_bits_to_words(precision)))
-
-    def rnfisnorm(self, T, long flag=0):
-        cdef Gen t0 = objtogen(T)
-        sig_on()
-        return new_gen(rnfisnorm(t0.g, self.g, flag))
-
     def ncols(self):
         """
         Return the number of columns of self.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('matrix(19,8)').ncols()
-            8
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('matrix(19,8)').ncols()
+        8
         """
         cdef long n
         sig_on()
-        n = <long>glength(self.g)
+        n = glength(self.g)
         sig_off()
         return n
 
@@ -3948,10 +4221,13 @@ cdef class Gen(Gen_base):
         """
         Return the number of rows of self.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('matrix(19,8)').nrows()
-            19
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('matrix(19,8)').nrows()
+        19
         """
         cdef long n
         sig_on()
@@ -3960,7 +4236,7 @@ cdef class Gen(Gen_base):
         if self.ncols() == 0:
             sig_off()
             return 0
-        n = <long>glength(<GEN>(self.g[1]))
+        n = glength(gel(self.g, 1))
         sig_off()
         return n
 
@@ -3968,17 +4244,20 @@ cdef class Gen(Gen_base):
         """
         Transpose of the matrix self.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('[1,2,3; 4,5,6; 7,8,9]').mattranspose()
-            [1, 4, 7; 2, 5, 8; 3, 6, 9]
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        Unlike PARI, this always returns a matrix::
+        >>> pari('[1,2,3; 4,5,6; 7,8,9]').mattranspose()
+        [1, 4, 7; 2, 5, 8; 3, 6, 9]
 
-            sage: pari('[1,2,3]').mattranspose()
-            [1; 2; 3]
-            sage: pari('[1,2,3]~').mattranspose()
-            Mat([1, 2, 3])
+        Unlike PARI, this always returns a matrix:
+
+        >>> pari('[1,2,3]').mattranspose()
+        [1; 2; 3]
+        >>> pari('[1,2,3]~').mattranspose()
+        Mat([1, 2, 3])
         """
         sig_on()
         return new_gen(gtrans(self.g)).Mat()
@@ -3997,15 +4276,18 @@ cdef class Gen(Gen_base):
         1 to `2B`, 2: return a ``t_VECSMALL`` instead of a ``t_VEC``
         (which is faster).
 
-        EXAMPLES::
+        Examples:
 
-            sage: M = pari("[5,1,1;1,3,1;1,1,1]")
-            sage: M.qfrep(20)
-            [1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4]
-            sage: M.qfrep(20, flag=1)
-            [1, 2, 4, 3, 4, 4, 0, 6, 5, 4, 12, 4, 4, 8, 0, 3, 8, 6, 12, 12]
-            sage: M.qfrep(20, flag=2)
-            Vecsmall([1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4])
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> M = pari("[5,1,1;1,3,1;1,1,1]")
+        >>> M.qfrep(20)
+        [1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4]
+        >>> M.qfrep(20, flag=1)
+        [1, 2, 4, 3, 4, 4, 0, 6, 5, 4, 12, 4, 4, 8, 0, 3, 8, 6, 12, 12]
+        >>> M.qfrep(20, flag=2)
+        Vecsmall([1, 1, 2, 2, 2, 4, 4, 3, 3, 4, 2, 4, 6, 0, 4, 6, 4, 5, 6, 4])
         """
         # PARI 2.7 always returns a t_VECSMALL, but for backwards
         # compatibility, we keep returning a t_VEC (unless flag & 2)
@@ -4024,15 +4306,20 @@ cdef class Gen(Gen_base):
         This is the LLL-reduced Z-basis of the kernel of the matrix x with
         integral entries.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('[2,1;2,1]').matker()
-            [-1/2; 1]
-            sage: pari('[2,1;2,1]').matkerint()
-            [1; -2]
-            sage: pari('[2,1;2,1]').matkerint(1)
-            doctest:...: DeprecationWarning: the 'flag' argument of the PARI/GP function matkerint is obsolete
-            [1; -2]
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('[2,1;2,1]').matkerint()
+        [1; -2]
+        >>> import warnings
+        >>> with warnings.catch_warnings(record=True) as w:
+        ...     warnings.simplefilter('always')
+        ...     pari('[2,1;2,1]').matkerint(1)
+        ...     assert len(w) == 1
+        ...     assert issubclass(w[0].category, DeprecationWarning)
+        [1; -2]
         """
         if flag:
             # Keep this deprecation warning as long as PARI supports
@@ -4056,36 +4343,33 @@ cdef class Gen(Gen_base):
           returned factors larger than `2^{64}` may only be pseudoprimes.
           If ``True``, always check primality. If not given, use the
           global PARI default ``factor_proven`` which is ``True`` by
-          default in Sage.
+          default in cypari.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari('x^10-1').factor()
-            [x - 1, 1; x + 1, 1; x^4 - x^3 + x^2 - x + 1, 1; x^4 + x^3 + x^2 + x + 1, 1]
-            sage: pari(2**100-1).factor()
-            [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
-            sage: pari(2**100-1).factor(proof=True)
-            [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
-            sage: pari(2**100-1).factor(proof=False)
-            [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        We illustrate setting a limit::
+        >>> pari('x^10-1').factor()
+        [x - 1, 1; x + 1, 1; x^4 - x^3 + x^2 - x + 1, 1; x^4 + x^3 + x^2 + x + 1, 1]
+        >>> pari(2**100-1).factor()
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> pari(2**100-1).factor(proof=True)
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
+        >>> pari(2**100-1).factor(proof=False)
+        [3, 1; 5, 3; 11, 1; 31, 1; 41, 1; 101, 1; 251, 1; 601, 1; 1801, 1; 4051, 1; 8101, 1; 268501, 1]
 
-            sage: pari(pari(10**50).nextprime()*pari(10**60).nextprime()*pari(10**4).nextprime()).factor(10**5)
-            [10007, 1; 100000000000000000000000000000000000000000000000151000000000700000000000000000000000000000000000000000000001057, 1]
+        We illustrate setting a limit:
 
-        Setting a limit is invalid when factoring polynomials::
+        >>> pari(pari(10**50).nextprime()*pari(10**60).nextprime()*pari(10**4).nextprime()).factor(10**5)
+        [10007, 1; 100000000000000000000000000000000000000000000000151000000000700000000000000000000000000000000000000000000001057, 1]
 
-            sage: pari('x^11 + 1').factor(limit=17)
-            Traceback (most recent call last):
-            ...
-            PariError: incorrect type in boundfact (t_POL)
+        Setting a limit is invalid when factoring polynomials:
 
-        PARI doesn't have an algorithm for factoring multivariate
-        polynomials::
-
-            sage: pari('x^3 - y^3').factor()
-            [x - y, 1; x^2 + y*x + y^2, 1]
+        >>> pari('x^11 + 1').factor(limit=17)
+        Traceback (most recent call last):
+        ...
+        PariError: incorrect type in boundfact (t_POL)
         """
         cdef GEN g
         global factor_proven
@@ -4104,27 +4388,30 @@ cdef class Gen(Gen_base):
             factor_proven = saved_factor_proven
 
     # Standard name for SageMath
-    multiplicative_order = Gen_base.znorder
+    # multiplicative_order = Gen_base.znorder
 
     def __abs__(self):
         return self.abs()
 
-    def nextprime(self, bint add_one=0):
+    def nextprime(self, bint add_one=False):
         """
         nextprime(x): smallest pseudoprime greater than or equal to `x`.
         If ``add_one`` is non-zero, return the smallest pseudoprime
         strictly greater than `x`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(1).nextprime()
-            2
-            sage: pari(2).nextprime()
-            2
-            sage: pari(2).nextprime(add_one = 1)
-            3
-            sage: pari(2**100).nextprime()
-            1267650600228229401496703205653
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(1).nextprime()
+        2
+        >>> pari(2).nextprime()
+        2
+        >>> pari(2).nextprime(add_one = 1)
+        3
+        >>> pari(2**100).nextprime()
+        1267650600228229401496703205653
         """
         sig_on()
         if add_one:
@@ -4145,27 +4432,30 @@ cdef class Gen(Gen_base):
             use this function on polynomials with integer or rational
             coefficients.  For a safer alternative, use :meth:`subst`.
 
-        EXAMPLES::
+        Examples:
 
-            sage: f = pari('x^3 + 17*x + 3')
-            sage: f.change_variable_name("y")
-            y^3 + 17*y + 3
-            sage: f = pari('1 + 2*y + O(y^10)')
-            sage: f.change_variable_name("q")
-            1 + 2*q + O(q^10)
-            sage: f.change_variable_name("y") is f
-            True
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> f = pari('x^3 + 17*x + 3')
+        >>> f.change_variable_name("y")
+        y^3 + 17*y + 3
+        >>> f = pari('1 + 2*y + O(y^10)')
+        >>> f.change_variable_name("q")
+        1 + 2*q + O(q^10)
+        >>> f.change_variable_name("y") is f
+        True
 
         In PARI, ``I`` refers to the square root of -1, so it cannot be
-        used as variable name.  Note the difference with :meth:`subst`::
+        used as variable name.  Note the difference with :meth:`subst`:
 
-            sage: f = pari('x^2 + 1')
-            sage: f.change_variable_name("I")
-            Traceback (most recent call last):
-            ...
-            PariError: I already exists with incompatible valence
-            sage: f.subst("x", "I")
-            0
+        >>> f = pari('x^2 + 1')
+        >>> f.change_variable_name("I")
+        Traceback (most recent call last):
+        ...
+        PariError: I already exists with incompatible valence
+        >>> f.subst("x", "I")
+        0
         """
         cdef long n = get_var(var)
         if varn(self.g) == n:
@@ -4173,7 +4463,8 @@ cdef class Gen(Gen_base):
         if typ(self.g) != t_POL and typ(self.g) != t_SER:
             raise TypeError("set_variable() only works for polynomials or power series")
         # Copy self and then change the variable in place
-        cdef Gen newg = new_gen_noclear(self.g)
+        sig_on()
+        newg = clone_gen(self.g)
         setvarn(newg.g, n)
         return newg
 
@@ -4187,30 +4478,33 @@ cdef class Gen(Gen_base):
         - ``self`` -- A PARI number field being the output of ``nfinit()``,
                       ``bnfinit()`` or ``bnrinit()``.
 
-        EXAMPLES::
+        Examples:
 
-            sage: K = pari('y^2 + 5').nfinit()
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        We can substitute in a PARI ``nf`` structure::
+        >>> K = pari('y^2 + 5').nfinit()
 
-            sage: K.nf_get_pol()
-            y^2 + 5
-            sage: L = K.nf_subst('a')
-            sage: L.nf_get_pol()
-            a^2 + 5
+        We can substitute in a PARI ``nf`` structure:
 
-        We can also substitute in a PARI ``bnf`` structure::
+        >>> K.nf_get_pol()
+        y^2 + 5
+        >>> L = K.nf_subst('a')
+        >>> L.nf_get_pol()
+        a^2 + 5
 
-            sage: K = pari('y^2 + 5').bnfinit()
-            sage: K.nf_get_pol()
-            y^2 + 5
-            sage: K.bnf_get_cyc()  # Structure of class group
-            [2]
-            sage: L = K.nf_subst('a')
-            sage: L.nf_get_pol()
-            a^2 + 5
-            sage: L.bnf_get_cyc()  # We still have a bnf after substituting
-            [2]
+        We can also substitute in a PARI ``bnf`` structure:
+
+        >>> K = pari('y^2 + 5').bnfinit()
+        >>> K.nf_get_pol()
+        y^2 + 5
+        >>> K.bnf_get_cyc()  # Structure of class group
+        [2]
+        >>> L = K.nf_subst('a')
+        >>> L.nf_get_pol()
+        a^2 + 5
+        >>> L.bnf_get_cyc()  # We still have a bnf after substituting
+        [2]
         """
         cdef Gen t0 = objtogen(z)
         sig_on()
@@ -4225,56 +4519,22 @@ cdef class Gen(Gen_base):
            In Cython, it is much faster to simply use typ(self.g) for
            checking PARI types.
 
-        EXAMPLES::
+        Examples:
 
-            sage: pari(7).type()
-            't_INT'
-            sage: pari('x').type()
-            't_POL'
-            sage: pari('oo').type()
-            't_INFINITY'
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari(7).type()
+        't_INT'
+        >>> pari('x').type()
+        't_POL'
+        >>> pari('oo').type()
+        't_INFINITY'
         """
-        # The following original code leaks memory:
-        #        return str(type_name(typ(self.g)))
-        #
-        # This code is the usual workaround:
-        #        cdef char* s= <char*>type_name(typ(self.g))
-        #        t=str(s)
-        #        free(s)
-        #        return(t)
-        # However, it causes segfaults with t_INTs on some
-        # machines, and errors about freeing non-aligned
-        # pointers on others. So we settle for the following
-        # fast but ugly code. Note that should the list of
-        # valid PARI types ever be updated, this code would
-        # need to be updated accordingly.
-        #
-        cdef long t = typ(self.g)
-
-        if   t == t_INT:      return 't_INT'
-        elif t == t_REAL:     return 't_REAL'
-        elif t == t_INTMOD:   return 't_INTMOD'
-        elif t == t_FRAC:     return 't_FRAC'
-        elif t == t_FFELT:    return 't_FFELT'
-        elif t == t_COMPLEX:  return 't_COMPLEX'
-        elif t == t_PADIC:    return 't_PADIC'
-        elif t == t_QUAD:     return 't_QUAD'
-        elif t == t_POLMOD:   return 't_POLMOD'
-        elif t == t_POL:      return 't_POL'
-        elif t == t_SER:      return 't_SER'
-        elif t == t_RFRAC:    return 't_RFRAC'
-        elif t == t_QFR:      return 't_QFR'
-        elif t == t_QFI:      return 't_QFI'
-        elif t == t_VEC:      return 't_VEC'
-        elif t == t_COL:      return 't_COL'
-        elif t == t_MAT:      return 't_MAT'
-        elif t == t_LIST:     return 't_LIST'
-        elif t == t_STR:      return 't_STR'
-        elif t == t_VECSMALL: return 't_VECSMALL'
-        elif t == t_CLOSURE:  return 't_CLOSURE'
-        elif t == t_INFINITY: return 't_INFINITY'
-        else:
-            raise TypeError("Unknown PARI type: %s" % t)
+        sig_on()
+        s = type_name(typ(self.g))
+        sig_off()
+        return to_string(s)
 
     def polinterpolate(self, ya, x):
         """
@@ -4288,8 +4548,7 @@ cdef class Gen(Gen_base):
         cdef GEN dy, g
         sig_on()
         g = polint(self.g, t0.g, t1.g, &dy)
-        dif = new_gen_noclear(dy)
-        return new_gen(g), dif
+        return new_gens2(g, dy)
 
     def ellwp(self, z='z', long n=20, long flag=0, unsigned long precision=0):
         """
@@ -4316,142 +4575,116 @@ cdef class Gen(Gen_base):
         - `P(z)` (if ``flag`` is 0) or `[P(z), P'(z)]` (if ``flag`` is 1).
            numbers
 
-        EXAMPLES:
+        Examples:
 
-        We first define the elliptic curve X_0(11)::
+        We first define the elliptic curve X_0(11):
 
-            sage: E = pari([0,-1,1,-10,-20]).ellinit()
+        >>> from cypari import pari
+        >>> pari = Pari()
 
-        Compute P(1)::
+        >>> E = pari([0,-1,1,-10,-20]).ellinit()
 
-            sage: E.ellwp(1)
-            13.9658695257485
+        Compute P(1):
 
-        Compute P(1+i), where i = sqrt(-1)::
+        >>> E.ellwp(1)
+        13.9658695257485
 
-            sage: E.ellwp(pari(complex(1, 1)))
-            -1.11510682565555 + 2.33419052307470*I
-            sage: E.ellwp(complex(1, 1))
-            -1.11510682565555 + 2.33419052307470*I
+        Compute P(1+i), where i = sqrt(-1):
 
-        The series expansion, to the default `O(z^20)` precision::
+        >>> E.ellwp(pari(complex(1, 1)))
+        -1.11510682565555 + 2.33419052307470*I
+        >>> E.ellwp(complex(1, 1))
+        -1.11510682565555 + 2.33419052307470*I
 
-            sage: E.ellwp()
-            z^-2 + 31/15*z^2 + 2501/756*z^4 + 961/675*z^6 + 77531/41580*z^8 + 1202285717/928746000*z^10 + 2403461/2806650*z^12 + 30211462703/43418875500*z^14 + 3539374016033/7723451736000*z^16 + 413306031683977/1289540602350000*z^18 + O(z^20)
+        The series expansion, to the default `O(z^20)` precision:
 
-        Compute the series for wp to lower precision::
+        >>> E.ellwp()
+        z^-2 + 31/15*z^2 + 2501/756*z^4 + 961/675*z^6 + 77531/41580*z^8 + 1202285717/928746000*z^10 + 2403461/2806650*z^12 + 30211462703/43418875500*z^14 + 3539374016033/7723451736000*z^16 + 413306031683977/1289540602350000*z^18 + O(z^20)
 
-            sage: E.ellwp(n=4)
-            z^-2 + 31/15*z^2 + O(z^4)
+        Compute the series for wp to lower precision:
+
+        >>> E.ellwp(n=4)
+        z^-2 + 31/15*z^2 + O(z^4)
 
         Next we use the version where the input is generators for a
-        lattice::
+        lattice:
 
-            sage: pari([1.2692, complex(0.63, 1.45)]).ellwp(1)
-            13.9656146936689 + 0.000644829272810...*I
+        >>> pari([1.2692, complex(0.63, 1.45)]).ellwp(1)
+        13.9656146936689 + 0.000644829272810...*I
 
-        With flag=1, compute the pair P(z) and P'(z)::
+        With flag=1, compute the pair P(z) and P'(z):
 
-            sage: E.ellwp(1, flag=1)
-            [13.9658695257485, 101.123860176015]
+        >>> E.ellwp(1, flag=1)
+        [13.9658695257485, 101.123860176015]
         """
         cdef Gen t0 = objtogen(z)
         cdef GEN g0 = t0.g
 
-        # Emulate toser_i() but with given precision
         sig_on()
+        # Polynomial or rational function as input:
+        # emulate toser_i() but with given precision
         if typ(g0) == t_POL:
             g0 = RgX_to_ser(g0, n+4)
         elif typ(g0) == t_RFRAC:
             g0 = rfrac_to_ser(g0, n+4)
-        return new_gen(ellwp0(self.g, g0, flag, prec_bits_to_words(precision)))
 
-    def debug(self, long depth = -1):
+        cdef GEN r = ellwp0(self.g, g0, flag, prec_bits_to_words(precision))
+        if flag == 1 and have_ellwp_flag1_bug():
+            # Work around ellwp() bug: double the second element
+            set_gel(r, 2, gmulgs(gel(r, 2), 2))
+        return new_gen(r)
+
+    def debug(self, long depth=-1):
         r"""
         Show the internal structure of self (like the ``\x`` command in gp).
 
-        EXAMPLE::
+        Examples:
 
-            sage: pari('[1/2, 1.0*I]').debug()  # random
-            [&=0000000004c5f010] VEC(lg=3):2200000000000003 0000000004c5eff8 0000000004c5efb0
-              1st component = [&=0000000004c5eff8] FRAC(lg=3):0800000000000003 0000000004c5efe0 0000000004c5efc8
-                num = [&=0000000004c5efe0] INT(lg=3):0200000000000003 (+,lgefint=3):4000000000000003 0000000000000001
-                den = [&=0000000004c5efc8] INT(lg=3):0200000000000003 (+,lgefint=3):4000000000000003 0000000000000002
-              2nd component = [&=0000000004c5efb0] COMPLEX(lg=3):0c00000000000003 00007fae8a2eb840 0000000004c5ef90
-                real = gen_0
-                imag = [&=0000000004c5ef90] REAL(lg=4):0400000000000004 (+,expo=0):6000000000000000 8000000000000000 0000000000000000
+        >>> from cypari import pari
+        >>> pari = Pari()
+
+        >>> pari('[1/2, 1 + 1.0*I]').debug()
+        [&=...] VEC(lg=3):...
+          1st component = [&=...] FRAC(lg=3):...
+            num = [&=...] INT(lg=3):... (+,lgefint=3):...
+            den = [&=...] INT(lg=3):... (+,lgefint=3):...
+          2nd component = [&=...] COMPLEX(lg=3):...
+            real = [&=...] INT(lg=3):... (+,lgefint=3):...
+            imag = [&=...] REAL(lg=...):... (+,expo=0):...
         """
         sig_on()
         dbgGEN(self.g, depth)
-        sig_off()
+        clear_stack()
         return
-
-    def bernvec(x):
-        r"""
-        Creates a vector containing, as rational numbers, the Bernoulli
-        numbers `B_0, B_2,\ldots, B_{2x}`. This routine is
-        obsolete. Use bernfrac instead each time you need a Bernoulli
-        number in exact form.
-
-        Note: this routine is implemented using repeated independent calls
-        to bernfrac, which is faster than the standard recursion in exact
-        arithmetic.
-
-        EXAMPLES::
-
-            sage: pari(8).bernvec()
-            doctest:...: DeprecationWarning: the PARI/GP function bernvec() is obsolete: use repeated calls to bernfrac() instead
-            [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
-            sage: [pari(2*n).bernfrac() for n in range(9)]
-            [1, 1/6, -1/30, 1/42, -1/30, 5/66, -691/2730, 7/6, -3617/510]
-        """
-        from warnings import warn
-        warn('the PARI/GP function bernvec() is obsolete: use repeated calls to bernfrac() instead', DeprecationWarning)
-        sig_on()
-        return new_gen(bernvec(x))
 
     def allocatemem(self, *args):
         """
         Do not use this. Use ``pari.allocatemem()`` instead.
 
-        TESTS::
+        Tests:
 
-            sage: pari(2**10).allocatemem(2**20)
-            Traceback (most recent call last):
-            ...
-            NotImplementedError: the method allocatemem() should not be used; use pari.allocatemem() instead
+        >>> from cypari import pari
+        >>> pari = Pari()
+        >>> pari(2**10).allocatemem(2**20)
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: the method allocatemem() should not be used; use pari.allocatemem() instead
         """
         raise NotImplementedError("the method allocatemem() should not be used; use pari.allocatemem() instead")
 
 
-cdef Gen new_ref(GEN g, Gen parent):
+cdef int Gen_clear(self) except -1:
     """
-    Create a new ``Gen`` pointing to ``g``, which is allocated as a
-    part of ``parent.g``.
-
-    .. NOTE::
-
-        As a rule, there should never be more than one ``Gen``
-        pointing to a given PARI ``GEN``.  This function should only
-        be used when a complicated ``GEN`` is allocated with a single
-        ``Gen`` pointing to it, and one needs a ``Gen`` pointing to
-        one of its components.
-
-        For example, doing ``x = pari("[1, 2]")`` allocates a ``Gen``
-        pointing to the list ``[1, 2]``.  To create a ``Gen`` pointing
-        to the first element, one can do ``new_ref(gel(x.g, 1), x)``.
-        See :meth:`Gen.__getitem__` for an example of usage.
-
-    EXAMPLES::
-
-        sage: pari("[[1, 2], 3]")[0][1]  # indirect doctest
-        2
+    Implementation of tp_clear() for Gen. We need to override Cython's
+    default since we do not want self.next to be cleared: it is crucial
+    that the next Gen stays alive until remove_from_pari_stack(self) is
+    called by __dealloc__.
     """
-    cdef Gen p = Gen.__new__(Gen)
-    p.g = g
-    p.b = 0
-    p.refers_to = {-1: parent}
-    return p
+    # Only itemcache needs to be cleared
+    (<Gen>self).itemcache = None
+
+
+(<PyTypeObject*>Gen).tp_clear = Gen_clear
 
 
 @cython.boundscheck(False)
@@ -4463,17 +4696,20 @@ cdef Gen list_of_Gens_to_Gen(list s):
 
     This is called from :func:`objtogen` to convert iterables to PARI.
 
-    TESTS::
+    Tests:
 
-        sage: from cypari._pari import objtogen
-        sage: objtogen(range(10))
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-        sage: objtogen(i**2 for i in range(5))
-        [0, 1, 4, 9, 16]
-        sage: objtogen([pari("Mod(x, x^2+1)")])
-        [Mod(x, x^2 + 1)]
-        sage: objtogen([])
-        []
+    >>> from cypari.gen import objtogen
+    >>> from cypari import pari
+    >>> pari = Pari()
+
+    >>> objtogen(range(10))
+    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    >>> objtogen(i**2 for i in range(5))
+    [0, 1, 4, 9, 16]
+    >>> objtogen([pari("Mod(x, x^2+1)")])
+    [Mod(x, x^2 + 1)]
+    >>> objtogen([])
+    []
     """
     cdef Py_ssize_t length = len(s)
 
@@ -4483,132 +4719,130 @@ cdef Gen list_of_Gens_to_Gen(list s):
     cdef Py_ssize_t i
     for i in range(length):
         set_gel(g, i+1, (<Gen>s[i]).g)
-    return new_gen(g)
+    return clone_gen(g)
 
 
 cpdef Gen objtogen(s):
     """
-    Convert any Sage/Python object to a PARI :class:`Gen`.
+    Convert any SageMath/Python object to a PARI :class:`Gen`.
 
-    For Sage types, this uses the ``_pari_()`` method on the object.
-    Basic Python types like ``int`` are converted directly. For other
-    types, the string representation is used.
+    For SageMath types, this uses the ``__pari__()`` method on the
+    object. Basic Python types like ``int`` are converted directly.
+    For other types, the string representation is used.
 
-    EXAMPLES::
+    Examples:
 
-        sage: pari(0)
-        0
-        sage: pari([2,3,5])
-        [2, 3, 5]
+    >>> from cypari import pari
+    >>> pari = Pari()
 
-    ::
+    >>> pari(0)
+    0
+    >>> pari([2,3,5])
+    [2, 3, 5]
 
-        sage: a = pari(1); a, a.type()
-        (1, 't_INT')
-        sage: from fractions import Fraction
-        sage: a = pari(Fraction('1/2')); a, a.type()
-        (1/2, 't_FRAC')
+    >>> a = pari(1)
+    >>> a, a.type()
+    (1, 't_INT')
 
-    Conversion from reals uses the real's own precision::
+    >>> from fractions import Fraction
+    >>> a = pari(Fraction('1/2'))
+    >>> a, a.type()
+    (1/2, 't_FRAC')
 
-        sage: a = pari(1.2); a, a.type(), a.precision()
-        (1.20000000000000, 't_REAL', 4) # 32-bit
-        (1.20000000000000, 't_REAL', 3) # 64-bit
+    Conversion from reals uses the real's own precision:
+
+    >>> a = pari(1.2); a, a.type(), a.bitprecision()
+    (1.20000000000000, 't_REAL', 64)
 
     Conversion from strings uses the current PARI real precision.
-    By default, this is 64 bits::
+    By default, this is 64 bits:
 
-        sage: a = pari('1.2'); a, a.type(), a.precision()
-        (1.20000000000000, 't_REAL', 4)  # 32-bit
-        (1.20000000000000, 't_REAL', 3)  # 64-bit
+    >>> a = pari('1.2'); a, a.type(), a.bitprecision()
+    (1.20000000000000, 't_REAL', 64)
 
-    Unicode and bytes work fine::
+    Unicode and bytes work fine:
 
-        sage: pari(b"zeta(3)")
-        1.20205690315959
-        sage: pari(u"zeta(3)")
-        1.20205690315959
+    >>> pari(b"zeta(3)")
+    1.20205690315959
+    >>> pari(u"zeta(3)")
+    1.20205690315959
 
-    But we can change this precision::
+    But we can change this precision:
 
-        sage: pari.set_real_precision(35)  # precision in decimal digits
-        15
-        sage: a = pari('1.2'); a, a.type(), a.precision()
-        (1.2000000000000000000000000000000000, 't_REAL', 6)  # 32-bit
-        (1.2000000000000000000000000000000000, 't_REAL', 4)  # 64-bit
+    >>> pari.set_real_precision(35)  # precision in decimal digits
+    15
+    >>> a = pari('Pi'); a, a.type(), a.bitprecision()
+    (3.1415926535897932384626433832795029, 't_REAL', 128)
+    >>> a = pari('1.2'); a, a.type(), a.bitprecision()
+    (1.2000000000000000000000000000000000, 't_REAL', 128)
 
-    Set the precision to 15 digits for the remaining tests::
+    Set the precision to 15 digits for the remaining tests:
 
-        sage: pari.set_real_precision(15)
-        35
+    >>> pari.set_real_precision(15)
+    35
 
-    Conversion from basic Python types::
+    Conversion from basic Python types:
 
-        sage: pari(int(-5))
-        -5
-        sage: pari(2**150)
-        1427247692705959881058285969449495136382746624
-        sage: one = pari(complex(1,0)); one == pari('1')
-        True
-        sage: one.type()
-        't_COMPLEX'
-        sage: pari(complex(0, 1)) == pari('I')
-        True
-        sage: from math import sin, cos, pi
-        sage: pari(float(pi))
-        3.14159265358979
-        sage: pari(complex(cos(pi/4), sin(pi/4)))
-        0.70710678118654... + 0.70710678118654...*I
-        sage: pari(False)
-        0
-        sage: pari(True)
-        1
+    >>> pari(int(-5))
+    -5
+    >>> pari(2**150)
+    1427247692705959881058285969449495136382746624
+    >>> import math
+    >>> pari(math.pi)
+    3.14159265358979
+    >>> one = pari(complex(1,0)); one, one.type()
+    (1.00000000000000, 't_COMPLEX')
+    >>> pari(complex(0, 1))
+    1.00000000000000*I
+    >>> pari(complex(0.3, 1.7))
+    0.300000000000000 + 1.70000000000000*I
 
-    Some commands are just executed without returning a value::
+    >>> pari(False)
+    0
+    >>> pari(True)
+    1
 
-        sage: pari("dummy = 0; kill(dummy)")
-        sage: type(pari("dummy = 0; kill(dummy)")) == type(None)
-        True
+    The following looks strange, but it is what PARI does:
 
-    TESTS::
+    >>> pari(["print(x)"])
+    x
+    [0]
+    >>> pari("[print(x)]")
+    x
+    [0]
 
-        sage: pari(None)
-        Traceback (most recent call last):
-        ...
-        ValueError: Cannot convert None to pari
+    Tests:
+
+    >>> pari(None)
+    Traceback (most recent call last):
+    ...
+    ValueError: Cannot convert None to pari
+
     """
-    cdef GEN g
-    cdef list L
-
     if isinstance(s, Gen):
         return s
+
     try:
-        return s._pari_()
+        m = s.__pari__
     except AttributeError:
         pass
+    else:
+        return m()
 
-    # Check basic Python types. Start with strings, which are a very
-    # common case.
-    # This generates slightly more efficient code than
-    # isinstance(s, (unicode, bytes))
-    if PyUnicode_Check(s) | PyBytes_Check(s):
-        sig_on()
-        g = gp_read_str(s)
-        if g == gnil:
-            clear_stack()
-            return None
-        return new_gen(g)
-    if PyInt_Check(s) | PyLong_Check(s):
-        return integer_to_gen(s)
-    if isinstance(s, float):
-        return new_gen_from_double(PyFloat_AS_DOUBLE(s))
-    if isinstance(s, complex):
-        return new_t_COMPLEX_from_double(PyComplex_RealAsDouble(s), PyComplex_ImagAsDouble(s))
+    cdef GEN g = PyObject_AsGEN(s)
+    if g is not NULL:
+        res = new_gen_noclear(g)
+        reset_avma()
+        return res
 
-    # A list is iterable, but we handle the common case of a list
+    # Check for iterables. Handle the common cases of lists and tuples
     # separately as an optimization
+    cdef list L
     if isinstance(s, list):
         L = [objtogen(x) for x in <list>s]
+        return list_of_Gens_to_Gen(L)
+    if isinstance(s, tuple):
+        L = [objtogen(x) for x in <tuple>s]
         return list_of_Gens_to_Gen(L)
     # Check for iterable object s
     try:
@@ -4627,46 +4861,8 @@ cpdef Gen objtogen(s):
     # Simply use the string representation
     return objtogen(str(s))
 
-cdef GEN _Vec_append(GEN v, GEN a, long n):
-    """
-    This implements appending zeros (or another constant GEN ``a``) to
-    the result of :meth:`Vec` and similar functions.
-
-    This is a shallow function, copying ``a`` and entries of ``v`` to
-    the result.  The result is simply stored on the PARI stack.
-
-    INPUT:
-
-    - ``v`` -- GEN of type ``t_VEC`` or ``t_COL``
-
-    - ``a`` -- GEN which will be used for the added entries.
-      Normally, this would be ``gen_0``.
-
-    - ``n`` -- Make the vector of minimal length `|n|`. If `n > 0`,
-      append zeros; if `n < 0`, prepend zeros.
-
-    OUTPUT:
-
-    A GEN of the same type as ``v``.
-    """
-    cdef long lenv = lg(v)-1
-    cdef GEN w
-    cdef long i
-    # Do we need to extend the vector with zeros?
-    if n > lenv:
-        w = cgetg(n+1, typ(v))
-        for i from 1 <= i <= lenv:
-            set_gel(w, i, gel(v, i))
-        for i from 1 <= i <= n-lenv:
-            set_gel(w, i+lenv, a)
-        return w
-    elif n < -lenv:
-        n = -n  # Make n positive
-        w = cgetg(n+1, typ(v))
-        for i from 1 <= i <= lenv:
-            set_gel(w, i+(n-lenv), gel(v, i))
-        for i from 1 <= i <= n-lenv:
-            set_gel(w, i, a)
-        return w
-    else:
-        return v
+cdef inline Gen Gen_new(GEN g, GEN addr):
+    z = <Gen>Gen.__new__(Gen)
+    z.g = g
+    z.address = addr
+    return z
