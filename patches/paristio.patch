@@ -1,16 +1,15 @@
---- include/pari/paristio.h	2022-11-12 08:55:38.000000000 -0600
-+++ include/pari/paristio.h.new	2022-11-12 08:54:30.000000000 -0600
-@@ -14,6 +14,9 @@
+--- src/headers/paristio.h	2022-10-30 11:07:08.000000000 -0500
++++ src/headers/paristio.h.new	2022-11-12 10:25:50.000000000 -0600
+@@ -13,6 +13,8 @@
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. */
  
  /* This file contains memory and I/O management definitions       */
- 
 +#ifndef PARISTIO_H
 +#define PARISTIO_H
-+
+ 
  typedef struct {
    long s, us;
- } pari_timer;
-@@ -402,3 +405,4 @@
+@@ -402,3 +404,4 @@
  #ifndef SIGINT
  #  define SIGINT 2
  #endif

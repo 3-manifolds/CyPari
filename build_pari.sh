@@ -129,8 +129,12 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../${PARIVERSION}.tar.gz
     mv ${PARIVERSION} pari_src
     cd pari_src
+    # Add a guard against multiple includes of paristio.h
+    patch -p0 < ../../patches/paristio.patch
 else
     cd build/pari_src
+    # Add a guard against multiple includes of paristio.h
+    patch -p0 < ../../patches/paristio.patch
 fi
 
 export DESTDIR=
@@ -196,8 +200,4 @@ else
     make install
     make install-lib-sta
 fi
-# Patch paristio.h to add a guard against being included multiple times
-cd ${PARIPREFIX}
-patch -p0 < ../../patches/paristio.patch
-
 
