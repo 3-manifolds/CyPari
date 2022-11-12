@@ -170,6 +170,10 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     if [ "$1" == "pari32" ]; then
 	export DLLTOOL="/c/msys64/mingw32/bin/dlltool"
     fi
+    # Disable avx and sse2.
+    if [ "$1" == "pari64" ]; then
+        export CFLAGS="-UHAS_AVX -UHAS_SSE2"
+    fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
 
     # When building for x86_64 parigen.h says #define long long long

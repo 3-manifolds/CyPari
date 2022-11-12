@@ -2736,7 +2736,7 @@ cdef class Gen(Gen_base):
         2.40000000000000*x
         """
         cdef int n
-        cdef long e
+        cdef pari_longword e
         cdef Gen y
         sig_on()
         if not estimate:
@@ -2864,7 +2864,7 @@ cdef class Gen(Gen_base):
         >>> pari('sin(x+O(x^10))').round()   # each coefficient has abs < 1
         x + O(x^10)
         """
-        cdef long e
+        cdef pari_longword e
         cdef Gen y
         sig_on()
         if not estimate:
