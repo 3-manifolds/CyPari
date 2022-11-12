@@ -1,9 +1,11 @@
 #! /bin/bash
-# On macOS this builds both arm and x86_64 PARI librariies for OS X >= 10.9.
-# On Windows it uses mingw32 or mingw64, depending on the MSys2 environment.
-# On linux the default system gcc is used to build for the host architecture.
-# There are two required arguments, to specify word sizes for gmp and pari.
-# For macOS these arguments should be pari and gmp.
+
+# On macOS this builds both arm and x86_64 PARI librariies for OS X >=
+# 10.9.  On Windows it uses the clang32 or ucrt64 toolchains,
+# depending on the MSys2 environment.  On linux the default system gcc
+# is used to build for the host architecture.  There are two required
+# arguments, to specify word sizes for gmp and pari.  For macOS these
+# arguments should be pari and gmp.
 
 set -e
 
@@ -140,11 +142,11 @@ if [ $(uname) = "Darwin" ] ; then
     make install
     make install-lib-sta
     make clean
-elif [ $(uname | cut -b -5) = "MINGW" ] ; then
+elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 #Windows
-    # Neuter win32_set_pdf_viewer so it won't break linking with MSVC.
+    # Get rid of win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -N -p0 < ../../Windows/mingw_c.patch || true
-    # When we build the pari library for linking with Visual C 2014
+    # When we built the pari library for linking with Visual C 2014
     # (i.e. for Python 3.5 and 3.6) the Pari configure script has
     # trouble linking some of the little C programs which verify that
     # we have provided the correct gmp configuration in the options to
@@ -154,9 +156,15 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
     # right answers.
     patch -N -p1 < ../../Windows/pari_config.patch || true
     if [ "$2" = "gmp32" ] ; then
-	export MSYSTEM=MINGW32
+	export MSYSTEM=CLANG32
     else
 	export MSYSTEM=MINGW64
+    fi
+    # The dlltool that is provided by clang32 does not accept the
+    # --version option.  This confuses Pari's config tools.  So we let
+    # Pari use the dlltool in the mingw32 toolchain.
+    if [ "$1" == "pari32" ]; then
+	export DLLTOOL="/c/msys64/mingw32/bin/dlltool"
     fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
 
@@ -166,10 +174,21 @@ elif [ $(uname | cut -b -5) = "MINGW" ] ; then
 	patch -N -p0 < ../../Windows/parigen.h.patch || true
     fi
     cd Omingw-*
+    # When building for x86 with clang32, the Makefile uses the -rpath option
+    # which is not recognized by the clang32 linker, and causes an error.
+    if [ "$1" == "pari32" ]; then
+	sed -i s/$\(RUNPTH\)//g Makefile
+	sed -i s/$\(RUNPTH_FINAL\)//g Makefile
+    fi
     make install-lib-sta
     make install-include
     make install-doc
     make install-cfg
+    # Also the clang32 linker does not require the .def file, and just gets
+    # confused by it.
+    if [ "$1" == "pari32" ]; then
+	cat /dev/null > libpari_exe.def
+    fi
     make install-bin-sta
     cd ..
 else

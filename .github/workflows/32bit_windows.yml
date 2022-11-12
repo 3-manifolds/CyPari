@@ -1,0 +1,61 @@
+name: Windows wheels for 32 bit Python
+
+on: [push, pull_request]
+
+jobs:
+  build_wheels:
+    name: Build Windows wheels for 32 bit Python
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+  
+    steps:       
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        name: Install a Python to use for building
+        with:
+          python-version: '3.11'
+          
+      - uses: msys2/setup-msys2@v2
+        name: Setup an msys2 environment
+        with:
+          msystem: CLANG32
+          release: false
+          install: >-
+            base-devel
+            m4
+            bison
+            make
+            patch
+            sed
+          pacboy: clang:p gcc-compat:p
+          path-type: inherit
+          
+      - name: Expand the path for Visual Studio 2019
+        run: |
+          echo "/c/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x86" >> $GITHUB_PATH
+
+      - name: Install cibuildwheel
+        run: |
+          python -m pip install cibuildwheel
+          
+      - name: Build gmp and pari
+        run: |
+          bash build_pari.sh pari32 gmp32
+
+      - name: Build many wheels
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
+        env:
+          CIBW_ARCHS: x86
+          CIBW_SKIP: cp27-* cp35-* pp*
+          CIBW_BEFORE_BUILD: |
+            pip install cython
+          CIBW_TEST_COMMAND: python -m cypari.test
+
+      - uses: actions/upload-artifact@v3
+        name: Save the wheels as artifacts
+        with:
+          path: ./wheelhouse/*.whl
