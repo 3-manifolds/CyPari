@@ -142,7 +142,6 @@ if [ $(uname) = "Darwin" ] ; then
     make install
     make install-lib-sta
     make clean
-    cd ../../..
 elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 #Windows
     # Get rid of win32_set_pdf_viewer so it won't break linking with MSVC.
@@ -191,15 +190,14 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 	cat /dev/null > libpari_exe.def
     fi
     make install-bin-sta
-    cd ../../..
 else
 # linux
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
     make install
     make install-lib-sta
-    cd ../..
 fi
 # Patch paristio.h to add a guard against being included multiple times
-patch -p0 < patches/paristio.patch
+cd ${PARIPREFIX}
+patch -p0 < ../../patches/paristio.patch
 
 
