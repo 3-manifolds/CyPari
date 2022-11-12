@@ -61,7 +61,6 @@ import sys, types
 iterable_types = (list, tuple, types.GeneratorType)
 
 cimport cython
-
 from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.bytes cimport PyBytes_Check
@@ -72,8 +71,9 @@ from cpython.object cimport PyTypeObject, PyObject_Call, Py_SIZE
 from cpython.tuple cimport *
 from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
 from cpython.longintrepr cimport _PyLong_New, digit, py_long
-from cpython.ref cimport PyObject, Py_XINCREF, Py_XDECREF, Py_INCREF
+from cpython.ref cimport PyObject, Py_XINCREF, Py_XDECREF, Py_INCREF, Py_DECREF
 from cpython.exc cimport PyErr_SetString
+from cpython cimport PyErr_Occurred
 
 cimport libc.stdlib
 from libc.stdio cimport *
@@ -86,6 +86,7 @@ ctypedef long* GEN
 ctypedef char* byteptr
 ctypedef unsigned long pari_sp
 include 'pari_long.pxi'
+cdef extern const char* closure_func_err()
 from .types cimport *
 from .paridecl cimport *
 from .auto_paridecl cimport *
@@ -95,17 +96,6 @@ try:
     from inspect import getfullargspec as getargspec
 except ImportError:
     from inspect import getargspec
-
-cdef String(x):
-    """
-    Return a string from either a string or bytes object, using ascii.
-    """
-    if isinstance(x, str):
-        return x
-    elif isinstance(x, bytes):
-        return x.decode('ascii')
-    else:
-        raise ValueError('Neither a str nor a bytes object.')
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
 
@@ -143,6 +133,7 @@ cdef extern from *:
     char *pari_PARIVERSION
 
 include "memory.pxi"
+include "handle_error.pyx"
 include "pari_instance.pyx"
 include "auto_gen.pxi"
 include "gen.pyx"
@@ -151,7 +142,6 @@ init_cysignals()
 include "stack.pyx"
 include "string_utils.pyx"
 include "convert.pyx"
-include "handle_error.pyx"
 include "closure.pyx"
 # Instantiate an instance of the Pari class
 cdef Pari pari_instance = Pari()

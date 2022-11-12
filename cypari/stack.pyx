@@ -29,6 +29,25 @@ cdef Gen top_of_stack = Gen_new(gnil, NULL)
 # we update stackbottom in Gen.__dealloc__
 cdef PyObject* stackbottom = <PyObject*>top_of_stack
 
+# cdef debug_print_stack_Gens():
+#     gen = <Gen>stackbottom
+#     count = 0
+#     print("Cypari Gens on the stack:", file=sys.stderr)
+#     sig_on()
+#     while gen.next is not None:
+#         if gen.g is NULL:
+#             print(f"0x{gen.sp():x}: NULL", file=sys.stderr)
+#         elif gen.g is gnil:
+#             print(f"0x{gen.sp():x}: gnil", file=sys.stderr)
+#         else:
+#             try:
+#                 print(f"0x{gen.sp():x}: {gen}", file=sys.stderr)
+#             except:
+#                 print("unprintable gen", file=sys.stderr)
+#         gen = gen.next
+#         count += 1
+#     print(f"The stack contained {count} Gens.", file=sys.stderr)
+#     sig_off()
 
 cdef void remove_from_pari_stack(Gen self):
     global avma, stackbottom
@@ -36,9 +55,10 @@ cdef void remove_from_pari_stack(Gen self):
         print("ERROR: removing wrong instance of Gen")
         print(f"Expected: {<object>stackbottom}")
         print(f"Actual:   {self}")
-    if sig_on_count and not block_sigint:
-        PyErr_SetString(SystemError, "calling remove_from_pari_stack() inside sig_on()")
-        sig_error()
+#    if sig_on_count and not block_sigint:
+#        PyErr_SetString(SystemError,
+#            f"call to remove_from_pari_stack({self}) with sig_on_count {sig_on_count}.")
+#        sig_error()
     if self.sp() != avma:
         if avma > self.sp():
             print("ERROR: inconsistent avma when removing Gen from PARI stack")
@@ -47,29 +67,31 @@ cdef void remove_from_pari_stack(Gen self):
         else:
             warn(f"cypari leaked {self.sp() - avma} bytes on the PARI stack",
                  RuntimeWarning, stacklevel=2)
+        #debug_print_stack_Gens()
     n = self.next
     stackbottom = <PyObject*>n
     self.next = None
     reset_avma()
-
 
 cdef inline Gen Gen_stack_new(GEN x):
     """
     Allocate and initialize a new instance of ``Gen`` wrapping
     a GEN on the PARI stack.
     """
-    global stackbottom
+    global stackbottom, avma
     # n = <Gen>stackbottom must be done BEFORE calling Gen_new()
     # since Gen_new may invoke gc.collect() which would mess up
     # the PARI stack.
     n = <Gen>stackbottom
     z = Gen_new(x, <GEN>avma)
+    nn = <Gen>stackbottom
     z.next = n
     stackbottom = <PyObject*>z
     sz = z.sp()
     sn = n.sp()
     if sz > sn:
-        raise SystemError(f"objects on PARI stack in invalid order (first: 0x{sz:x}; next: 0x{sn:x})")
+        #debug_print_stack_Gens()
+        raise SystemError(f"Gen_stack_new: created {z} after the stackbottom Gen: (new gen at 0x{sz:x}; stackbottom at 0x{sn:x})")
     return z
 
 
@@ -183,14 +205,15 @@ cdef Gen new_gen_noclear(GEN x):
     """
     Create a new ``Gen`` from a ``GEN``.
     """
-    if not is_on_stack(x):
-        reset_avma()
-        if is_universal_constant(x):
-            return Gen_new(x, NULL)
-        elif isclone(x):
-            gclone_refc(x)
-            return Gen_new(x, x)
-        raise SystemError("new_gen() argument not on PARI stack, not on PARI heap and not a universal constant")
+    # if not is_on_stack(x):
+    #     reset_avma()
+    #     if is_universal_constant(x):
+    #         return Gen_new(x, NULL)
+    #     elif isclone(x):
+    #         gclone_refc(x)
+    #         return Gen_new(x, x)
+    #     raise SystemError("new_gen_noclear() argument %x not on PARI stack, "
+    #                       "not on PARI heap and not a universal constant"%<long long>x)
 
     z = Gen_stack_new(x)
 
@@ -210,6 +233,10 @@ cdef Gen clone_gen(GEN x):
     clear_stack()
     return Gen_new(x, x)
 
+cdef Gen clone_gen_noclear(GEN x):
+    x = gclone(x)
+    return Gen_new(x, x)
+
 @cython.no_gc
 cdef class DetachGen:
     """
@@ -224,6 +251,7 @@ cdef class DetachGen:
     3. Call the ``detach`` method to retrieve the ``GEN`` (or a copy of
        it if the original was not on the stack).
     """
+    cdef source
     def __init__(self, s):
         self.source = s
 

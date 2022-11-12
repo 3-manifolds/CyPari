@@ -708,6 +708,7 @@ cdef class Pari(Pari_auto):
         Examples:
 
         >>> from cypari import pari
+        >>> pari.set_real_precision_bits(53)
         >>> pari.get_real_precision_bits()
         53
         """
@@ -741,6 +742,7 @@ cdef class Pari(Pari_auto):
         1.20000000000000000000000000000000000000000000000000000000000
         >>> pari.set_real_precision(15)
         60
+        >>> pari.set_real_precision_bits(53)
         """
         old = self.get_real_precision()
         self.set_real_precision_bits(prec_dec_to_bits(n))
@@ -1277,22 +1279,24 @@ cdef class Pari(Pari_auto):
         >>> pari.matrix(3, 3, range(9))
         [0, 1, 2; 3, 4, 5; 6, 7, 8]
         """
-        cdef long i, j, k
-        cdef Gen x
+        cdef long i, j
+        cdef Gen x, A
 
         sig_on()
         A = new_gen(zeromatcopy(m,n))
         if entries is not None:
             if len(entries) != m * n:
                 raise IndexError("len of entries (=%s) must be %s*%s=%s"%(len(entries),m,n,m*n))
-            k = 0
-            for i in range(m):
-                for j in range(n):
-                    sig_check()
-                    x = objtogen(entries[k])
-                    set_gcoeff(A.g, i+1, j+1, x.ref_target())
-                    A.cache((i,j), x)
-                    k += 1
+            i = j = 0
+            for e in entries:
+                sig_check()
+                x = objtogen(e)
+                set_gcoeff(A.g, i+1, j+1, x.ref_target())
+                A.cache((i,j), x)
+                j += 1
+                if j == n:
+                    j = 0
+                    i += 1
         return A
 
     def genus2red(self, P, p=None):
@@ -1312,9 +1316,9 @@ cdef class Pari(Pari_auto):
         >>> from cypari import pari
         >>> x = pari('x')
         >>> pari.genus2red([-5*x**5, x**3 - 2*x**2 - 2*x + 1])
-        [1416875, [2, -1; 5, 4; 2267, 1], ..., [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
+        [1416875, [2, -1; 5, 4; 2267, 1], [-6*x^5 + 2*x^3 - x, x^3 + 1], [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
         >>> pari.genus2red([-5*x**5, x**3 - 2*x**2 - 2*x + 1],2267)
-        [2267, Mat([2267, 1]), ..., [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]
+        [2267, Mat([2267, 1]), [-6*x^5 + 2*x^3 - x, x^3 + 1], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]
         """
         cdef Gen t0 = objtogen(P)
         if p is None:

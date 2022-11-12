@@ -117,10 +117,6 @@ cdef extern from *:
     GEN new_nfeltup(GEN nf, GEN x, GEN zknf)
     GEN old_nfbasis(GEN x, GEN * y, GEN p)
 
-#cdef class Gen_base:
-    # The actual PARI GEN
-#    cdef GEN g
-
 cdef class Gen(Gen_base):
     """
     Wrapper for a PARI ``GEN`` with memory management.
@@ -142,12 +138,13 @@ cdef class Gen(Gen_base):
     # differences between the cases are really implementation details
     # which should not affect the user.
 
+    # The GEN being wrapped.
+    cdef GEN g
     # Base address of the GEN that we wrap. On the stack, this is the
     # value of avma when new_gen() was called. For clones, this is the
     # memory allocated by gclone(). For constants, this is NULL.
-    cdef GEN g
     cdef GEN address
-    cdef pari_sp b
+    #cdef pari_sp b
     cdef dict refers_to
 
     cdef inline pari_sp sp(self):
@@ -174,22 +171,19 @@ cdef class Gen(Gen_base):
             self.itemcache = {}
         self.itemcache[key] = value
 
-    cdef Gen new_ref(self, GEN g)
-
-    cdef GEN fixGEN(self) except NULL
-
-    cdef GEN ref_target(self) except NULL
-
     def __init__(self):
-        raise RuntimeError("PARI objects cannot be instantiated directly; use pari(x) to convert x to PARI")
+        raise RuntimeError("PARI objects cannot be instantiated directly; "
+                           "use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
         if self.next is not None:
             # stack
             remove_from_pari_stack(self)
         elif self.address is not NULL:
-            # clone
+            # heap
             gunclone_deep(self.address)
+        # if self.next is None and self.address is NULL then this is a universal
+        # constant Gen, or stack_top, so nothing should be deallocated.
 
     cdef Gen new_ref(self, GEN g):
         """
@@ -1947,7 +1941,7 @@ cdef class Gen(Gen_base):
         """
         Return the closest Python equivalent of the given PARI object.
 
-        See :func:`~sage.libs.cypari.convert.gen_to_python` for more informations.
+        See :func:`gen_to_python` for more informations.
 
         Examples:
 
@@ -1959,7 +1953,6 @@ cdef class Gen(Gen_base):
         >>> pari('389/17').python()
         Fraction(389, 17)
         """
-        from .convert import gen_to_python
         return gen_to_python(self)
 
     def sage(self, locals=None):
@@ -3736,7 +3729,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('x^3 - 17').nfbasis()
         [1, x, 1/3*x^2 - 1/3*x + 1/3]
@@ -3747,28 +3739,15 @@ cdef class Gen(Gen_base):
 
         >>> p = pari(10**10).nextprime(); q = (p+1).nextprime()
         >>> x = pari('x'); f = x**2 + p**2*q
-        >>> pari(f).nfbasis(1)   # Wrong result
+        >>> f.nfbasis(1)   # Wrong result
         [1, x]
-        >>> pari(f).nfbasis()    # Correct result
+        >>> f.nfbasis()    # Correct result
         [1, 1/10000000019*x]
-        >>> pari(f).nfbasis(fa=10**6)   # Check primes up to 10^6: wrong result
+        >>> f.nfbasis(fa=10**6)   # Check primes up to 10^6: wrong result
         [1, x]
-        >>> pari(f).nfbasis(fa="[2,2; %s,2]"%p)    # Correct result and faster
+        >>> f.nfbasis(fa="[2,2; %s,2]"%p)    # Correct result and faster
         [1, 1/10000000019*x]
-        >>> pari(f).nfbasis(fa=[2,p])              # Equivalent with the above
-        [1, 1/10000000019*x]
-
-        The following alternative syntax closer to PARI/GP can be used
-
-        >>> pari.nfbasis([f, 1])
-        [1, x]
-        >>> pari.nfbasis(f)
-        [1, 1/10000000019*x]
-        >>> pari.nfbasis([f, 10**6])
-        [1, x]
-        >>> pari.nfbasis([f, "[2,2; %s,2]"%p])
-        [1, 1/10000000019*x]
-        >>> pari.nfbasis([f, [2,p]])
+        >>> f.nfbasis(fa=[2,p])              # Equivalent with the above
         [1, 1/10000000019*x]
         """
         cdef Gen t0
@@ -3791,8 +3770,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
-
         >>> F = pari('x^3 - 2').nfinit()
         >>> F[0].nfbasis_d()
         ([1, x, x^2], -108)
