@@ -172,7 +172,7 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     fi
     # Disable avx and sse2.
     if [ "$1" == "pari64" ]; then
-        export CFLAGS="-UHAS_AVX -UHAS_SSE2"
+        export CFLAGS="-UHAS_AVX -UHAS_AVX512 -UHAS_SSE2"
     fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
 

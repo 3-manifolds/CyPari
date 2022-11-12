@@ -73,7 +73,7 @@ if sys.platform == 'win32':
     WINPATH=r'{0};{1}\bin;%{1}\usr\local\bin;{1}\usr\bin;'.format(
         TOOLCHAIN_W, MSYS64_W)
     BASHPATH='{0}:{1}'.format(TOOLCHAIN_U,BASHPATH.decode('utf-8'))
-    KIT_PATH=r'/c/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64'
+    KIT_PATH=r'/c/Program Files (x86)/Windows Kits/10/bin/10.0.22000.0/x64'
     BASH = r'%s\usr\bin\bash'%MSYS64_W
 else:
     BASHPATH = os.environ['PATH']
@@ -97,22 +97,22 @@ gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
 MSVC_include_dirs = [
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\um',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\ucrt',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.19041.0\shared'
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
 ]
 
 if cpu_width == '64bit':
     MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x64\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x64\ucrt.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
     ]
 else:
     MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\um\x86\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.19041.0\ucrt\x86\ucrt.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\Uuid.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\kernel32.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x86\ucrt.lib',
     os.path.abspath(os.path.join('Windows', 'gcc', 'libgcc.a')),
     ]
     
