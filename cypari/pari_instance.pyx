@@ -298,6 +298,7 @@ cdef extern from "pari/paristio.h":
         unsigned long flags
         unsigned long primelimit
 
+    extern gp_data *GP_DATA;
     int pari_gpd_TEST
 
 #################################################################
@@ -518,11 +519,11 @@ cdef class Pari(Pari_auto):
         self.set_real_precision_bits(53)
 
         # Disable pretty-printing
-        pari_GP_DATA.fmt.prettyp = 0
+        GP_DATA.fmt.prettyp = 0
 
         # This causes PARI/GP to use output independent of the terminal
         # (which is what we want for the PARI library interface).
-        pari_GP_DATA.flags = pari_gpd_TEST
+        GP_DATA.flags = pari_gpd_TEST
 
         # Ensure that Galois groups are represented in a sane way,
         # see the polgalois section of the PARI users manual.
@@ -612,7 +613,7 @@ cdef class Pari(Pari_auto):
         set_pari_stack_size(size, sizemax)
 
         # Increase the table of primes if needed
-        pari_GP_DATA.primelimit = maxprime
+        GP_DATA.primelimit = maxprime
         self.init_primes(maxprime)
 
         # Initialize some constants
@@ -861,7 +862,7 @@ cdef class Pari(Pari_auto):
         """
         # TODO: deprecate
         cdef unsigned long old_prec
-        old_prec = pari_GP_DATA.fmt.sigd
+        old_prec = GP_DATA.fmt.sigd
         precision = prec_bits_to_dec(precision)
         if not precision:
             precision = old_prec
