@@ -150,15 +150,14 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 #Windows
     # Get rid of win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -N -p0 < ../../Windows/mingw_c.patch || true
-    # When we built the pari library for linking with Visual C 2014
-    # (i.e. for Python 3.5 and 3.6) the Pari configure script has
-    # trouble linking some of the little C programs which verify that
-    # we have provided the correct gmp configuration in the options to
-    # Configure.  Also, the msys2 uname produces something Pari does
-    # not recognize.  Since we are not lying about our gmpntf
-    # configuration we just patch get_gmp and arch-osname to give the
-    # right answers.
-    patch -N -p1 < ../../Windows/pari_config.patch || true
+    # When we build the pari library for linking with Visual C 2014
+    # the Pari configure script has trouble linking some of the little
+    # C programs which verify that we have provided the correct gmp
+    # configuration in the options to Configure.  Also, the msys2
+    # uname produces something Pari does not recognize.  Since we are
+    # not lying about our gmpntf configuration we just patch get_gmp
+    # and arch-osname to give the right answers.
+    patch -N -p0 < ../../Windows/pari_config.patch
     if [ "$2" = "gmp32" ] ; then
 	export MSYSTEM=CLANG32
     else
@@ -175,12 +174,6 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
         export CFLAGS="-UHAS_AVX -UHAS_AVX512 -UHAS_SSE2"
     fi
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
-
-    # When building for x86_64 parigen.h says #define long long long
-    # and that macro breaks the bison compiler compiler.
-    if [ "$1" == "pari64" ]; then
-	patch -N -p0 < ../../Windows/parigen.h.patch || true
-    fi
     cd Omingw-*
     # When building for x86 with clang32, the Makefile uses the -rpath option
     # which is not recognized by the clang32 linker, and causes an error.
