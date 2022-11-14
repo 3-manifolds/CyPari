@@ -144,8 +144,6 @@ cdef class Gen(Gen_base):
     # value of avma when new_gen() was called. For clones, this is the
     # memory allocated by gclone(). For constants, this is NULL.
     cdef GEN address
-    #cdef pari_sp b
-    cdef dict refers_to
 
     cdef inline pari_sp sp(self):
         return <pari_sp>self.address
@@ -162,6 +160,7 @@ cdef class Gen(Gen_base):
     # A cache for __getitem__. Initially, this is None but it will be
     # turned into a dict when needed.
     cdef dict itemcache
+    cdef object py_func
 
     cdef inline int cache(self, key, value) except -1:
         """
@@ -1563,6 +1562,9 @@ cdef class Gen(Gen_base):
         xt = x.ref_target()
         if typ(self.g) == t_LIST:
             listput(self.g, xt, i+1)
+        elif typ(self.g) == t_MAT:
+            raise TypeError("Matrix indices must be tuples.")
+            
         else:
             # Correct indexing for t_POLs
             if typ(self.g) == t_POL:

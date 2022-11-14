@@ -229,9 +229,7 @@ cpdef Gen objtoclosure(f):
     sig_on()
     cdef Gen res = new_gen(snm_closure(ep_call_python, args))
 
-    # We need to keep a reference to f somewhere and there is no way to
-    # have PARI handle this reference for us. So the only way out is to
-    # force f to be never deallocated
-    Py_INCREF(f)
+    # We need to keep a reference to f.
+    res.py_func = f
 
     return res
