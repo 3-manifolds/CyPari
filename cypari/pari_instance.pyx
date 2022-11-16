@@ -1258,6 +1258,7 @@ cdef class Pari(Pari_auto):
         """
         # TODO: deprecate
         v = self._empty_vector(n)
+        v.fixGEN()
         if entries is not None:
             if len(entries) != n:
                 raise IndexError("length of entries (=%s) must equal n (=%s)"%\
