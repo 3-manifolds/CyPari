@@ -18,7 +18,6 @@ cdef extern from *:
     int sig_on_count "cysigs.sig_on_count"
     int block_sigint "cysigs.block_sigint"
 
-
 # Singleton object to denote the top of the PARI stack
 cdef Gen top_of_stack = Gen_new(gnil, NULL)
 
@@ -29,36 +28,17 @@ cdef Gen top_of_stack = Gen_new(gnil, NULL)
 # we update stackbottom in Gen.__dealloc__
 cdef PyObject* stackbottom = <PyObject*>top_of_stack
 
-# cdef debug_print_stack_Gens():
-#     gen = <Gen>stackbottom
-#     count = 0
-#     print("Cypari Gens on the stack:", file=sys.stderr)
-#     sig_on()
-#     while gen.next is not None:
-#         if gen.g is NULL:
-#             print(f"0x{gen.sp():x}: NULL", file=sys.stderr)
-#         elif gen.g is gnil:
-#             print(f"0x{gen.sp():x}: gnil", file=sys.stderr)
-#         else:
-#             try:
-#                 print(f"0x{gen.sp():x}: {gen}", file=sys.stderr)
-#             except:
-#                 print("unprintable gen", file=sys.stderr)
-#         gen = gen.next
-#         count += 1
-#     print(f"The stack contained {count} Gens.", file=sys.stderr)
-#     sig_off()
-
 cdef void remove_from_pari_stack(Gen self):
     global avma, stackbottom
+
     if <PyObject*>self is not stackbottom:
-        print("ERROR: removing wrong instance of Gen")
-        print(f"Expected: {<object>stackbottom}")
-        print(f"Actual:   {self}")
-#    if sig_on_count and not block_sigint:
-#        PyErr_SetString(SystemError,
-#            f"call to remove_from_pari_stack({self}) with sig_on_count {sig_on_count}.")
-#        sig_error()
+        print("ERROR: remove_from_stack: Gen being removed is not at the bottom")
+        print(f"stackbottom: {<object>stackbottom}")
+        print(f"trying to remove: {self}")
+    # if sig_on_count and not block_sigint:
+    #     PyErr_SetString(SystemError,
+    #         f"call to remove_from_pari_stack({self}) with sig_on_count {sig_on_count}.")
+    #     sig_error()
     if self.sp() != avma:
         if avma > self.sp():
             print("ERROR: inconsistent avma when removing Gen from PARI stack")
@@ -67,7 +47,6 @@ cdef void remove_from_pari_stack(Gen self):
         else:
             warn(f"cypari leaked {self.sp() - avma} bytes on the PARI stack",
                  RuntimeWarning, stacklevel=2)
-        #debug_print_stack_Gens()
     n = self.next
     stackbottom = <PyObject*>n
     self.next = None
@@ -84,16 +63,13 @@ cdef inline Gen Gen_stack_new(GEN x):
     # the PARI stack.
     n = <Gen>stackbottom
     z = Gen_new(x, <GEN>avma)
-    nn = <Gen>stackbottom
     z.next = n
     stackbottom = <PyObject*>z
     sz = z.sp()
     sn = n.sp()
     if sz > sn:
-        #debug_print_stack_Gens()
         raise SystemError(f"Gen_stack_new: created {z} after the stackbottom Gen: (new gen at 0x{sz:x}; stackbottom at 0x{sn:x})")
     return z
-
 
 cdef void reset_avma():
     """
@@ -120,10 +96,10 @@ cdef int move_gens_to_heap(pari_sp lim) except -1:
     """
     Move some/all Gens from the PARI stack to the heap.
 
-    If lim == -1, move everything. Otherwise, keep moving as long as
-    avma <= lim.
+    If lim == 0, move everything. Otherwise, keep moving as long as
+    avma <= lim..
     """
-    while avma <= lim and stackbottom is not <PyObject*>top_of_stack:
+    while stackbottom is not <PyObject*>top_of_stack:
         current = <Gen>stackbottom
         sig_on()
         current.g = gclone(current.g)
@@ -140,7 +116,8 @@ cdef int move_gens_to_heap(pari_sp lim) except -1:
         # remove_from_pari_stack(). Therefore, the object can be used
         # normally regardless of what happens to the PARI stack.
         current.address = current.g
-
+        if lim > 0 and avma > lim:
+            break
 
 cdef int before_resize() except -1:
     """
@@ -148,7 +125,7 @@ cdef int before_resize() except -1:
 
     This must be called before reallocating the PARI stack
     """
-    move_gens_to_heap(-1)
+    move_gens_to_heap(0)
     if top_of_stack.sp() != pari_mainstack.top:
         raise RuntimeError("cannot resize PARI stack here")
 
@@ -205,28 +182,25 @@ cdef Gen new_gen_noclear(GEN x):
     """
     Create a new ``Gen`` from a ``GEN``.
     """
-    # if not is_on_stack(x):
-    #     reset_avma()
-    #     if is_universal_constant(x):
-    #         return Gen_new(x, NULL)
-    #     elif isclone(x):
-    #         gclone_refc(x)
-    #         return Gen_new(x, x)
+    if not is_on_stack(x):
+        reset_avma()
+        if is_universal_constant(x):
+            return Gen_new(x, NULL)
+        elif isclone(x):
+            gclone_refc(x)
+            return Gen_new(x, x)
     #     raise SystemError("new_gen_noclear() argument %x not on PARI stack, "
     #                       "not on PARI heap and not a universal constant"%<long long>x)
 
     z = Gen_stack_new(x)
-
     # If we used over half of the PARI stack, move all Gens to the heap
     if (pari_mainstack.top - avma) >= pari_mainstack.size // 2:
         if sig_on_count == 0:
             try:
-                move_gens_to_heap(-1)
+                move_gens_to_heap(0)
             except MemoryError:
                 pass
-
     return z
-
 
 cdef Gen clone_gen(GEN x):
     x = gclone(x)

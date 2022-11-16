@@ -642,6 +642,12 @@ cdef class Pari(Pari_auto):
             <unsigned long>pari_mainstack.rsize)
         fflush(stdout)
 
+    def printstack(self):
+        cdef Gen gen = <Gen>stackbottom
+        while gen.next is not None:
+            print(f"{gen} (refcount {sys.getrefcount(gen)})")
+            gen = <Gen>(gen.next)
+
     def __repr__(self):
         return "Interface to the PARI C library"
 
@@ -1282,12 +1288,14 @@ cdef class Pari(Pari_auto):
 
         sig_on()
         A = new_gen(zeromatcopy(m,n))
+        A.fixGEN()
         if entries is not None:
             if len(entries) != m * n:
                 raise IndexError("len of entries (=%s) must be %s*%s=%s"%(len(entries),m,n,m*n))
             i = j = 0
             for e in entries:
                 sig_check()
+                # create a Gen for the entry on the heap
                 x = objtogen(e)
                 set_gcoeff(A.g, i+1, j+1, x.ref_target())
                 A.cache((i,j), x)
@@ -1308,7 +1316,7 @@ cdef class Pari(Pari_auto):
 
         If the second argument `p` is specified, it must be a prime.
         Then only the local information at `p` is computed and returned.
-        
+
         Examples:
 
         >>> from cypari import pari

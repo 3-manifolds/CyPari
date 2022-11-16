@@ -176,10 +176,12 @@ cdef class Gen(Gen_base):
 
     def __dealloc__(self):
         if self.next is not None:
-            # stack
+            # our GEN is on stack
+            #print("Destroying %s (on stack)."%self, file=sys.stderr)
             remove_from_pari_stack(self)
         elif self.address is not NULL:
-            # heap
+            # our GEN is on heap
+            #print("Destroying %s (on heap)."%self, file=sys.stderr)
             gunclone_deep(self.address)
         # if self.next is None and self.address is NULL then this is a universal
         # constant Gen, or stack_top, so nothing should be deallocated.
@@ -236,7 +238,8 @@ cdef class Gen(Gen_base):
         Return a PARI ``GEN`` corresponding to ``self`` which is usable
         as target for a reference in another ``GEN``.
 
-        This increases the PARI refcount of ``self``.
+        This increases the PARI refcount of ``self.g`` if it is already on
+        the heap, and moves it to the heap if it is on the stack.
         """
         if is_universal_constant(self.g):
             return self.g
