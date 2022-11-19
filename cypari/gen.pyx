@@ -4626,7 +4626,7 @@ cdef class Gen(Gen_base):
         >>> pari = Pari()
 
         >>> pari('[1/2, 1 + 1.0*I]').debug()
-        [&=...] VEC(lg=3):...
+        [&=...] VEC(lg=3,CLONE):...
           1st component = [&=...] FRAC(lg=3):...
             num = [&=...] INT(lg=3):... (+,lgefint=3):...
             den = [&=...] INT(lg=3):... (+,lgefint=3):...
@@ -4811,37 +4811,43 @@ cpdef Gen objtogen(s):
     else:
         return m()
 
+    if callable(s):
+        return objtoclosure(s)
+
+    cdef res = None
     cdef GEN g = PyObject_AsGEN(s)
     if g is not NULL:
         res = new_gen_noclear(g)
         reset_avma()
-        return res
 
-    # Check for iterables. Handle the common cases of lists and tuples
-    # separately as an optimization
     cdef list L
-    if isinstance(s, list):
-        L = [objtogen(x) for x in <list>s]
-        return list_of_Gens_to_Gen(L)
-    if isinstance(s, tuple):
-        L = [objtogen(x) for x in <tuple>s]
-        return list_of_Gens_to_Gen(L)
-    # Check for iterable object s
-    try:
-        L = [objtogen(x) for x in s]
-    except TypeError:
-        pass
-    else:
-        return list_of_Gens_to_Gen(L)
+    if res is None:
+        # Check for iterables. Handle the common cases of lists and tuples
+        # separately as an optimization
+        if isinstance(s, list):
+            L = [objtogen(x) for x in <list>s]
+            res = list_of_Gens_to_Gen(L)
+        elif isinstance(s, tuple):
+            L = [objtogen(x) for x in <tuple>s]
+            res = list_of_Gens_to_Gen(L)
+        else:
+            # Check for iterable object s
+            try:
+                L = [objtogen(x) for x in s]
+            except TypeError:
+                pass
+            else:
+                res = list_of_Gens_to_Gen(L)
 
-    if callable(s):
-        return objtoclosure(s)
+    if res is None:
+        if s is None:
+            raise ValueError("Cannot convert None to pari")
 
-    if s is None:
-        raise ValueError("Cannot convert None to pari")
-
-    # Simply use the string representation
-    return objtogen(str(s))
+        # Simply use the string representation
+        res = objtogen(str(s))
+    if not res is None:
+        (<Gen>res).fixGEN()
+    return res
 
 cdef inline Gen Gen_new(GEN g, GEN addr):
     z = <Gen>Gen.__new__(Gen)
