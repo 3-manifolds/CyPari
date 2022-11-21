@@ -4689,26 +4689,24 @@ cpdef Gen objtogen(s):
     ValueError: Cannot convert None to pari
 
     """
+    if s is None:
+        raise ValueError("Cannot convert None to pari")
     if isinstance(s, Gen):
         return s
-
     try:
         m = s.__pari__
+        return m()
     except AttributeError:
         pass
-    else:
-        return m()
-
     if callable(s):
         return objtoclosure(s)
 
     cdef res = None
+    cdef list L
     cdef GEN g = PyObject_AsGEN(s)
     if g is not NULL:
         res = new_gen_noclear(g)
         reset_avma()
-
-    cdef list L
     if res is None:
         # Check for iterables. Handle the common cases of lists and tuples
         # separately as an optimization
@@ -4726,14 +4724,10 @@ cpdef Gen objtogen(s):
                 pass
             else:
                 res = list_of_Gens_to_Gen(L)
-
     if res is None:
-        if s is None:
-            raise ValueError("Cannot convert None to pari")
-
-        # Simply use the string representation
+        # Retry using the string representation
         res = objtogen(str(s))
-    if not res is None:
+    else:
         (<Gen>res).fixGEN()
     return res
 
