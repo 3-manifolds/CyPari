@@ -1392,7 +1392,8 @@ cdef class Gen(Gen_base):
 
         else:
             # generic code for other types
-            return self.new_ref(gel(self.fixGEN(), i+1))
+            self.fixGEN()
+            return self.new_ref(gel(self.g, i+1))
 
     def __setitem__(self, n, y):
         r"""
@@ -4689,24 +4690,26 @@ cpdef Gen objtogen(s):
     ValueError: Cannot convert None to pari
 
     """
-    if s is None:
-        raise ValueError("Cannot convert None to pari")
     if isinstance(s, Gen):
         return s
+
     try:
         m = s.__pari__
-        return m()
     except AttributeError:
         pass
+    else:
+        return m()
+
     if callable(s):
         return objtoclosure(s)
 
     cdef res = None
-    cdef list L
     cdef GEN g = PyObject_AsGEN(s)
     if g is not NULL:
         res = new_gen_noclear(g)
         reset_avma()
+
+    cdef list L
     if res is None:
         # Check for iterables. Handle the common cases of lists and tuples
         # separately as an optimization
@@ -4724,10 +4727,14 @@ cpdef Gen objtogen(s):
                 pass
             else:
                 res = list_of_Gens_to_Gen(L)
+
     if res is None:
-        # Retry using the string representation
+        if s is None:
+            raise ValueError("Cannot convert None to pari")
+
+        # Simply use the string representation
         res = objtogen(str(s))
-    else:
+    if not res is None:
         (<Gen>res).fixGEN()
     return res
 
