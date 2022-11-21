@@ -211,7 +211,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari("[[1, 2], 3]")[0][1]  # indirect doctest
         2
         """
@@ -254,7 +253,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari('vector(5,i,i)')
         [1, 2, 3, 4, 5]
         >>> pari('[1,2;3,4]')
@@ -287,7 +285,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> str(pari('vector(5,i,i)'))
         '[1, 2, 3, 4, 5]'
         >>> str(pari('[1,2;3,4]'))
@@ -307,7 +304,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> type(pari('1 + 2.0*I').__hash__())
         <... 'int'>
         >>> L = pari("[42, 2/3, 3.14]")
@@ -334,7 +330,6 @@ cdef class Gen(Gen_base):
         We can iterate over PARI vectors or columns:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> L = pari("vector(10,i,i^2)")
         >>> L.__iter__()
         <generator object at ...>
@@ -437,7 +432,6 @@ cdef class Gen(Gen_base):
         A PARI vector becomes a Python list:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> L = pari("vector(10,i,i^2)").list()
         >>> L
@@ -474,7 +468,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> from pickle import loads, dumps
 
         >>> f = pari('x^3 - 3')
@@ -494,7 +487,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(15) + pari(6)
         21
@@ -521,7 +513,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(15) - pari(6)
         9
@@ -566,7 +557,7 @@ cdef class Gen(Gen_base):
         """
         Examples:
 
-        >>> from cypari import pari; pari = Pari()
+        >>> from cypari import pari
         >>> pari(11) / pari(4)
         11/4
         >>> pari("x^2 + 2*x + 3") / pari("x")
@@ -585,7 +576,7 @@ cdef class Gen(Gen_base):
         """
         Examples:
 
-        >>> from cypari import pari; pari = Pari()
+        >>> from cypari import pari
         >>> pari(11) // pari(4)
         2
         >>> pari("x^2 + 2*x + 3") // pari("x")
@@ -607,7 +598,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(15) % pari(6)
         3
@@ -635,7 +625,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(5) ** pari(3)
         125
@@ -671,7 +660,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(25) >> 3
         3
@@ -695,7 +683,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(25) << 3
         200
@@ -723,7 +710,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari("nfinit(x^2 - x - 1)")
         >>> K.getattr("pol")
@@ -752,7 +738,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(4).Mod(5).mod()
         5
@@ -794,7 +779,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**4 - 4*x**2 + 1).bnfinit()
@@ -832,7 +816,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**4 - 4*x**2 + 1).nfinit()
@@ -856,7 +839,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**4 - 4*x**2 + 1).nfinit()
@@ -891,7 +873,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**4 - 4*x**2 + 1).nfinit()
@@ -908,7 +889,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
 
@@ -930,7 +910,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
 
@@ -953,8 +932,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
-
 
         >>> x = pari('x')
 
@@ -978,7 +955,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**2 + 65).bnfinit()
@@ -998,7 +974,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**2 + 65).bnfinit()
@@ -1018,7 +993,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**2 + 65).bnfinit()
@@ -1037,7 +1011,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari('x')
         >>> K = (x**4 - 4*x**2 + 1).bnfinit()
@@ -1065,7 +1038,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> i = pari('i')
         >>> K = (i**4 - 2).bnfinit()
         >>> R = K.bnrinit(5,1)
@@ -1091,7 +1063,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).nfinit()
@@ -1113,7 +1084,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).nfinit()
@@ -1140,7 +1110,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).nfinit()
@@ -1168,7 +1137,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).nfinit()
@@ -1193,7 +1161,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).bnfinit()
@@ -1215,7 +1182,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> i = pari('i')
         >>> K = (i**2 + 1).bnfinit()
@@ -1247,7 +1213,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> p = pari('1 + 2*x + 3*x^2')
         >>> p[0]
@@ -1451,7 +1416,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> l = pari.List([1,2,3])
         >>> l[0] = 3
@@ -1585,7 +1549,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> a = pari(5)
         >>> b = 10
@@ -1683,7 +1646,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari(5).cmp(pari(5))
         0
         >>> pari('x^2 + 1').cmp(pari('I-1'))
@@ -1818,7 +1780,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> int(pari(0))
         0
@@ -1854,7 +1815,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> from operator import index
         >>> i = pari(2)
@@ -1890,7 +1850,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> v=pari([1,2,3,10,102,10]).Vecsmall()
         >>> w = v.python_list_small()
@@ -1920,7 +1879,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> v = pari([1,2,3,10,102,10])
         >>> w = v.python_list()
@@ -1951,7 +1909,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('1.2').python()
         1.2
@@ -1981,7 +1938,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> import sys
 
         >>> if sys.version_info.major == 3:
@@ -2020,7 +1976,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> g = pari(-1.0)**(0.2); g
         0.809016994374947 + 0.587785252292473*I
@@ -2070,7 +2025,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('1').__nonzero__()
         True
@@ -2091,7 +2045,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> a = pari(1); b = pari(1.0); c = pari('"some_string"')
         >>> a.gequal(a)
@@ -2128,7 +2081,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(0).gequal0()
         True
@@ -2153,7 +2105,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> a = pari(1); b = pari(2.0); c = pari('3*matid(3)')
         >>> a.gequal_long(1)
@@ -2192,7 +2143,7 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
+
         >>> pari(9).isprime()
         False
         >>> pari(17).isprime()
@@ -2243,7 +2194,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari(9).ispseudoprime()
         False
         >>> pari(17).ispseudoprime()
@@ -2279,7 +2229,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari(9).ispower()
         (2, 3)
         >>> pari(17).ispower()
@@ -2338,7 +2287,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari(9).isprimepower()
         (2, 3)
         >>> pari(17).isprimepower()
@@ -2380,7 +2328,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(3**12345).ispseudoprimepower()
         (12345, 3)
@@ -2406,7 +2353,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari([1, '-5/3', 8.0]).vecmax()
         8.00000000000000
@@ -2421,7 +2367,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari([1, '-5/3', 8.0]).vecmin()
         -5/3
@@ -2471,7 +2416,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(2).Ser()
         2 + O(x^16)
@@ -2524,7 +2468,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari([1,2,['abc',1]]).Str()
         "[1, 2, [abc, 1]]"
@@ -2567,7 +2510,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('"~/subdir"').Strexpand()
         "..."
@@ -2602,7 +2544,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> v = pari('x^2')
         >>> v.Strtex()
@@ -2640,7 +2581,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> x = pari(6)
         >>> x.bittest(0)
@@ -2680,7 +2620,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> y = pari('11^-10 + 5*11^-7 + 11^-6 + O(11)')
         >>> y.padicprime()
@@ -2725,7 +2664,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('1.5').round()
         2
@@ -2764,7 +2702,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('0').sizeword()
         2
@@ -2802,7 +2739,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> import sys
         >>> bitness = '64' if sys.maxsize > (1 << 32) else '32'
@@ -2848,7 +2784,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('(x^2+1)/x').round()
         (x^2 + 1)/x
@@ -2886,7 +2821,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('1/x^2 + O(x^10)')._valp()
         -2
@@ -2910,7 +2844,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(18).bernfrac()
         43867/798
@@ -2929,7 +2862,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(18).bernreal()
         54.9711779448622
@@ -2959,7 +2891,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(complex(2, 1)).besselk(3)
         0.0455907718407551 + 0.0289192946582081*I
@@ -3023,7 +2954,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(10).polylog(3)
         5.64181141475134 - 8.32820207698027*I
@@ -3085,7 +3015,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> s, z = pari(2).sqrtn(5)
         >>> z
@@ -3127,7 +3056,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> b = pari(9).ffgen().ffprimroot()
         >>> b.fforder()
@@ -3143,7 +3071,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(18).fibonacci()
         2584
@@ -3179,7 +3106,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(10).issquarefree()
         True
@@ -3198,7 +3124,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(10).sumdiv()
         18
@@ -3213,7 +3138,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(10).sumdivk(2)
         130
@@ -3235,7 +3159,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(3).Zn_issquare(4)
         False
@@ -3263,7 +3186,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(3).Zn_sqrt(4)
         Traceback (most recent call last):
@@ -3299,7 +3221,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> e.ellan(3)
@@ -3348,7 +3269,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> v = e.ellaplist(10); v
@@ -3405,7 +3325,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0,1,1,-2,0]).ellinit()
         >>> e.ellisoncurve([1,0])
@@ -3446,7 +3365,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([1,2,3,4,5]).ellinit()
         >>> F, ch = e.ellminimalmodel()
@@ -3488,7 +3406,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([1,0,1,-19,26]).ellinit()
         >>> e.elltors()
@@ -3504,7 +3421,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> e.omega()
@@ -3532,7 +3448,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> e.disc()
@@ -3550,7 +3465,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> e = pari([0, -1, 1, -10, -20]).ellinit()
         >>> e.j()
@@ -3577,7 +3491,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('y^2 + 1').nfinit()
         >>> rnfeq = K._nf_rnfeq('x^2 + 2')
@@ -3608,7 +3521,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('y^2 + 1').nfinit()
         >>> rnfeq = K._nf_rnfeq('x^2 + 2')
@@ -3635,7 +3547,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('y^2 + 1').nfinit()
         >>> rnfeq = K._nf_rnfeq('x^2 + 2')
@@ -3674,7 +3585,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> G = pari('x^6 + 108').galoisinit()
         >>> G.galoissubfields(flag=1)
@@ -3695,7 +3605,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> nf = pari('x^2 + 1').nfinit()
         >>> p = nf.idealprimedec(5)[0]
@@ -3818,7 +3727,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('x^3 - 17').nfinit()
         >>> K.nf_get_zk()
@@ -3853,7 +3761,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('y^2 + 1').nfinit()
         >>> K._nf_rnfeq('x^2 + 2')
@@ -3904,7 +3811,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> nf = pari('nfinit(y^2 - 2)')
         >>> nfzk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
@@ -3936,7 +3842,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> f = pari('x^2 + 1')
         >>> f.type()
@@ -4150,7 +4055,6 @@ cdef class Gen(Gen_base):
         Return the number of arguments of this ``t_CLOSURE``.
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari("() -> 42").arity()
         0
         >>> pari("(x) -> x").arity()
@@ -4169,7 +4073,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pol = pari('x^2 - 1')**2
         >>> pari(pol).factorpadic(5)
@@ -4188,7 +4091,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('matrix(19,8)').ncols()
         8
@@ -4206,7 +4108,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('matrix(19,8)').nrows()
         19
@@ -4229,7 +4130,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('[1,2,3; 4,5,6; 7,8,9]').mattranspose()
         [1, 4, 7; 2, 5, 8; 3, 6, 9]
@@ -4261,7 +4161,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> M = pari("[5,1,1;1,3,1;1,1,1]")
         >>> M.qfrep(20)
@@ -4291,7 +4190,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('[2,1;2,1]').matkerint()
         [1; -2]
@@ -4330,7 +4228,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('x^10-1').factor()
         [x - 1, 1; x + 1, 1; x^4 - x^3 + x^2 - x + 1, 1; x^4 + x^3 + x^2 + x + 1, 1]
@@ -4384,7 +4281,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(1).nextprime()
         2
@@ -4417,7 +4313,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> f = pari('x^3 + 17*x + 3')
         >>> f.change_variable_name("y")
@@ -4463,7 +4358,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> K = pari('y^2 + 5').nfinit()
 
@@ -4504,7 +4398,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari(7).type()
         't_INT'
@@ -4562,7 +4455,6 @@ cdef class Gen(Gen_base):
         We first define the elliptic curve X_0(11):
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> E = pari([0,-1,1,-10,-20]).ellinit()
 
@@ -4623,7 +4515,6 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-        >>> pari = Pari()
 
         >>> pari('[1/2, 1 + 1.0*I]').debug()
         [&=...] VEC(lg=3,CLONE):...
@@ -4646,7 +4537,6 @@ cdef class Gen(Gen_base):
         Tests:
 
         >>> from cypari import pari
-        >>> pari = Pari()
         >>> pari(2**10).allocatemem(2**20)
         Traceback (most recent call last):
         ...
@@ -4682,7 +4572,6 @@ cdef Gen list_of_Gens_to_Gen(list s):
 
     >>> from cypari.gen import objtogen
     >>> from cypari import pari
-    >>> pari = Pari()
 
     >>> objtogen(range(10))
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -4715,7 +4604,6 @@ cpdef Gen objtogen(s):
     Examples:
 
     >>> from cypari import pari
-    >>> pari = Pari()
 
     >>> pari(0)
     0
