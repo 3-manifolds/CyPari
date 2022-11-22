@@ -184,22 +184,24 @@ cdef Gen new_gen_noclear(GEN x):
     """
     if not is_on_stack(x):
         reset_avma()
-        if is_universal_constant(x):
+        if is_universal_constant(x) or x is gnil or typ(x) == 0:
             return Gen_new(x, NULL)
         elif isclone(x):
             gclone_refc(x)
             return Gen_new(x, x)
-    #     raise SystemError("new_gen_noclear() argument %x not on PARI stack, "
-    #                       "not on PARI heap and not a universal constant"%<long long>x)
-
+        raise SystemError("new_gen_noclear() argument %x of type %d not on PARI stack, "
+            "not on PARI heap and not a universal constant."%(<long long>x, typ(x)))
     z = Gen_stack_new(x)
-    # If we used over half of the PARI stack, move all Gens to the heap
+    # If we have used over half of the PARI stack, move all Gens to the heap
     if (pari_mainstack.top - avma) >= pari_mainstack.size // 2:
         if sig_on_count == 0:
             try:
                 move_gens_to_heap(0)
             except MemoryError:
                 pass
+    # Otherwise move this new gen to the heap, if possible.
+    elif typ(x) != 0 and z.sp() > avma:
+        move_gens_to_heap(z.sp())
     return z
 
 cdef Gen clone_gen(GEN x):

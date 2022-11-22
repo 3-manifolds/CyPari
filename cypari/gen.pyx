@@ -160,6 +160,7 @@ cdef class Gen(Gen_base):
     # A cache for __getitem__. Initially, this is None but it will be
     # turned into a dict when needed.
     cdef dict itemcache
+    # A closure stores its Python function here.
     cdef object py_func
 
     cdef inline int cache(self, key, value) except -1:
@@ -170,11 +171,16 @@ cdef class Gen(Gen_base):
             self.itemcache = {}
         self.itemcache[key] = value
 
+    def __cinit__(self):
+        self.py_func = None
+
     def __init__(self):
         raise RuntimeError("PARI objects cannot be instantiated directly; "
                            "use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
+        if self.py_func is not None:
+            self.py_func = None
         if self.next is not None:
             # our GEN is on stack
             #print("Destroying %s (on stack)."%self, file=sys.stderr)

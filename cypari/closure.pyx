@@ -231,5 +231,6 @@ cpdef Gen objtoclosure(f):
 
     # We need to keep a reference to f.
     res.py_func = f
+    Py_INCREF(f)
 
     return res
