@@ -1392,8 +1392,7 @@ cdef class Gen(Gen_base):
 
         else:
             # generic code for other types
-            self.fixGEN()
-            return self.new_ref(gel(self.g, i+1))
+            return self.new_ref(gel(self.fixGEN(), i+1))
 
     def __setitem__(self, n, y):
         r"""
@@ -3476,89 +3475,92 @@ cdef class Gen(Gen_base):
         sig_on()
         return clone_gen(member_j(self.g))
 
-    def _eltabstorel(self, x):
-        """
-        Return the relative number field element corresponding to `x`.
-
-        The result is a ``t_POLMOD`` with ``t_POLMOD`` coefficients.
-
-        .. WARNING::
-
-            This is a low-level version of :meth:`rnfeltabstorel` that
-            only needs the output of :meth:`_nf_rnfeq`, not a full
-            PARI ``rnf`` structure.  This method may raise errors or
-            return undefined results if called with invalid arguments.
-
-        Tests:
-
-        >>> from cypari import pari
-
-        >>> K = pari('y^2 + 1').nfinit()
-        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
-        >>> f_abs = rnfeq[0]; f_abs
-        x^4 + 6*x^2 + 1
-        >>> x_rel = rnfeq._eltabstorel('x'); x_rel
-        Mod(x + Mod(-y, y^2 + 1), x^2 + 2)
-        >>> f_abs(x_rel)
-        Mod(0, x^2 + 2)
-        """
-        cdef Gen t0 = objtogen(x)
-        sig_on()
-        return new_gen(eltabstorel(self.g, t0.g))
-
-    def _eltabstorel_lift(self, x):
-        """
-        Return the relative number field element corresponding to `x`.
-
-        The result is a ``t_POL`` with ``t_POLMOD`` coefficients.
-
-        .. WARNING::
-
-            This is a low-level version of :meth:`rnfeltabstorel` that
-            only needs the output of :meth:`_nf_rnfeq`, not a full
-            PARI ``rnf`` structure.  This method may raise errors or
-            return undefined results if called with invalid arguments.
-
-        Tests:
-
-        >>> from cypari import pari
-
-        >>> K = pari('y^2 + 1').nfinit()
-        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
-        >>> rnfeq._eltabstorel_lift('x')
-        x + Mod(-y, y^2 + 1)
-        """
-        cdef Gen t0 = objtogen(x)
-        sig_on()
-        return new_gen(eltabstorel_lift(self.g, t0.g))
-
-    def _eltreltoabs(self, x):
-        """
-        Return the absolute number field element corresponding to `x`.
-
-        The result is a ``t_POL``.
-
-        .. WARNING::
-
-            This is a low-level version of :meth:`rnfeltreltoabs` that
-            only needs the output of :meth:`_nf_rnfeq`, not a full
-            PARI ``rnf`` structure.  This method may raise errors or
-            return undefined results if called with invalid arguments.
-
-        Tests:
-
-        >>> from cypari import pari
-
-        >>> K = pari('y^2 + 1').nfinit()
-        >>> rnfeq = K._nf_rnfeq('x^2 + 2')
-        >>> rnfeq._eltreltoabs('x')
-        1/2*x^3 + 7/2*x
-        >>> rnfeq._eltreltoabs('y')
-        1/2*x^3 + 5/2*x
-        """
-        cdef Gen t0 = objtogen(x)
-        sig_on()
-        return new_gen(eltreltoabs(self.g, t0.g))
+    # These private _elt methods are removed because they depend on _nf_rnfeq
+    # which crashes on the manylinux platform.
+    #
+    # def _eltabstorel(self, x):
+    #     """
+    #     Return the relative number field element corresponding to `x`.
+    #
+    #     The result is a ``t_POLMOD`` with ``t_POLMOD`` coefficients.
+    #
+    #     .. WARNING::
+    #
+    #         This is a low-level version of :meth:`rnfeltabstorel` that
+    #         only needs the output of :meth:`_nf_rnfeq`, not a full
+    #         PARI ``rnf`` structure.  This method may raise errors or
+    #         return undefined results if called with invalid arguments.
+    #
+    #     Tests:
+    #
+    #     >>> from cypari import pari
+    #
+    #     >>> K = pari('y^2 + 1').nfinit()
+    #     >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+    #     >>> f_abs = rnfeq[0]; f_abs
+    #     x^4 + 6*x^2 + 1
+    #     >>> x_rel = rnfeq._eltabstorel('x'); x_rel
+    #     Mod(x + Mod(-y, y^2 + 1), x^2 + 2)
+    #     >>> f_abs(x_rel)
+    #     Mod(0, x^2 + 2)
+    #     """
+    #     cdef Gen t0 = objtogen(x)
+    #     sig_on()
+    #     return new_gen(eltabstorel(self.g, t0.g))
+    #
+    # def _eltabstorel_lift(self, x):
+    #     """
+    #     Return the relative number field element corresponding to `x`.
+    #
+    #     The result is a ``t_POL`` with ``t_POLMOD`` coefficients.
+    #
+    #     .. WARNING::
+    #
+    #         This is a low-level version of :meth:`rnfeltabstorel` that
+    #         only needs the output of :meth:`_nf_rnfeq`, not a full
+    #         PARI ``rnf`` structure.  This method may raise errors or
+    #         return undefined results if called with invalid arguments.
+    #
+    #     Tests:
+    #
+    #     >>> from cypari import pari
+    #
+    #     >>> K = pari('y^2 + 1').nfinit()
+    #     >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+    #     >>> rnfeq._eltabstorel_lift('x')
+    #     x + Mod(-y, y^2 + 1)
+    #     """
+    #     cdef Gen t0 = objtogen(x)
+    #     sig_on()
+    #     return new_gen(eltabstorel_lift(self.g, t0.g))
+    #
+    # def _eltreltoabs(self, x):
+    #     """
+    #     Return the absolute number field element corresponding to `x`.
+    #
+    #     The result is a ``t_POL``.
+    #
+    #     .. WARNING::
+    #
+    #         This is a low-level version of :meth:`rnfeltreltoabs` that
+    #         only needs the output of :meth:`_nf_rnfeq`, not a full
+    #         PARI ``rnf`` structure.  This method may raise errors or
+    #         return undefined results if called with invalid arguments.
+    #
+    #     Tests:
+    #
+    #     >>> from cypari import pari
+    #
+    #     >>> K = pari('y^2 + 1').nfinit()
+    #     >>> rnfeq = K._nf_rnfeq('x^2 + 2')
+    #     >>> rnfeq._eltreltoabs('x')
+    #     1/2*x^3 + 7/2*x
+    #     >>> rnfeq._eltreltoabs('y')
+    #     1/2*x^3 + 5/2*x
+    #     """
+    #     cdef Gen t0 = objtogen(x)
+    #     sig_on()
+    #     return new_gen(eltreltoabs(self.g, t0.g))
 
     def galoissubfields(self, long flag=0, v=None):
         """
@@ -3748,80 +3750,83 @@ cdef class Gen(Gen_base):
         x = f.variable()
         return x.Mod(f)
 
-    def _nf_rnfeq(self, relpol):
-        """
-        Return data for converting number field elements between
-        absolute and relative representation.
-
-        .. NOTE::
-
-            The output of this method is suitable for the methods
-            :meth:`_eltabstorel`, :meth:`_eltabstorel_lift` and
-            :meth:`_eltreltoabs`.
-
-        Tests:
-
-        >>> from cypari import pari
-
-        >>> K = pari('y^2 + 1').nfinit()
-        >>> K._nf_rnfeq('x^2 + 2')
-        [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
-        """
-        cdef Gen t0 = objtogen(relpol)
-        sig_on()
-        return new_gen(nf_rnfeq(self.g, t0.g))
-
-    def _nf_nfzk(self, rnfeq):
-        """
-        Return data for constructing relative number field elements
-        from elements of the base field.
-
-        INPUT:
-
-        - ``rnfeq`` -- relative number field data as returned by
-          :meth:`_nf_rnfeq`
-
-        .. NOTE::
-
-            The output of this method is suitable for the method
-            :meth:`_nfeltup`.
-        """
-        cdef Gen t0 = objtogen(rnfeq)
-        sig_on()
-        return new_gen(new_nf_nfzk(self.g, t0.g))
-
-    def _nfeltup(self, x, nfzk):
-        """
-        Construct a relative number field element from an element of
-        the base field.
-
-        INPUT:
-
-        - ``x`` -- element of the base field
-
-        - ``nfzk`` -- relative number field data as returned by
-          :meth:`_nf_nfzk`
-
-        .. WARNING::
-
-            This is a low-level version of :meth:`rnfeltup` that only
-            needs the output of :meth:`_nf_nfzk`, not a full PARI
-            ``rnf`` structure.  This method may raise errors or return
-            undefined results if called with invalid arguments.
-
-        Tests:
-
-        >>> from cypari import pari
-
-        >>> nf = pari('nfinit(y^2 - 2)')
-        >>> nfzk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
-        >>> nf._nfeltup('y', nfzk)
-        -1/2*x^3 + 9/2*x
-        """
-        cdef Gen t0 = objtogen(x)
-        cdef Gen t1 = objtogen(nfzk)
-        sig_on()
-        return clone_gen(new_nfeltup(self.g, t0.g, t1.g))
+    # These private _nf methods are removed because _nf_rnfeq crashes on
+    # the manylinux platform.
+    #
+    # def _nf_rnfeq(self, relpol):
+    #     """
+    #     Return data for converting number field elements between
+    #     absolute and relative representation.
+    #
+    #     .. NOTE::
+    #
+    #         The output of this method is suitable for the methods
+    #         :meth:`_eltabstorel`, :meth:`_eltabstorel_lift` and
+    #         :meth:`_eltreltoabs`.
+    #
+    #     Tests:
+    #
+    #     >>> from cypari import pari
+    #
+    #     >>> K = pari('y^2 + 1').nfinit()
+    #     >>> K._nf_rnfeq('x^2 + 2')
+    #     [x^4 + 6*x^2 + 1, 1/2*x^3 + 5/2*x, -1, y^2 + 1, x^2 + 2]
+    #     """
+    #     cdef Gen t0 = objtogen(relpol)
+    #     sig_on()
+    #     return new_gen(nf_rnfeq(self.g, t0.g))
+    #
+    # def _nf_nfzk(self, rnfeq):
+    #     """
+    #     Return data for constructing relative number field elements
+    #     from elements of the base field.
+    #
+    #     INPUT:
+    #
+    #     - ``rnfeq`` -- relative number field data as returned by
+    #       :meth:`_nf_rnfeq`
+    #
+    #     .. NOTE::
+    #
+    #         The output of this method is suitable for the method
+    #         :meth:`_nfeltup`.
+    #     """
+    #     cdef Gen t0 = objtogen(rnfeq)
+    #     sig_on()
+    #     return new_gen(new_nf_nfzk(self.g, t0.g))
+    #
+    # def _nfeltup(self, x, nfzk):
+    #     """
+    #     Construct a relative number field element from an element of
+    #     the base field.
+    #
+    #     INPUT:
+    #
+    #     - ``x`` -- element of the base field
+    #
+    #     - ``nfzk`` -- relative number field data as returned by
+    #       :meth:`_nf_nfzk`
+    #
+    #     .. WARNING::
+    #
+    #         This is a low-level version of :meth:`rnfeltup` that only
+    #         needs the output of :meth:`_nf_nfzk`, not a full PARI
+    #         ``rnf`` structure.  This method may raise errors or return
+    #         undefined results if called with invalid arguments.
+    #
+    #     Tests:
+    #
+    #     >>> from cypari import pari
+    #
+    #     >>> nf = pari('nfinit(y^2 - 2)')
+    #     >>> nfzk = nf._nf_nfzk(nf._nf_rnfeq('x^2 - 3'))
+    #     >>> nf._nfeltup('y', nfzk)
+    #     -1/2*x^3 + 9/2*x
+    #     """
+    #     cdef Gen t0 = objtogen(x)
+    #     cdef Gen t1 = objtogen(nfzk)
+    #     sig_on()
+    #     return clone_gen(new_nfeltup(self.g, t0.g, t1.g))
 
     def eval(self, *args, **kwds):
         """
