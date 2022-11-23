@@ -26,19 +26,23 @@ single shared library for the extension module, due to the fact that
 Windows does not allow functions in one shared library to access
 global data in another shared library.
 
-On linux or macOS the module should build and/or install with the
-usual commands::
+As of version 2.5.0, CyPari requires Python 3.  On linux or macOS with
+up-to-date setuptools the module should build and install with::
 
-    python setup.py build
-    python setup.py install
+    python3 -m pip install .
+
+Alternatively one can use::
+    
+    python3 setup.py build 
+    python3 setup.py install 
 
 To run doctests use::
 
-    python setup.py test
+    python3 setup.py test
 
 All tests should pass on all platforms.
 
 To clean up the build area (but not remove PARI) use::
 
-    python setup.py clean
+    python3 setup.py clean
 
