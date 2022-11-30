@@ -472,6 +472,12 @@ cdef void python_puts(const char* s):
 
 cdef void python_flush():
     sys.stdout.flush()
+    
+cdef void swallow_ch(char ch):
+    return
+
+cdef void swallow_s(const char* s):
+    return
 
 include 'auto_instance.pxi'
 
@@ -626,6 +632,23 @@ cdef class Pari(Pari_auto):
             if "IPython" in sys.modules:
                 pari_set_plot_engine(get_plot_ipython)
 
+    def shut_up(self):
+        global pariErr
+        pariErr.putch = swallow_ch
+        pariErr.puts = swallow_s
+
+    def speak_up(self):
+        global pariErr
+        pariErr.putch = python_putchar
+        pariErr.puts = python_puts
+        
+    @property
+    def UI_callback(self):
+        return self._UI_callback
+    @UI_callback.setter
+    def UI_callback(self, callback):
+        self._UI_callback = callback
+    
     def debugstack(self):
         r"""
         Print the internal PARI variables ``top`` (top of stack), ``avma``
@@ -797,6 +820,36 @@ cdef class Pari(Pari_auto):
         True
         """
         return tuple(Pari_auto.version(self))
+
+    cpdef _real_coerced_to_bits_prec(self, double x, long bits):
+        r""" 
+        Creates a PARI t_REAL with value given by the float x, coerced
+        to at least the given precision.  The resulting gen object
+        will have word length (not including codewords) which is large
+        enough to provide the requested number of bits, but no larger.
+
+        >>> from cypari import pari
+        >>> old_precision = pari.set_real_precision(64)
+        >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
+        >>> x
+        1.23456789012345669043213547411141917109
+        >>> x.length() == prec_bits_to_words(100) - 2
+        True
+        >>> pari.set_real_precision(old_precision)
+        64
+
+        Here the pari Gen uses two 64 bit words to provide at least
+        100 bits of precision.  This can be used, for example, to convert
+        quad-double numbers to pari numbers.
+        """
+        cdef long words = prec_bits_to_words(bits)
+        cdef GEN g
+        sig_on()
+        if x == 0:
+            return new_gen(real_0_bit(-bits))
+        else:
+            g = dbltor(x)
+            return new_gen(gtofp(g, words))
 
     def complex(self, re, im):
         """
@@ -973,6 +1026,7 @@ cdef class Pari(Pari_auto):
         stack size:
 
         >>> a = pari('2^100000000')
+          ***...
 
         ``a`` is now a Python variable on the Python heap and does not
         take up any space on the PARI stack.  The PARI stack is still
@@ -999,6 +1053,7 @@ cdef class Pari(Pari_auto):
         >>> pari.allocatemem(1, 2**26)
         PARI stack size set to 1024 bytes, maximum size set to 67108864
         >>> a = pari(2)**100000000
+          ***...
         >>> pari.stacksize() > 10**6
         True
 

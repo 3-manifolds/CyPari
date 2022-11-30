@@ -157,12 +157,12 @@ class CyPariTest(Command):
     def finalize_options(self):
         pass
     def run(self):
-        build_lib_dir = os.path.join(
-            'build',
-            'lib.{platform}-{version_info[0]}.{version_info[1]}'.format(
-                platform=sysconfig.get_platform(),
-                version_info=sys.version_info)
-        )
+        minor = sys.version_info.minor
+        major = sys.version_info.major
+        dot = '' if minor > 10 else '.'
+        platform = sysconfig.get_platform()
+        platform += '-cpython' if minor > 10 else ''  
+        build_lib_dir = os.path.join('build', f'lib.{platform}-{major}{dot}{minor}')
         sys.path.insert(0, os.path.abspath(build_lib_dir))
         from cypari.test import runtests
         sys.exit(runtests())

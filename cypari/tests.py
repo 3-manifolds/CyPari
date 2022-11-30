@@ -1676,5 +1676,19 @@ General number fields::
     >>> cube.apply(range(10))
     [0, 1, 8, 27, 64, 125, 216, 343, 512, 729]
 
+# Test some features which do not exist in cypari2
+
+    >>> from cypari import pari, prec_bits_to_words
+    >>> old_precision = pari.set_real_precision(64)
+    >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
+    >>> x
+    1.23456789012345669043213547411141917109
+    >>> x.length() == prec_bits_to_words(100) - 2
+    True
+    >>> pari.set_real_precision(old_precision)
+    64
+    >>> pari.shut_up()
+    >>> pari.speak_up()
 """
 
+        
