@@ -182,6 +182,7 @@ cdef Gen new_gen_noclear(GEN x):
     """
     Create a new ``Gen`` from a ``GEN``.
     """
+    global avma
     if not is_on_stack(x):
         reset_avma()
         if is_universal_constant(x) or x is gnil or typ(x) == 0:
@@ -200,7 +201,7 @@ cdef Gen new_gen_noclear(GEN x):
             except MemoryError:
                 pass
     # Otherwise move this new gen to the heap, if possible.
-    elif typ(x) != 0 and z.sp() > avma:
+    elif z.sp() >= avma and typ(x) != 0:
         move_gens_to_heap(z.sp())
     return z
 

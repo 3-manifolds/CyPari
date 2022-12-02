@@ -49,7 +49,7 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     calling ``py_func``. The result is converted back to a PARI ``GEN``.
     """
     # We need to ensure that nothing above avma is touched
-    avmaguard = new_gen_noclear(<GEN>avma)
+##    avmaguard = new_gen_noclear(<GEN>avma)
 
     # How many arguments are there?
     cdef Py_ssize_t n = 0
@@ -76,9 +76,9 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     d = DetachGen(objtogen(r))
     del r
     res = d.detach()
-    d = DetachGen(avmaguard)
-    del avmaguard
-    d.detach()
+##    d = DetachGen(avmaguard)
+##    del avmaguard
+##    d.detach()
 
     return res
 
