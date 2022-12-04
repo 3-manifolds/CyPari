@@ -317,12 +317,11 @@ cpdef gen_to_integer(Gen x):
     True
     >>> gen_to_integer(pari("1 - 2^64")) == -18446744073709551615
     True
-    >>> import sys
-    >>> if sys.version_info.major == 3:
-    ...     long = int
+    >>> pari.allocatemem(64000000, 64000000)
+    PARI stack size set to ...
     >>> for i in range(10000):
     ...     x = 3**i
-    ...     if long(pari(x)) != long(x) or int(pari(x)) != x:
+    ...     if int(pari(x)) != int(x) or int(pari(x)) != x:
     ...         print(x)
 
     Check some corner cases:
@@ -614,13 +613,12 @@ def integer_to_gen(x):
 
     Tests:
 
-    >>> import sys
-    >>> if sys.version_info.major == 3:
-    ...     long = int
-    >>> assert integer_to_gen(long(12345)) == 12345
+    >>> assert integer_to_gen(int(12345)) == 12345
+    >>> pari.allocatemem(64000000, 64000000)
+    PARI stack size set to...
     >>> for i in range(10000):
     ...     x = 3**i
-    ...     if pari(long(x)) != pari(x) or pari(int(x)) != pari(x):
+    ...     if pari(int(x)) != pari(x) or pari(int(x)) != pari(x):
     ...         print(x)
     """
     if isinstance(x, long):

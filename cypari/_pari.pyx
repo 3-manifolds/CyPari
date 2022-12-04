@@ -134,12 +134,12 @@ cdef extern from *:
 
 include "memory.pxi"
 include "handle_error.pyx"
+include "stack.pyx"
 include "pari_instance.pyx"
-include "auto_gen.pxi"
 include "gen.pyx"
+include "auto_gen.pxi"
 include "signals.pyx"
 init_cysignals()
-include "stack.pyx"
 include "string_utils.pyx"
 include "convert.pyx"
 include "closure.pyx"

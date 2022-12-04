@@ -855,11 +855,10 @@ cdef class Pari(Pari_auto):
         """
         Create a new complex number, initialized from re and im.
         """
-        sig_on()
         cdef Gen t0 = objtogen(re)
         cdef Gen t1 = objtogen(im)
-        cdef GEN z = mkcomplex(t0.g, t1.g)
-        return new_gen(z)
+        sig_on()
+        return new_gen(mkcomplex(t0.g, t1.g))
 
     def __call__(self, s):
         """

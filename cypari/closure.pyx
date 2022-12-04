@@ -48,8 +48,7 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     The arguments are converted from ``GEN`` to a cypari ``gen`` before
     calling ``py_func``. The result is converted back to a PARI ``GEN``.
     """
-    # We need to ensure that nothing above avma is touched
-##    avmaguard = new_gen_noclear(<GEN>avma)
+    global avma
 
     # How many arguments are there?
     cdef Py_ssize_t n = 0
@@ -67,21 +66,12 @@ cdef inline GEN call_python_func_impl "call_python_func"(GEN* args, object py_fu
     # Call the Python function
     r = PyObject_Call(py_func, t, <dict>NULL)
 
-    # Convert the result to a GEN and copy it to the PARI stack
-    # (with a special case for None)
+    # Convert the result to a GEN (with a special case for None)
     if r is None:
         return gnil
-
-    # Safely delete r and avmaguard
     d = DetachGen(objtogen(r))
-    del r
     res = d.detach()
-##    d = DetachGen(avmaguard)
-##    del avmaguard
-##    d.detach()
-
     return res
-
 
 # We rename this function to be able to call it with a different
 # signature. In particular, we want manual exception handling and we
@@ -222,6 +212,7 @@ cpdef Gen objtoclosure(f):
     for i in range(5 - nargs):
         set_gel(args, i + 1, gnil)
     set_gel(args, (5 - nargs) + 1, stoi(nargs))
+
     # Convert f to a t_INT containing the address of f
     set_gel(args, (5 - nargs) + 1 + 1, utoi(<ulong><PyObject*>f))
 
@@ -231,6 +222,4 @@ cpdef Gen objtoclosure(f):
 
     # We need to keep a reference to f.
     res.py_func = f
-    Py_INCREF(f)
-
     return res

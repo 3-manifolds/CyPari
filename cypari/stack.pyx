@@ -29,7 +29,8 @@ cdef Gen top_of_stack = Gen_new(gnil, NULL)
 cdef PyObject* stackbottom = <PyObject*>top_of_stack
 
 cdef void remove_from_pari_stack(Gen self):
-    global avma, stackbottom
+    global avma
+    global stackbottom
 
     if <PyObject*>self is not stackbottom:
         print("ERROR: remove_from_stack: Gen being removed is not at the bottom")
@@ -57,7 +58,8 @@ cdef inline Gen Gen_stack_new(GEN x):
     Allocate and initialize a new instance of ``Gen`` wrapping
     a GEN on the PARI stack.
     """
-    global stackbottom, avma
+    global avma
+    global stackbottom
     # n = <Gen>stackbottom must be done BEFORE calling Gen_new()
     # since Gen_new may invoke gc.collect() which would mess up
     # the PARI stack.
@@ -80,7 +82,6 @@ cdef void reset_avma():
     """
     # NOTE: this can be called with an exception set (the error handler
     # does that)!
-    global avma
     avma = (<Gen>stackbottom).sp()
 
 
@@ -101,12 +102,13 @@ cdef int move_gens_to_heap(pari_sp lim) except -1:
     """
     while stackbottom is not <PyObject*>top_of_stack:
         current = <Gen>stackbottom
-        sig_on()
-        current.g = gclone(current.g)
+        if current.address != NULL:
+            current.g = gclone(current.g)
+        else:
+            current.g = gnil
         sig_block()
         remove_from_pari_stack(current)
         sig_unblock()
-        sig_off()
         # The .address attribute can only be updated now because it is
         # needed in remove_from_pari_stack(). This means that the object
         # is temporarily in an inconsistent state but this does not
@@ -193,16 +195,18 @@ cdef Gen new_gen_noclear(GEN x):
         raise SystemError("new_gen_noclear() argument %x of type %d not on PARI stack, "
             "not on PARI heap and not a universal constant."%(<long long>x, typ(x)))
     z = Gen_stack_new(x)
-    # If we have used over half of the PARI stack, move all Gens to the heap
+    # If we have used over half of the PARI stack, try to move all Gens to the heap.
     if (pari_mainstack.top - avma) >= pari_mainstack.size // 2:
         if sig_on_count == 0:
             try:
                 move_gens_to_heap(0)
             except MemoryError:
                 pass
-    # Otherwise move this new gen to the heap, if possible.
-    elif z.sp() >= avma and typ(x) != 0:
+    # Otherwise move this one new gen to the heap.
+    elif z.sp() == avma and 0 < typ(x) < 26:
         move_gens_to_heap(z.sp())
+    else:
+        raise SystemError("Invalid GEN passed to new_gen_noclear")
     return z
 
 cdef Gen clone_gen(GEN x):
@@ -221,39 +225,39 @@ cdef class DetachGen:
 
     The typical usage is as follows:
 
-    1. Creates the ``DetachGen`` object from a :class`Gen`.
+    1. Create the ``DetachGen`` object from a :class`Gen`.
 
-    2. Removes all other references to that :class:`Gen`.
+    2. Remove all other references to that :class:`Gen`.
 
-    3. Call the ``detach`` method to retrieve the ``GEN`` (or a copy of
-       it if the original was not on the stack).
+    3. Call the ``detach`` method to retrieve the ``GEN``.
     """
     cdef source
     def __init__(self, s):
         self.source = s
 
     cdef GEN detach(self) except NULL:
-        src = <Gen?>self.source
-
-        # Whatever happens, delete self.source
-        self.source = None
-
-        # Delete src safely, keeping it available as GEN
-        cdef GEN res = src.g
-        if is_on_stack(res):
-            # Verify that we hold the only reference to src
-            if (<PyObject*>src).ob_refcnt != 1:
-                raise SystemError("cannot detach a Gen which is still referenced")
-        elif is_universal_constant(res):
-            pass
-        else:
-            # Make a copy to the PARI stack
-            res = gcopy(res)
-
-        # delete src but do not change avma
         global avma
-        cdef pari_sp av = avma
-        avma = src.sp()  # Avoid a warning when deallocating
-        del src
-        avma = av
+        src = <Gen?>self.source
+        cdef int refcount
+        cdef GEN res = src.g
+        if self.source is None:
+            return gnil
+        self.source = None
+        refcount = (<PyObject*>src).ob_refcnt
+        if is_universal_constant(res):
+            return res
+        # Destroy src while preserving its GEN.
+        if is_on_stack(res):
+            # Destroying a stack-based Gen moves avma but leaves the
+            # GEN in place.  So we just need to restore avma after src
+            # is destroyed.
+            av = avma
+            avma = src.sp()  # Make it appear that src is at the bottom
+            del src
+            avma = av
+        else:
+            # If src is heap-based we make it look like a universal constant
+            # so its GEN will persist.
+            src.address = NULL
+            del src
         return res

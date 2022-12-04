@@ -179,18 +179,17 @@ cdef class Gen(Gen_base):
                            "use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
-        if self.py_func is not None:
-            self.py_func = None
-        if self.next is not None:
-            # our GEN is on stack
-            #print("Destroying %s (on stack)."%self, file=sys.stderr)
-            remove_from_pari_stack(self)
-        elif self.address is not NULL:
-            # our GEN is on heap
-            #print("Destroying %s (on heap)."%self, file=sys.stderr)
-            gunclone_deep(self.address)
         # if self.next is None and self.address is NULL then this is a universal
         # constant Gen, or stack_top, so nothing should be deallocated.
+        if self.next is not None:
+            # our GEN is on the stack
+            remove_from_pari_stack(self)
+        elif self.address is not NULL:
+            # our GEN is on the heap
+            gunclone_deep(self.address)
+        # Remove our reference to a callable if we have one.
+        if not self.py_func is None:
+            self.py_func = None
 
     cdef Gen new_ref(self, GEN g):
         """
@@ -4012,10 +4011,11 @@ cdef class Gen(Gen_base):
         """
         cdef long t = typ(self.g)
         cdef Gen t0
-        cdef GEN result
+        cdef GEN result_GEN
         cdef long arity
         cdef long nargs = len(args)
         cdef long nkwds = len(kwds)
+        cdef result
 
         # Closure must be evaluated using *args
         if t == t_CLOSURE:
@@ -4025,12 +4025,15 @@ cdef class Gen(Gen_base):
                 arity = closure_arity(self.g) - 1
                 args = list(args[:arity]) + [0]*(arity-nargs) + [args[arity:]]
             t0 = objtogen(args)
+            Py_INCREF(t0)
             sig_on()
-            result = closure_callgenvec(self.g, t0.g)
-            if result is gnil:
+            result_GEN = closure_callgenvec(self.g, t0.g)
+            if result_GEN is gnil:
                 clear_stack()
                 return None
-            return new_gen(result)
+            result = new_gen(result_GEN)
+            Py_DECREF(t0)
+            return result
 
         # Evaluate univariate polynomials, rational functions and
         # series using *args
@@ -4711,16 +4714,17 @@ cpdef Gen objtogen(s):
     else:
         return m()
 
-    if callable(s):
-        return objtoclosure(s)
-
-    cdef res = None
-    cdef GEN g = PyObject_AsGEN(s)
-    if g is not NULL:
-        res = new_gen_noclear(g)
-        reset_avma()
-
+    cdef GEN g
     cdef list L
+    cdef res = None
+
+    if callable(s):
+        res = objtoclosure(s)
+    else:
+        g = PyObject_AsGEN(s)
+        if g is not NULL:
+            res = new_gen_noclear(g)
+            reset_avma()
     if res is None:
         # Check for iterables. Handle the common cases of lists and tuples
         # separately as an optimization
@@ -4738,7 +4742,6 @@ cpdef Gen objtogen(s):
                 pass
             else:
                 res = list_of_Gens_to_Gen(L)
-
     if res is None:
         if s is None:
             raise ValueError("Cannot convert None to pari")
