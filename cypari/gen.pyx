@@ -2515,10 +2515,11 @@ cdef class Gen(Gen_base):
         Examples:
 
         >>> from cypari import pari
-
+        >>> import os
+        >>> os.environ["TEST"] = 'test'
+        >>> pari('"$TEST"').Strexpand()
+        "test"
         >>> pari('"~/subdir"').Strexpand()
-        "..."
-        >>> pari('"$SHELL"').Strexpand()
         "..."
 
         Tests:
