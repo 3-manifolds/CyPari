@@ -448,31 +448,45 @@ def prec_words_to_dec(long prec_in_words):
 # Callbacks from PARI to print stuff using sys.stdout.write() instead
 # of C library functions like puts().
 cdef PariOUT python_pariOut
+cdef PariOUT python_pariErr
 
-cdef void python_putchar(char c):
+cdef void python_putchar(char c, stream):
     cdef char s[2]
     s[0] = c
     s[1] = 0
     try:
         # avoid string conversion if possible
-        sys.stdout.buffer.write(s)
+        stream.buffer.write(s)
     except AttributeError:
-        sys.stdout.write(to_string(s))
+        stream.write(to_string(s))
     # Let PARI think the last character was a newline,
     # so it doesn't print one when an error occurs.
     pari_set_last_newline(1)
 
-cdef void python_puts(const char* s):
+cdef void python_puts(const char* s, stream):
     try:
         # avoid string conversion if possible
-        sys.stdout.buffer.write(s)
+        stream.buffer.write(s)
     except AttributeError:
-        sys.stdout.write(to_string(s))
+        stream.write(to_string(s))
     pari_set_last_newline(1)
 
-cdef void python_flush():
-    sys.stdout.flush()
-    
+cdef void python_flush(stream):
+    stream.flush()
+
+cdef void stdout_putchar(char c):
+    python_putchar(c, sys.stdout)
+cdef void stderr_putchar(char c):
+    python_putchar(c, sys.stderr)
+cdef void stdout_puts(const char *s):
+    python_puts(s, sys.stdout)
+cdef void stderr_puts(const char *s):
+    python_puts(s, sys.stderr)
+cdef void stdout_flush():
+    python_flush(sys.stdout)
+cdef void stderr_flush():
+    python_flush(sys.stderr)
+
 cdef void swallow_ch(char ch):
     return
 
@@ -517,9 +531,14 @@ cdef class Pari(Pari_auto):
         global pariOut, pariErr
 
         pariOut = &python_pariOut
-        pariOut.putch = python_putchar
-        pariOut.puts = python_puts
-        pariOut.flush = python_flush
+        pariOut.putch = stdout_putchar
+        pariOut.puts = stdout_puts
+        pariOut.flush = stdout_flush
+
+        pariErr = &python_pariErr
+        pariErr.putch = stderr_putchar
+        pariErr.puts = stderr_puts
+        pariErr.flush = stderr_flush
 
         # Use 53 bits as default precision
         self.set_real_precision_bits(53)
@@ -639,8 +658,8 @@ cdef class Pari(Pari_auto):
 
     def speak_up(self):
         global pariErr
-        pariErr.putch = python_putchar
-        pariErr.puts = python_puts
+        pariErr.putch = stderr_putchar
+        pariErr.puts = stderr_puts
         
     @property
     def UI_callback(self):
@@ -1026,7 +1045,6 @@ cdef class Pari(Pari_auto):
         stack size:
 
         >>> a = pari('2^100000000')
-          ***...
 
         ``a`` is now a Python variable on the Python heap and does not
         take up any space on the PARI stack.  The PARI stack is still
@@ -1053,7 +1071,6 @@ cdef class Pari(Pari_auto):
         >>> pari.allocatemem(1, 2**26)
         PARI stack size set to 1024 bytes, maximum size set to 67108864
         >>> a = pari(2)**100000000
-          ***...
         >>> pari.stacksize() > 10**6
         True
 
