@@ -39,8 +39,7 @@ cdef extern from "pari/pari.h":
         t_POL
         t_SER
         t_RFRAC
-        t_QFR
-        t_QFI
+        t_QFB
         t_VEC
         t_COL
         t_MAT

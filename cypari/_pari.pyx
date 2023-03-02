@@ -91,6 +91,20 @@ cdef String(x):
         raise ValueError('Neither a str nor a bytes object.')
 
 cpu_width = '64bit' if sys.maxsize > 2**32 else '32bit'
+cdef extern from *:
+    size_t pari_BITS_IN_LONG
+    int pari_DEFAULTPREC
+    int pari_INIT_DFTm
+    int pari_d_SILENT
+    int pari_d_RETURN
+    int pari_EQ
+    int pari_GE
+    int pari_LE
+    int pari_LT
+    int pari_NE
+    size_t pari_PyLong_SHIFT
+    int pari_PyLong_MASK
+    char *pari_PARIVERSION
 
 include "memory.pxi"
 include "signals.pyx"

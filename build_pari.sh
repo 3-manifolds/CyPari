@@ -20,11 +20,14 @@ if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ] && [ "$2" != "gmp" ]; then
 fi
 if [ "$usage" = "failed" ]; then
     echo "usage: build_pari.sh pari32|pari64|pari gmp32|gmp64|gmp"
+    echo "For macOS use pari and gmp as arguments to build universal binaries."
     exit
 fi
 
-PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
-PARIVERSION=pari-2.11.4
+#PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
+#PARIVERSION=pari-2.11.4
+PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIVERSION=pari-2.15.1
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.2.1
 
@@ -36,15 +39,9 @@ if [[ $(pwd) =~ " " ]]; then
     exit 1
 fi
 
-if [ "$#" -eq 2 ] ; then
-    PARIPREFIX=$(pwd)/libcache/$1
-    PARILIBDIR=$(pwd)/libcache/$1/lib
-    GMPPREFIX=$(pwd)/libcache/$2
-else
-    PARIPREFIX=$(pwd)/libcache/pari
-    PARILIBDIR=$(pwd)/libcache/pari/lib
-    GMPPREFIX=$(pwd)/libcache/gmp
-fi
+PARIPREFIX=$(pwd)/libcache/$1
+PARILIBDIR=$(pwd)/libcache/$1/lib
+GMPPREFIX=$(pwd)/libcache/$2
 
 echo Building gmp ...
 
@@ -82,9 +79,9 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
         make distclean
 	cd ../../libcache
         mkdir -p gmp/lib
-        mv gmp/arm/{include,share} gmp
-	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
-	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
+        mv $2/arm/{include,share} gmp
+	lipo -create $2/arm/lib/libgmp.10.dylib $2/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
+	lipo -create $2/arm/lib/libgmp.a $2/intel/lib/libgmp.a -output gmp/lib/libgmp.a
 	cd ..
     else
 	if [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
@@ -132,52 +129,35 @@ if [ ! -d "build/pari_src" ] ; then
     tar xzf ../${PARIVERSION}.tar.gz
     mv ${PARIVERSION} pari_src
     cd pari_src
+    # Add a guard against multiple includes of paristio.h
+    patch -p0 < ../../patches/paristio.patch
 else
     cd build/pari_src
+    # Add a guard against multiple includes of paristio.h
+    patch -p0 < ../../patches/paristio.patch
 fi
 
 export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
-    # Run the configure script to build gphelp, needed by autogen.
-    ./Configure
-    # Pari's Configure script does not support cross compiling unless the build
-    # system has an emulator for the target CPU.  But we can compile for multiple
-    # architectures if we have the build directories that Pari's Configure script
-    # constructs.  So we use canned copies of those build directories.
     rm -rf Odarwin*
-    tar xvfz ../../Odarwin.tgz
-    cd Odarwin-arm64
-    make install
-    make install-lib-sta
-    make install-doc
-    make clean
-    cd ../Odarwin-x86_64
+    export CFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.9"
+    ./Configure --host=universal-darwin --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX}
+    cd Odarwin-universal
     make install
     make install-lib-sta
     make clean
-    cd ../../../libcache
-    # Glue the two libraries together with lipo.
-    mkdir -p pari/lib
-    rm -rf pari/{include,share,bin}
-    cp -R pari/arm/{include,share,bin} pari
-    # Weird Pari glitch - gphelp can't find the doc directory
-    ln -s ../share/pari/doc pari/bin
-    lipo -create pari/arm/lib/libpari.a pari/intel/lib/libpari.a -output pari/lib/libpari.a
-    lipo -create pari/arm/lib/libpari.dylib pari/intel/lib/libpari.dylib -output pari/lib/libpari.dylib
-    cd ../build/pari_src
 elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 #Windows
     # Get rid of win32_set_pdf_viewer so it won't break linking with MSVC.
     patch -N -p0 < ../../Windows/mingw_c.patch || true
-    # When we built the pari library for linking with Visual C 2014
-    # (i.e. for Python 3.5 and 3.6) the Pari configure script has
-    # trouble linking some of the little C programs which verify that
-    # we have provided the correct gmp configuration in the options to
-    # Configure.  Also, the msys2 uname produces something Pari does
-    # not recognize.  Since we are not lying about our gmpntf
-    # configuration we just patch get_gmp and arch-osname to give the
-    # right answers.
-    patch -N -p1 < ../../Windows/pari_config.patch || true
+    # When we build the pari library for linking with Visual C 2014
+    # the Pari configure script has trouble linking some of the little
+    # C programs which verify that we have provided the correct gmp
+    # configuration in the options to Configure.  Also, the msys2
+    # uname produces something Pari does not recognize.  Since we are
+    # not lying about our gmpntf configuration we just patch get_gmp
+    # and arch-osname to give the right answers.
+    patch -N -p0 < ../../Windows/pari_config.patch
     if [ "$2" = "gmp32" ] ; then
 	export MSYSTEM=CLANG32
     else
@@ -189,14 +169,11 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     if [ "$1" == "pari32" ]; then
 	export DLLTOOL="/c/msys64/mingw32/bin/dlltool"
     fi
-    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
-
-    # When building for x86_64 parigen.h says #define long long long
-    # and that macro breaks the bison compiler compiler.
+    # Disable avx and sse2.
     if [ "$1" == "pari64" ]; then
-	patch -N -p0 < ../../Windows/parigen.h.patch || true
+        export CFLAGS="-UHAS_AVX -UHAS_AVX512 -UHAS_SSE2"
     fi
-
+    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
     cd Omingw-*
     # When building for x86 with clang32, the Makefile uses the -rpath option
     # which is not recognized by the clang32 linker, and causes an error.
@@ -214,7 +191,6 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 	cat /dev/null > libpari_exe.def
     fi
     make install-bin-sta
-    cd ..
 else
 # linux
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --with-gmp=${GMPPREFIX}
@@ -222,9 +198,3 @@ else
     make install-lib-sta
 fi
 
-# We need this "private" header file.
-if [ -d src64 ] ; then
-    cp src64/language/anal.h ${PARIPREFIX}/include/pari/
-else
-    cp src/language/anal.h $PARIPREFIX/include/pari
-fi

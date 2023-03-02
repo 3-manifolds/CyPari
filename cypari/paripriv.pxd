@@ -23,11 +23,12 @@ cdef extern from "pari/paripriv.h":
     struct gp_data:
         pariout_t *fmt
         unsigned long flags
+        ulong primelimit    # deprecated
 
     extern gp_data* GP_DATA
 
-cdef extern from "pari/anal.h":
-    char* closure_func_err()
-
-cdef extern from "long_hack.h":
-    pass
+# In older versions of PARI, this is declared in the private
+# non-installed PARI header file "anal.h". More recently, this is
+# declared in "paripriv.h". Since a double declaration does not hurt,
+# we declare it here regardless.
+cdef extern const char* closure_func_err()

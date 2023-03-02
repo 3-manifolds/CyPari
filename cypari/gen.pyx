@@ -2896,6 +2896,14 @@ cdef class Gen(Gen_base):
         sig_on()
         return new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
 
+    def sqrtint(x):
+        r""" docstring needed.
+        """
+        cdef GEN ans
+        sig_on()
+        ans = sqrtint(x.g)
+        return new_gen(ans)
+    
     def sqrtn(x, n, unsigned long precision=0):
         r"""
         x.sqrtn(n): return the principal branch of the n-th root of x,
@@ -3553,7 +3561,7 @@ cdef class Gen(Gen_base):
         else:
             g0 = NULL
         sig_on()
-        return new_gen(nfbasis(self.g, NULL, g0))
+        return new_gen(nfbasis(mkvec2(self.g, g0), NULL))
 
     def nfbasis_d(self, long flag=0, fa=None):
         """
@@ -3588,7 +3596,7 @@ cdef class Gen(Gen_base):
         else:
             g0 = NULL
         sig_on()
-        B = new_gen_noclear(nfbasis(self.g, &disc, g0))
+        B = new_gen_noclear(nfbasis(mkvec2(self.g, g0), &disc))
         D = new_gen(disc)
         return B, D
 
@@ -3906,15 +3914,17 @@ cdef class Gen(Gen_base):
         sig_off()
         return n
 
-    def polisirreducible(self):
+    def _polisirreducible(self):
         """
         f.polisirreducible(): Returns True if f is an irreducible
         non-constant polynomial, or False if f is reducible or constant.
         """
         sig_on()
-        cdef long t = <long>isirreducible(self.g)
+        cdef long t = <long>polisirreducible(self.g)
         clear_stack()
         return t != 0
+
+    polisirreducible = _polisirreducible
 
     def polroots(self, unsigned long precision=0):
         """
@@ -4263,8 +4273,7 @@ cdef class Gen(Gen_base):
         elif t == t_POL:      return 't_POL'
         elif t == t_SER:      return 't_SER'
         elif t == t_RFRAC:    return 't_RFRAC'
-        elif t == t_QFR:      return 't_QFR'
-        elif t == t_QFI:      return 't_QFI'
+        elif t == t_QFB:      return 't_QFB'
         elif t == t_VEC:      return 't_VEC'
         elif t == t_COL:      return 't_COL'
         elif t == t_MAT:      return 't_MAT'
