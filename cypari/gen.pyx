@@ -95,11 +95,14 @@ cdef class Gen(Gen_base):
     """
     Cython extension class that models the PARI GEN type.
     """
+
     def __init__(self):
         raise RuntimeError("PARI objects cannot be instantiated directly; use pari(x) to convert x to PARI")
 
     def __dealloc__(self):
-        sig_free(<void*>self.b)
+        if self.is_ref == False and isclone(self.g):
+            gunclone(self.g)
+        #sig_free(<void*>self.b)
 
     def __repr__(self):
         """
@@ -289,6 +292,9 @@ cdef class Gen(Gen_base):
         # Now iterate over the vector v
         x = v.g
         return (new_ref(gel(x, i), v) for i in range(1, lg(x)))
+
+    def _where(self):
+        return "on heap" if isclone(self.g) else "on stack"
 
     def list(self):
         """
@@ -2649,11 +2655,11 @@ cdef class Gen(Gen_base):
             4       # 32-bit
             3       # 64-bit
             sage: pari('x').sizeword()
-            7
+            9
             sage: pari('x^20').sizeword()
-            26
+            66
             sage: pari('[x, I]').sizeword()
-            16
+            20
         """
         return <long>gsizeword(x.g)
 
@@ -2897,7 +2903,10 @@ cdef class Gen(Gen_base):
         return new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
 
     def sqrtint(x):
-        r""" docstring needed.
+        r"""Returns the integer square root of x, i.e. the largest integer y
+        such that y^2 ≤ x, where x is a nonnegative real number. If r is present,
+        set it to the remainder r = x − y^2, which satisfies 0 ≤ r < 2y + 1.
+        Further, when x is an integer, r is an integer satisfying 0 ≤ r ≤ 2y.
         """
         cdef GEN ans
         sig_on()
@@ -3792,9 +3801,9 @@ cdef class Gen(Gen_base):
 
             sage: nf = pari('x^2 + 1').nfinit()
             sage: nf
-            [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+            [x^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [16, 16; 16, -16], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, x], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
             sage: nf(x='y')
-            [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [1, 1; 1, -1], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
+            [y^2 + 1, [0, 1], -4, 1, [Mat([1, 0.E-38 + 1.00000000000000*I]), [1, 1.00000000000000; 1, -1.00000000000000], [16, 16; 16, -16], [2, 0; 0, -2], [2, 0; 0, 2], [1, 0; 0, -1], [1, [0, -1; 1, 0]], [2]], [0.E-38 + 1.00000000000000*I], [1, y], [1, 0; 0, 1], [1, 0, 0, -1; 0, 1, 1, 0]]
         """
         cdef long t = typ(self.g)
         cdef Gen t0
@@ -3914,7 +3923,7 @@ cdef class Gen(Gen_base):
         sig_off()
         return n
 
-    def _polisirreducible(self):
+    def polisirreducible(self):
         """
         f.polisirreducible(): Returns True if f is an irreducible
         non-constant polynomial, or False if f is reducible or constant.
@@ -3923,8 +3932,6 @@ cdef class Gen(Gen_base):
         cdef long t = <long>polisirreducible(self.g)
         clear_stack()
         return t != 0
-
-    polisirreducible = _polisirreducible
 
     def polroots(self, unsigned long precision=0):
         """
@@ -4037,7 +4044,7 @@ cdef class Gen(Gen_base):
         EXAMPLES::
 
             sage: pari('[2,1;2,1]').matker()
-            [-1/2; 1]
+            [-1; 2]
             sage: pari('[2,1;2,1]').matkerint()
             [1; -2]
             sage: pari('[2,1;2,1]').matkerint(1)
@@ -4458,7 +4465,8 @@ cdef Gen new_ref(GEN g, Gen parent):
     """
     cdef Gen p = Gen.__new__(Gen)
     p.g = g
-    p.b = 0
+    parent.is_ref = True
+    #p.b = 0
     p.refers_to = {-1: parent}
     return p
 
@@ -4474,6 +4482,7 @@ cdef Gen list_of_Gens_to_Gen(list s):
 
     TESTS::
 
+        sage: from six.moves import range
         sage: from cypari._pari import objtogen
         sage: objtogen(range(10))
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]

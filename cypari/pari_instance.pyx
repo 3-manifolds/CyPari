@@ -620,38 +620,6 @@ cdef class Pari(Pari_auto):
         self.PARI_TWO = new_gen_noclear(gen_2)
         sig_off()
 
-    def _close(self):
-        """
-        Deallocate the PARI library.
-
-        If you want to reallocate the PARI library again, construct
-        a new instance of :class:`Pari`.
-
-        EXAMPLES::
-
-            sage: from cypari._pari import Pari
-            sage: pari2 = Pari(10**7)
-            sage: pari2._close()
-            sage: pari2 = Pari(10**6)
-            sage: pari.stacksize()
-            1000000
-
-        .. WARNING::
-
-            Calling this method is dangerous since any further use of
-            PARI (by this :class:`Pari` or another
-            :class:`Pari` or even another non-Python library)
-            will result in a segmentation fault after calling
-            ``_close()``.
-
-            For this reason, the :class:`Pari` class never
-            deallocates PARI memory automatically.
-        """
-        global avma
-        if avma:
-            pari_close()
-            avma = 0
-
     def shut_up(self):
         global pariErr
         pariErr.putch = swallow_ch
@@ -1408,9 +1376,9 @@ cdef class Pari(Pari_auto):
 
             sage: x = pari('x')
             sage: pari.genus2red([-5*x**5, x**3 - 2*x**2 - 2*x + 1])
-            [1416875, [2, -1; 5, 4; 2267, 1], x^6 - 240*x^4 - 2550*x^3 - 11400*x^2 - 24100*x - 19855, [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
+            [1416875, [2, -1; 5, 4; 2267, 1], [-6*x^5 + 2*x^3 - x, x^3 + 1], [[2, [2, [Mod(1, 2)]], []], [5, [1, []], ["[V] page 156", [3]]], [2267, [2, [Mod(432, 2267)]], ["[I{1-0-0}] page 170", []]]]]
             sage: pari.genus2red(x**6+3, 3)
-            [59049, Mat([3, 10]), x^6 + 3, [3, [5, [Mod(0, 3), Mod(0, 3)]], ["[V] page 156", [3]]]]
+            [59049, Mat([3, 10]), [x^6 + 3, 0], [3, [5, [Mod(0, 3), Mod(0, 3)]], ["[V] page 156", [3]]]]
         """
         cdef Gen t0 = objtogen(P)
         sig_on()

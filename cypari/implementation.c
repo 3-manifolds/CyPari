@@ -65,15 +65,6 @@ static void do_raise_exception(int sig);
 static void sigdie(int sig, const char* s);
 static void print_backtrace(void);
 
-static inline void reset_CPU(void)
-{
-#if defined(__x86_64__)
-    /* Clear FPU tag word */
-    asm("emms");
-#endif
-}
-
-
 /* Handler for SIGHUP, SIGINT, SIGALRM
  *
  * Inside sig_on() (i.e. when cysigs.sig_on_count is positive), this
@@ -91,7 +82,6 @@ static void cysigs_interrupt_handler(int sig)
             do_raise_exception(sig);
 
             /* Jump back to sig_on() (the first one if there is a stack) */
-            reset_CPU();
             siglongjmp(cysigs.env, sig);
         }
     }
@@ -133,7 +123,6 @@ static void cysigs_signal_handler(int sig)
         do_raise_exception(sig);
 
         /* Jump back to sig_on() (the first one if there is a stack) */
-        reset_CPU();
         siglongjmp(cysigs.env, sig);
     }
     else
@@ -338,7 +327,7 @@ static void sigdie(int sig, const char* s)
 #include <stdlib.h>
 #include <pari/pari.h>
 #include "struct_signals.h"
-#include <Windows.h>
+#include <windows.h>
 #include <float.h>
 
 #ifndef __MINGW32__

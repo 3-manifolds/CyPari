@@ -64,7 +64,6 @@ cdef inline void sig_free "sig_free"(void* ptr) nogil:
     free(ptr)
     sig_unblock()
 
-
 @cython.cdivision(True)
 cdef inline size_t mul_overflowcheck(size_t a, size_t b) nogil:
     """

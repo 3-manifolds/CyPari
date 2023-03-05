@@ -29,16 +29,17 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+#from __future__ import print_function
+
 from libc.stdio cimport FILE
 from cpython.getargs cimport va_list
-ctypedef unsigned long ulong 'pari_ulong'
-ctypedef long* GEN
-ctypedef char* byteptr
-ctypedef unsigned long pari_sp
+
 include 'pari_long.pxi'
+
 from .types cimport *
 
 cdef extern from *:     # PARI headers already included by types.pxd
+    char* PARIVERSION
 
     # parierr.h
     enum err_list:
@@ -89,7 +90,7 @@ cdef extern from *:     # PARI headers already included by types.pxd
     void    PREC_PRIME_VIADIFF(long, byteptr)
     int     INIT_JMPm, INIT_SIGm, INIT_DFTm, INIT_noPRIMEm, INIT_noIMTm
     int     new_galois_format, factor_add_primes, factor_proven
-    ulong   precdl
+    int     precdl
     # The "except 0" here is to ensure compatibility with
     # _pari_err_handle() in handle_error.pyx
     int     (*cb_pari_err_handle)(GEN) except 0
@@ -104,10 +105,6 @@ cdef extern from *:     # PARI headers already included by types.pxd
     GEN     int_W_lg(GEN z, long i, long lz)
     GEN     int_precW(GEN z)
     GEN     int_nextW(GEN z)
-
-    # paripriv.h
-
-    GEN  asympnum0(GEN u, GEN alpha, long prec)
 
     # paristio.h
 
@@ -132,8 +129,6 @@ cdef extern from *:     # PARI headers already included by types.pxd
 
     # OBSOLETE
     GEN     bernvec(long nomb)
-
-    int d_SILENT, d_ACKNOWLEDGE, d_INITRC, d_RETURN
 
     # F2x.c
 
@@ -1899,8 +1894,7 @@ cdef extern from *:     # PARI headers already included by types.pxd
     GEN     nfM_to_FqM(GEN z, GEN nf, GEN modpr)
     GEN     nfV_to_FqV(GEN z, GEN nf, GEN modpr)
     GEN     nfX_to_FqX(GEN x, GEN nf, GEN modpr)
-    #GEN     nfbasis(GEN x, GEN *y, GEN p)
-    GEN     nfbasis(GEN mat, GEN *y)
+    GEN     nfbasis(GEN mat, GEN *p)
     GEN     nfcompositum(GEN nf, GEN A, GEN B, long flag)
     void    nfmaxord(nfmaxord_t *S, GEN T, long flag)
     GEN     nfmodprinit(GEN nf, GEN pr)
@@ -2407,6 +2401,7 @@ cdef extern from *:     # PARI headers already included by types.pxd
     GEN     vconcat(GEN A, GEN B)
 
     # default.c
+    extern int d_SILENT, d_ACKNOWLEDGE, d_INITRC, d_RETURN
 
     GEN default0(const char *a, const char *b)
     long getrealprecision()
@@ -3680,7 +3675,6 @@ cdef extern from *:     # PARI headers already included by types.pxd
 
     # paricfg.c
 
-    extern const char *PARIVERSION    
     extern const char *paricfg_datadir
     extern const char *paricfg_version
     extern const char *paricfg_buildinfo
@@ -5178,10 +5172,12 @@ cdef extern from *:     # PARI headers already included by types.pxd
 cdef inline int is_universal_constant(GEN x):
     return _is_universal_constant(x) or (x is err_e_STACK)
 
+
 # Auto-generated declarations. There are taken from the PARI version
 # on the system, so they more up-to-date than the above. In case of
 # conflicting declarations, auto_paridecl should have priority.
 from .auto_paridecl cimport *
+
 
 cdef inline int is_on_stack(GEN x) except -1:
     """

@@ -8,7 +8,7 @@ cdef class RingElement:
 
 cdef class Gen_base(RingElement):
     cdef GEN g
-    cdef pari_sp b
+    cdef int is_ref
     cdef dict refers_to
 
 @cython.final
