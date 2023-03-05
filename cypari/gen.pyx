@@ -4189,10 +4189,9 @@ cdef class Gen(Gen_base):
             return self
         if typ(self.g) != t_POL and typ(self.g) != t_SER:
             raise TypeError("set_variable() only works for polynomials or power series")
-        # Copy self and then change the variable in place
-        cdef Gen newg = new_gen_noclear(self.g)
-        setvarn(newg.g, n)
-        return newg
+        # Change the variable in place.
+        setvarn(self.g, n)
+        return self
 
     def nf_subst(self, z):
         """

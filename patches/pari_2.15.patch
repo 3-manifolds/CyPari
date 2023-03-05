@@ -1,0 +1,31 @@
+diff -r -uu orig_src/basemath/prime.c src/basemath/prime.c
+--- orig_src/basemath/prime.c	2022-09-19 10:42:30
++++ src/basemath/prime.c	2023-03-05 16:16:19
+@@ -125,7 +125,7 @@
+   e = vals(t);
+   c = Fl_powu(a, t >> e, n);
+   if (c == 1 || c == t) return 1;
+-  while (--e)
++  while (--e > 0)
+   { /* go fishing for -1, not for 1 (e - 1 squaring) */
+     c = Fl_sqr(c, n);
+     if (c == t) return 1;
+Only in src/desc: pari.desc
+diff -r -uu orig_src/headers/paristio.h src/headers/paristio.h
+--- orig_src/headers/paristio.h	2022-10-30 11:07:08
++++ src/headers/paristio.h	2023-03-05 08:43:18
+@@ -13,6 +13,8 @@
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. */
+ 
+ /* This file contains memory and I/O management definitions       */
++#ifndef PARISTIO_H
++#define PARISTIO_H
+ 
+ typedef struct {
+   long s, us;
+@@ -401,4 +403,5 @@
+ #endif
+ #ifndef SIGINT
+ #  define SIGINT 2
++#endif
+ #endif
