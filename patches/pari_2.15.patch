@@ -10,7 +10,6 @@ diff -r -uu orig_src/basemath/prime.c src/basemath/prime.c
    { /* go fishing for -1, not for 1 (e - 1 squaring) */
      c = Fl_sqr(c, n);
      if (c == t) return 1;
-Only in src/desc: pari.desc
 diff -r -uu orig_src/headers/paristio.h src/headers/paristio.h
 --- orig_src/headers/paristio.h	2022-10-30 11:07:08
 +++ src/headers/paristio.h	2023-03-05 08:43:18
