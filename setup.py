@@ -107,6 +107,26 @@ pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
+MSVC_include_dirs = [
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
+    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
+]
+
+if cpu_width == '64bit':
+    MSVC_extra_objects = [
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
+    ]
+else:
+    MSVC_extra_objects = [
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\Uuid.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\kernel32.lib',
+    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x86\ucrt.lib',
+    os.path.abspath(os.path.join('Windows', 'gcc', 'libgcc.a')),
+    ]
+
 class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
@@ -369,11 +389,16 @@ link_args += [pari_static_library, gmp_static_library]
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
-include_dirs = []
-include_dirs=[pari_include_dir]
+include_dirs = [pari_include_dir]
+extra_objects = []
+if sys.platform == 'win32':
+    include_dirs += MSVC_include_dirs
+    extra_objects += MSVC_extra_objects
+
 _pari = Extension(name='cypari._pari',
                      sources=['cypari/_pari.c'],
                      include_dirs=include_dirs,
+                     extra_objects=extra_objects,
                      extra_link_args=link_args,
                      extra_compile_args=compile_args)
 
@@ -414,4 +439,3 @@ setup(
         ],
     keywords = 'Pari, SageMath, SnapPy',
 )
-
