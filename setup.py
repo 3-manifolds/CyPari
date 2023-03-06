@@ -88,19 +88,11 @@ if sys.platform == 'darwin':
     GMPDIR = 'gmp'
 elif sys.platform == 'win32':
     if cpu_width == '64bit':
-        if sys.version_info >= (3,5):
-            PARIDIR = 'pari64u'
-            GMPDIR = 'gmp64u'
-        else:
-            PARIDIR = 'pari64'
-            GMPDIR = 'gmp64'
+        PARIDIR = 'pari64'
+        GMPDIR = 'gmp64'
     else:
-        if sys.version_info >= (3,5):
-            PARIDIR = 'pari32u'
-            GMPDIR = 'gmp32u'
-        else:
-            PARIDIR = 'pari32'
-            GMPDIR = 'gmp32'
+        PARIDIR = 'pari32'
+        GMPDIR = 'gmp32'
 else:
     if cpu_width  == '64bit':
         GMPDIR = 'gmp64'
@@ -258,11 +250,8 @@ class CyPariBuildExt(build_ext):
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW64 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
                 else:
                     cmd = r'export PATH="%s" ; export MSYSTEM=MINGW32 ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
-            elif sys.platform == 'darwin':
-                cmd = r'export PATH="%s" ; bash build_pari.sh'%BASHPATH
             else:
                 cmd = r'export PATH="%s" ; bash build_pari.sh %s %s'%(BASHPATH, PARIDIR, GMPDIR)
-            # print([BASH, '-c', cmd])
             if subprocess.call([BASH, '-c', cmd]):
                 sys.exit("***Failed to build PARI library***")
 
