@@ -1,5 +1,5 @@
 diff -u pari_src/config/arch-osname config_new/arch-osname
---- pari_src/config/arch-osname	2011-09-22 15:02:11.000000000 -0500
+--- config/arch-osname	2011-09-22 15:02:11.000000000 -0500
 +++ config_new/arch-osname	2018-04-11 06:35:23.947800500 -0500
 @@ -5,7 +5,8 @@
  if test -n "$myuname"; then
@@ -12,7 +12,7 @@ diff -u pari_src/config/arch-osname config_new/arch-osname
    irix*)    osname=irix;;
    fx2800)   arch=fx2800; osname=concentrix;;
 diff -u pari_src/config/get_gmp config_new/get_gmp
---- pari_src/config/get_gmp	2017-01-14 06:26:41.000000000 -0600
+--- config/get_gmp	2017-01-14 06:26:41.000000000 -0600
 +++ config_new/get_gmp	2018-04-11 07:20:35.448573300 -0500
 @@ -39,9 +39,10 @@
    fi
