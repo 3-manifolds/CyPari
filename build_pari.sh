@@ -27,7 +27,7 @@ fi
 #PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
 #PARIVERSION=pari-2.11.4
 PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
-PARIVERSION=pari-2.15.1
+PARIVERSION=pari-2.15.2
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.2.1
 
@@ -141,6 +141,8 @@ export DESTDIR=
 if [ $(uname) = "Darwin" ] ; then
     rm -rf Odarwin*
     export CFLAGS="-arch x86_64 -arch arm64 -mmacosx-version-min=10.9"
+# For debugging:
+#   export CFLAGS="-g -arch x86_64 -arch arm64 -mmacosx-version-min=10.9"
     ./Configure --host=universal-darwin --prefix=${PARIPREFIX} --with-gmp=${GMPPREFIX}
     cd Odarwin-universal
     make install
