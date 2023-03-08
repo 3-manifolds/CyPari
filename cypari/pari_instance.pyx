@@ -500,9 +500,11 @@ cdef class Pari(Pari_auto):
         if avma:
             return
         
-        # Take 1MB as minimal stack. Use maxprime=0, which PARI will
-        # internally increase to some small value like 65537.
-        pari_init_opts(1000000, 0, INIT_DFTm)
+        # Prior to pari 2.15.1 this would set maxprime to 0, which
+        # would cause uispsp to go into an infinite loop pari 2.15.1.
+        # We patch uispsp to prevent the hang, but we also use the
+        # same defaults as pari GP.
+        pari_init_opts(8000000, 1048576, INIT_DFTm)
 
         # Disable PARI's stack overflow checking which is incompatible
         # with multi-threading.
