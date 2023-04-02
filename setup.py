@@ -259,10 +259,6 @@ class CyPariBuildExt(build_ext):
                 os.mkdir('build')
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
-            # Find the correct _pari.c for our version of Python.
-            _pari_c_name = '_pari_py%d.c'%sys.version_info.major
-            os.rename(os.path.join('cypari', _pari_c_name),
-                      os.path.join('cypari', '_pari.c'))
             building_sdist = True
         
         if (not os.path.exists(os.path.join('libcache', PARIDIR))

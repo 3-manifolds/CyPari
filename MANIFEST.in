@@ -3,6 +3,7 @@ include README.rst
 include cypari/*.h
 include cypari/*.c
 include macOS/mac_paricfg.patch
+include patches/*.patch
 recursive-include pari_src *
 prune pari_src/Olinux-x86_64 
 prune pari_src/Olinux-i386
