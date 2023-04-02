@@ -412,7 +412,6 @@ setup(
     description = "Sage's PARI extension, modified to stand alone.",
     packages = ['cypari'],
     package_dir = {'cypari':'cypari'},
-    install_requires = ['six', 'future'],
     cmdclass = {
         'build_ext': CyPariBuildExt,
         'clean': CyPariClean,

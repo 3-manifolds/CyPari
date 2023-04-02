@@ -4481,7 +4481,6 @@ cdef Gen list_of_Gens_to_Gen(list s):
 
     TESTS::
 
-        sage: from six.moves import range
         sage: from cypari._pari import objtogen
         sage: objtogen(range(10))
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
