@@ -48,11 +48,34 @@ if sys.platform == 'win32':
             break
     if not compiler_set and 'build' in sys.argv:
         sys.argv.append('--compiler=msvc')
+    try:
+        # To customize your msvc environment create msvc_env.py
+        # and define the dict dev_env to be a copy of the os.environ
+        # that you have when you run python in the Command Prompt for
+        # your installation of Visual Studio.
+        from msvc_env import dev_env
+        os.environ.update(dev_env)
+        MSVC_extra_objects = []    
+    except:
+        # This creates a default environment which works on our CI runner
+        if cpu_width == '64bit':
+            MSVC_extra_objects = [
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
+            ]
+        else:
+            MSVC_extra_objects = [
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\Uuid.lib',
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\kernel32.lib',
+                r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x86\ucrt.lib',
+                os.path.abspath(os.path.join('Windows', 'gcc', 'libgcc.a')),
+            ]
 else:
     ext_compiler = ''
 
 # Path setup for building with the mingw C compiler on Windows.
-if sys.platform == 'win32':
+if sys.platform == 'win32' and not os.path.exists('libcache/pari64'):
     # We always build the Pari library with mingw, no matter which compiler
     # is used for the CyPari extension.
     # Make sure that our C compiler matches our python and that we can run bash
@@ -115,20 +138,6 @@ MSVC_include_dirs = [
     r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
     r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
 ]
-
-if cpu_width == '64bit':
-    MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
-    ]
-else:
-    MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x86\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x86\ucrt.lib',
-    os.path.abspath(os.path.join('Windows', 'gcc', 'libgcc.a')),
-    ]
 
 class CyPariClean(Command):
     user_options = []
