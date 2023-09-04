@@ -329,7 +329,7 @@ class CyPariBuildExt(build_ext):
 class CyPariSourceDist(sdist):
     
     def _tarball_info(self, lib):
-        lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
+        lib_re = re.compile(r'(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
             lib_match = lib_re.search(f)
             if lib_match:

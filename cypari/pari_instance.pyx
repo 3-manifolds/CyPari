@@ -293,9 +293,6 @@ Check that ``default()`` works properly::
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-# Define the conditional compilation variable SAGE
-include "sage.pxi"
-
 import sys
 encoding = sys.getfilesystemencoding()
 
@@ -460,7 +457,7 @@ def prec_words_to_dec(long prec_in_words):
 # of C library functions like puts().
 cdef PariOUT sage_pariOut
 
-cdef void sage_putchar(char c):
+cdef void sage_putchar(char c) noexcept:
     cdef char s[2]
     s[0] = c
     s[1] = 0
@@ -469,17 +466,17 @@ cdef void sage_putchar(char c):
     # so it doesn't print one when an error occurs.
     pari_set_last_newline(1)
     
-cdef void sage_puts(const char* s):
+cdef void sage_puts(const char* s) noexcept:
     sys.stdout.write(String(s))
     pari_set_last_newline(1)
 
-cdef void sage_flush():
+cdef void sage_flush() noexcept:
     sys.stdout.flush()
 
-cdef void swallow_ch(char ch):
+cdef void swallow_ch(char ch) noexcept:
     return
 
-cdef void swallow_s(const char* s):
+cdef void swallow_s(const char* s) noexcept:
     return
 
 include 'auto_instance.pxi'
