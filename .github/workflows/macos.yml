@@ -17,9 +17,6 @@ jobs:
         name: Install Python
         with:
           python-version: 3.12-dev
-        os: [
-          macOS-latest,
-        ]
       - name: Install cibuildwheel
         run: |
           python -m pip install cibuildwheel
