@@ -86,20 +86,6 @@ _PyLong_DigitCount(PyLongObject *op)
     assert(PyLong_Check(op));
     return Py_SIZE(op);
 }
-
-/*
-inline Py_ssize_t
-_PyLong_Sign(const PyLongObject *op) {
-    Py_ssize_t size = Py_SIZE(x);
-    if (size == 0) {
-        return 0;
-    } else if (size > 0) {
-	return 1;
-    } else {
-	return -1;
-    }
-}
-*/
 #endif
 
 #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
