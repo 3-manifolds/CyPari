@@ -47,29 +47,22 @@ include "cysignals/signals.pxi"
 from .paridecl cimport *
 from .stack cimport new_gen
 """
-IF UNAME_SYSNAME == "Windows":
-    cdef int LONG_MAX = 2147483647
-    cdef int LONG_MIN = -2147483648    
-ELSE:
-    from libc.limits cimport LONG_MIN, LONG_MAX
 
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
-from cpython.object cimport Py_SIZE
 from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
 from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK, py_long)
 
-cdef extern from *:
-    ctypedef struct PyLongObject:
-        digit* ob_digit
-
-cdef extern from "Py_SET_SIZE.h":
-    void Py_SET_SIZE(py_long o, Py_ssize_t size)
+cdef extern from "pylong_support.h":
+    digit* OB_DIGIT(py_long o)
+    void _PyLong_SetSignAndDigitCount(py_long o, int sign, Py_ssize_t size)
+    Py_ssize_t _PyLong_DigitCount(py_long op)
+    Py_ssize_t _PyLong_Sign(py_long op)
+    cdef int LONG_MAX, LONG_MIN
 
 ####################################
 # Integers
 ####################################
-
 cpdef integer_to_gen(x):
     """
     Convert a Python ``int`` or ``long`` to a PARI ``gen`` of type
@@ -96,12 +89,11 @@ cpdef integer_to_gen(x):
         ....:     if int(pari(x)) != x:
         ....:         print(x)
     """
-    # Even though longs do not exist in Python 3, Cython will do the right thing here.
-    if isinstance(x, int) or isinstance(x, long):
+    if isinstance(x, int):
         sig_on()
-        return new_gen(PyLong_AsGEN(long(x)))
+        return new_gen(PyLong_AsGEN(x))
     
-    raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
+    raise TypeError(f"integer_to_gen() needs an int argument, not {type(x).__name__}")
 
 cdef PyLong_FromINT(GEN g):
     # Size of input in words, bits and Python digits. The size in
@@ -115,7 +107,7 @@ cdef PyLong_FromINT(GEN g):
     cdef Py_ssize_t sizedigits_final = 0
 
     cdef py_long x = _PyLong_New(sizedigits)
-    cdef digit* D = x.ob_digit
+    cdef digit* D = OB_DIGIT(x)
 
     cdef digit d
     cdef ulong w
@@ -142,11 +134,7 @@ cdef PyLong_FromINT(GEN g):
         if d:
             sizedigits_final = i+1
 
-    if signe(g) > 0:
-        Py_SET_SIZE(x, sizedigits_final)
-    else:
-        Py_SET_SIZE(x, -sizedigits_final)
-
+    _PyLong_SetSignAndDigitCount(x, signe(g), sizedigits_final)
     return x
 
 cpdef gen_to_integer(Gen x):
@@ -271,21 +259,19 @@ cdef GEN gtoi(GEN g0) except NULL:
 
 
 cdef GEN PyLong_AsGEN(py_long x):
-    cdef const digit* D = x.ob_digit
+    cdef const digit* D = OB_DIGIT(x)
 
     # Size of the input
     cdef Py_ssize_t sizedigits
+    cdef Py_ssize_t sign
     cdef pari_longword sgn
 
-    if Py_SIZE(x) == 0:
+    sizedigits = _PyLong_DigitCount(x)
+    sign = _PyLong_Sign(x)
+    if sign == 0:
         return gen_0
-    elif Py_SIZE(x) > 0:
-        sizedigits = Py_SIZE(x)
-        sgn = evalsigne(1)
-    else:
-        sizedigits = -Py_SIZE(x)
-        sgn = evalsigne(-1)
-
+    sgn = evalsigne(sign)
+    
     # Size of the output, in bits and in words
     cdef size_t sizebits = sizedigits * PyLong_SHIFT
     cdef size_t sizewords = (sizebits + BITS_IN_LONG - 1) // BITS_IN_LONG

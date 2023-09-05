@@ -181,7 +181,7 @@ cdef int _pari_err_handle(GEN E) except 0:
         sig_unblock()
 
 # This gets assigned as Pari's cb_pari_err_recover callback
-cdef void _pari_err_recover(long errnum):
+cdef void _pari_err_recover(long errnum) noexcept:
     """
     Reset the error string and jump back to ``sig_on()``, either to
     retry the code (in case of no error) or to make the already-raised

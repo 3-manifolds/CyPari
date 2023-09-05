@@ -1,8 +1,6 @@
 from .types cimport *
 cimport cython
 
-include "sage.pxi"
-
 cdef class RingElement:
     pass
 
@@ -52,9 +50,9 @@ cdef int _pari_err_handle(GEN E) except 0
 cdef void _pari_err_recover(long errnum)
 
 cdef extern from *:
-    int sig_on() nogil except 0
-    int sig_str(char*) nogil except 0
-    int sig_check() nogil except 0
+    int sig_on() except 0 nogil
+    int sig_str(char*) except 0 nogil
+    int sig_check() except 0 nogil
     void sig_off() nogil
     void sig_retry() nogil  # Does not return
     void sig_error() nogil  # Does not return
@@ -82,7 +80,7 @@ cdef extern from *:
 # can be used to make Cython check whether there is a pending exception
 # (PyErr_Occurred() is non-NULL). To Cython, it will look like
 # cython_check_exception() actually raised the exception.
-cdef inline void cython_check_exception() nogil except *:
+cdef inline void cython_check_exception() except * nogil:
     pass
 
 

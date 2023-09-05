@@ -19,10 +19,10 @@ class DocTestParser(doctest.DocTestParser):
         regex64 = re.compile(r'(\n.*?)\s+# 64-bit\s*$', re.MULTILINE)
         if cpu_width == '64bit':
             string = regex32.sub('', string)
-            string = regex64.sub('\g<1>\n', string)
+            string = regex64.sub(r'\g<1>\n', string)
         else:
             string = regex64.sub('', string)
-            string = regex32.sub('\g<1>\n', string)
+            string = regex32.sub(r'\g<1>\n', string)
         # Remove tests for the wrong Python
         regex_py2 = re.compile(r'(\n.*?)\s+# Py2\s*$', re.MULTILINE)
         regex_py3 = re.compile(r'(\n.*?)\s+# Py3\s*$', re.MULTILINE)
@@ -30,19 +30,19 @@ class DocTestParser(doctest.DocTestParser):
                 sys.platform == 'win32' and
                 sys.maxsize > 2**31):
             string = regex_py3.sub('', string)
-            string = regex_py2.sub('\g<1>\n', string)
+            string = regex_py2.sub(r'\g<1>\n', string)
         else:
             string = regex_py2.sub('', string)
-            string = regex_py3.sub('\g<1>\n', string)
+            string = regex_py3.sub(r'\g<1>\n', string)
         # Remove tests with random results
         regex_random = re.compile('\n[^#^\n]*# random.*\n[^\n]*[^\n]*',
                                   re.MULTILINE)
         string = regex_random.sub('', string)
         # Remove deprecation warnings in the output
-        string = re.sub('[ ]*doctest:...:[^\n]*\n', '', string)
+        string = re.sub(r'[ ]*doctest:...:[^\n]*\n', '', string)
         # Enable sage tests
         string = re.sub('sage:', '>>>', string)
-        string = re.sub('\.\.\.\.:', '...', string)
+        string = re.sub(r'\.\.\.\.:', '...', string)
         # Remove lines containing :: which confuse doctests
         string = re.sub(' ::', '                  ', string)
         return doctest.DocTestParser.parse(self, string, name)

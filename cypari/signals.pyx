@@ -182,9 +182,9 @@ def init_cysignals():
 
     EXAMPLES::
 
-        XXX from cysignals.signals import init_cysignals
+        >>> from cypari._pari import init_cysignals
         >>> init_cysignals()
-        <built-in function python_check_interrupt>
+        <cyfunction python_check_interrupt at ...>
 
     """
     # Set the Python-level interrupt handler. When a SIGINT occurs,

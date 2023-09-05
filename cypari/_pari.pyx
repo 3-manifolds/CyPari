@@ -1,3 +1,5 @@
+cython: c_api_binop_methods=False
+
 # Use sys.getdefaultencoding() to convert Unicode strings to <char*>
 #
 # cython: c_string_encoding=default
@@ -53,11 +55,6 @@ AUTHORS:
 #  the License, or (at your option) any later version.
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-#from __future__ import print_function
-
-# Define the conditional compilation variable SAGE
-include "sage.pxi"
-
 import sys, types
 if sys.version_info.major > 2:
     iterable_types = (list, tuple, types.GeneratorType)

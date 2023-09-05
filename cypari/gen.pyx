@@ -84,6 +84,7 @@ from .pari_instance cimport (prec_bits_to_words, prec_words_to_bits,
 from .stack cimport new_gen, new_gen_noclear, clear_stack
 from .closure cimport objtoclosure
 """
+c_api_binop_methods=True
 
 include 'auto_gen.pxi'
 
@@ -186,8 +187,6 @@ cdef class Gen(Gen_base):
         We can iterate over PARI vectors or columns::
 
             sage: L = pari("vector(10,i,i^2)")
-            sage: L.__iter__()
-            <generator object at ...>
             sage: [x for x in L]
             [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]
             sage: list(L)
@@ -363,7 +362,7 @@ cdef class Gen(Gen_base):
         s = repr(self)
         return (objtogen, (s,))
 
-    def __add__(left, right):
+    def __add__(Gen left, right):
         """
         Return ``left`` plus ``right``.
 
@@ -378,16 +377,24 @@ cdef class Gen(Gen_base):
             sage: -2 + pari(3)
             1
         """
-        cdef Gen t0, t1
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gadd(t0.g, t1.g))
+        return new_gen(gadd(left.g, t.g))
 
-    def __sub__(left, right):
+    def __radd__(Gen right, left):
+        cdef Gen t
+        try:
+            t = objtogen(left)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gadd(t.g, right.g))
+
+    def __sub__(Gen left, right):
         """
         Return ``left`` minus ``right``.
 
@@ -402,44 +409,76 @@ cdef class Gen(Gen_base):
             sage: -2 - pari(3)
             -5
         """
-        cdef Gen t0, t1
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gsub(t0.g, t1.g))
+        return new_gen(gsub(left.g, t.g))
 
-    def __mul__(left, right):
-        cdef Gen t0, t1
+    def __rsub__(Gen right, left):
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(left)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gmul(t0.g, t1.g))
+        return new_gen(gsub(t.g, right.g))
 
-    def __div__(left, right):
-        cdef Gen t0, t1
+    def __mul__(Gen left, right):
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gdiv(t0.g, t1.g))
+        return new_gen(gmul(left.g, t.g))
 
-    def __truediv__(left, right):
-        cdef Gen t0, t1
+    def __rmul__(Gen right, left):
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(left)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gdiv(t0.g, t1.g))
+        return new_gen(gmul(t.g, right.g))
+
+    def __div__(Gen left, right):
+        cdef Gen t
+        try:
+            t = objtogen(right)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gdiv(left.g, t.g))
+
+    def __rdiv__(Gen right, left):
+        cdef Gen t
+        try:
+            t = objtogen(left)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gdiv(t.g, right.g))
+
+    def __truediv__(Gen left, right):
+        cdef Gen t
+        try:
+            t = objtogen(right)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gdiv(left.g, t.g))
+
+    def __rtruediv__(Gen right, left):
+        cdef Gen t
+        try:
+            t = objtogen(left)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gdiv(t.g, right.g))
 
     def _add_one(self):
         """
@@ -459,7 +498,7 @@ cdef class Gen(Gen_base):
         sig_on()
         return new_gen(gaddsg(1, self.g))
 
-    def __mod__(left, right):
+    def __mod__(Gen left, right):
         """
         Return ``left`` modulo ``right``.
 
@@ -474,16 +513,24 @@ cdef class Gen(Gen_base):
             sage: -2 % pari(3)
             1
         """
-        cdef Gen t0, t1
+        cdef Gen t
         try:
-            t0 = objtogen(left)
-            t1 = objtogen(right)
+            t = objtogen(right)
         except Exception:
             return NotImplemented
         sig_on()
-        return new_gen(gmod(t0.g, t1.g))
+        return new_gen(gmod(left.g, t.g))
 
-    def __pow__(left, right, m):
+    def __rmod__(Gen right, left):
+        cdef Gen t
+        try:
+            t = objtogen(left)
+        except Exception:
+            return NotImplemented
+        sig_on()
+        return new_gen(gmod(t.g, right.g))
+        
+    def __pow__(Gen left, right, m):
         """
         Return ``left`` to the power ``right`` (if ``m`` is ``None``) or
         ``Mod(left, m)^right`` if ``m`` is not ``None``.
@@ -503,20 +550,29 @@ cdef class Gen(Gen_base):
         """
         cdef Gen t0, t1
         try:
-            t0 = objtogen(left)
             t1 = objtogen(right)
         except Exception:
             return NotImplemented
-        if m is not None:
-            t0 = t0.Mod(m)
+        t0 = left.Mod(m) if m is not None else left
         sig_on()
         return new_gen(gpow(t0.g, t1.g, prec_bits_to_words(0)))
+
+    def __rpow__(Gen right, left, m):
+        cdef Gen t
+        try:
+            t = objtogen(left)
+        except Exception:
+            return NotImplemented
+        if m is not None:
+            t = t.Mod(m)
+        sig_on()
+        return new_gen(gpow(t.g, right.g, prec_bits_to_words(0)))
 
     def __neg__(self):
         sig_on()
         return new_gen(gneg(self.g))
 
-    def __rshift__(self, long n):
+    def __rshift__(left, long right):
         """
         Divide ``self`` by `2^n` (truncating or not, depending on the
         input type).
@@ -534,11 +590,13 @@ cdef class Gen(Gen_base):
             sage: 33 >> pari(2)
             8
         """
-        cdef Gen t0 = objtogen(self)
         sig_on()
-        return new_gen(gshift(t0.g, -n))
+        return new_gen(gshift(left.g, -right))
 
-    def __lshift__(self, long n):
+    def __rrshift__(Gen right, long left):
+        return left >> gen_to_integer(right)
+
+    def __lshift__(Gen left, long right):
         """
         Multiply ``self`` by `2^n`.
 
@@ -555,10 +613,12 @@ cdef class Gen(Gen_base):
             sage: 33 << pari(2)
             132
         """
-        cdef Gen t0 = objtogen(self)
         sig_on()
-        return new_gen(gshift(t0.g, n))
+        return new_gen(gshift(left.g, right))
 
+    def __rlshift__(Gen right, long left):
+        return left << gen_to_integer(right)
+        
     def __invert__(self):
         sig_on()
         return new_gen(ginv(self.g))
@@ -4607,9 +4667,16 @@ cpdef Gen objtogen(s):
     # common case.
     # This generates slightly more efficient code than
     # isinstance(s, (unicode, bytes))
-    if PyUnicode_Check(s) | PyBytes_Check(s):
+    if PyBytes_Check(s):
         sig_on()
         g = gp_read_str(s)
+        if g == gnil:
+            clear_stack()
+            return None
+        return new_gen(g)
+    if PyUnicode_Check(s):
+        sig_on()
+        g = gp_read_str(s.encode('utf8'))
         if g == gnil:
             clear_stack()
             return None

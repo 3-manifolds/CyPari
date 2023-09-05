@@ -177,12 +177,21 @@ class CyPariTest(Command):
     def finalize_options(self):
         pass
     def run(self):
-        build_lib_dir = os.path.join(
-            'build',
-            'lib.{platform}-cpython-{version_info[0]}{version_info[1]}'.format(
-                platform=sysconfig.get_platform(),
-                version_info=sys.version_info)
-        )
+        version_info = sys.version_info
+        if int(version_info[1]) < 11:
+            build_lib_dir = os.path.join(
+                'build',
+                'lib.{platform}-{version_info[0]}.{version_info[1]}'.format(
+                    platform=sysconfig.get_platform(),
+                    version_info=sys.version_info)
+                )
+        else:
+            build_lib_dir = os.path.join(
+                'build',
+                'lib.{platform}-cpython-{version_info[0]}{version_info[1]}'.format(
+                    platform=sysconfig.get_platform(),
+                    version_info=sys.version_info)
+                )
         print(build_lib_dir)
         sys.path.insert(0, os.path.abspath(build_lib_dir))
         from cypari.test import runtests
@@ -334,7 +343,7 @@ class CyPariBuildExt(build_ext):
 class CyPariSourceDist(sdist):
     
     def _tarball_info(self, lib):
-        lib_re = re.compile('(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
+        lib_re = re.compile(r'(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
             lib_match = lib_re.search(f)
             if lib_match:
