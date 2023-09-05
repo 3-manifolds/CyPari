@@ -89,12 +89,11 @@ cpdef integer_to_gen(x):
         ....:     if int(pari(x)) != x:
         ....:         print(x)
     """
-    # Even though longs do not exist in Python 3, Cython will do the right thing here.
-    if isinstance(x, int) or isinstance(x, long):
+    if isinstance(x, int):
         sig_on()
-        return new_gen(PyLong_AsGEN(long(x)))
+        return new_gen(PyLong_AsGEN(x))
     
-    raise TypeError(f"integer_to_gen() needs an int or long argument, not {type(x).__name__}")
+    raise TypeError(f"integer_to_gen() needs an int argument, not {type(x).__name__}")
 
 cdef PyLong_FromINT(GEN g):
     # Size of input in words, bits and Python digits. The size in

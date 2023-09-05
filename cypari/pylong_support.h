@@ -84,7 +84,7 @@ inline Py_ssize_t
 _PyLong_DigitCount(PyLongObject *op)
 {
     assert(PyLong_Check(op));
-    return Py_SIZE(op);
+    return abs(Py_SIZE(op));
 }
 #endif
 
