@@ -84,13 +84,13 @@ inline Py_ssize_t
 _PyLong_DigitCount(PyLongObject *op)
 {
     assert(PyLong_Check(op));
-    return abs(Py_SIZE(op));
+    return labs(Py_SIZE(op));
 }
 #endif
 
 #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
-int LONG_MAX = 2147483647
-int LONG_MIN = -2147483648
+int LONG_MAX = 2147483647;
+int LONG_MIN = -2147483648;
 #else
 #include <limits.h>
 #endif

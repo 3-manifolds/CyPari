@@ -363,7 +363,8 @@ class CyPariSourceDist(sdist):
 
 link_args = []
 if sys.platform == 'darwin':
-    compile_args=['-mmacosx-version-min=10.9']
+    compile_args=['-mmacosx-version-min=10.9', '-Wno-unreachable-code',
+                      '-Wno-unreachable-code-fallthrough']
 else:
     compile_args = []
 if ext_compiler == 'mingw32':

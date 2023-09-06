@@ -57,7 +57,7 @@ cdef extern from "pylong_support.h":
     digit* OB_DIGIT(py_long o)
     void _PyLong_SetSignAndDigitCount(py_long o, int sign, Py_ssize_t size)
     Py_ssize_t _PyLong_DigitCount(py_long op)
-    Py_ssize_t _PyLong_Sign(py_long op)
+    Py_ssize_t _PyLong_Sign(object op)
     cdef int LONG_MAX, LONG_MIN
 
 ####################################
@@ -267,7 +267,7 @@ cdef GEN PyLong_AsGEN(py_long x):
     cdef pari_longword sgn
 
     sizedigits = _PyLong_DigitCount(x)
-    sign = _PyLong_Sign(x)
+    sign = _PyLong_Sign(<object>x)
     if sign == 0:
         return gen_0
     sgn = evalsigne(sign)
