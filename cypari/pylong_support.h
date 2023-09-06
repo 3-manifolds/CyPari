@@ -89,8 +89,8 @@ _PyLong_DigitCount(PyLongObject *op)
 #endif
 
 #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
-int LONG_MAX = 2147483647;
-int LONG_MIN = -2147483648;
+#define LONG_MAX 2147483647L
+#define LONG_MIN -2147483648L
 #else
 #include <limits.h>
 #endif
