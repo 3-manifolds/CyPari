@@ -72,6 +72,20 @@ class SignalError(BaseException):
     """
     pass
 
+# Signals which are not defined in Windows are defined here to
+# have a value which will never arise.  This avoids using
+# conditional code in Cython, which is now deprecated.
+
+cdef extern from *:
+    """
+    #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
+    #define NO_SUCH_SIGNAL 256
+    #define SIGHUP NO_SUCH_SIGNAL
+    #define SIGALRM NO_SUCH_SIGNAL
+    #define SIGBUS NO_SUCH_SIGNAL
+    #endif
+    """
+    pass
 
 cdef public int sig_raise_exception "sig_raise_exception"(int sig, const char* msg) except 0 with gil:
     """
@@ -100,17 +114,15 @@ cdef public int sig_raise_exception "sig_raise_exception"(int sig, const char* m
         raise FloatingPointError(s or "Floating point exception")
     if sig == SIGSEGV:
         raise SignalError(s or "Segmentation fault")
-    IF UNAME_SYSNAME != 'Windows':
-        if sig == SIGHUP:
-            _ = freopen("/dev/null", "r", stdin)
-            raise SystemExit
-        if sig == SIGALRM:
-            raise AlarmInterrupt
-        if sig == SIGBUS:
-            raise SignalError(s or "Bus error")
-    ELSE:
-        if sig == 128:  # Used for signals that map to FPE
-            raise RuntimeError(s or "Pari Error")
+    if sig == SIGHUP:
+        _ = freopen("/dev/null", "r", stdin)
+        raise SystemExit
+    if sig == SIGALRM:
+        raise AlarmInterrupt
+    if sig == SIGBUS:
+        raise SignalError(s or "Bus error")
+    if sig == 128:  # Used for signals that map to FPE
+        raise RuntimeError(s or "Pari Error")
     raise SystemError("unknown signal number %s"%sig)
 
 
