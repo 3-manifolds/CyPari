@@ -1,50 +1,53 @@
 #include "Python.h"
 
 /*
-The (signed) size is stored in ob_size in the HEAD for Python 3.11
-Note that the HEAD type changed in 3.12.  Also, the size is stored
-in the lv_tag for 3.12.
-
-Excerpt from longintrepr.h:
-
-Python 3.11:
-struct _longobject {
-    PyObject_VAR_HEAD
-    digit ob_digit[1];
-};
-
-Python 3.12
- Long integer representation.
-   The absolute value of a number is equal to
-        SUM(for i=0 through abs(ob_size)-1) ob_digit[i] * 2**(SHIFT*i)
-   Negative numbers are represented with ob_size < 0;
-   zero is represented by ob_size == 0.
-   In a normalized number, ob_digit[abs(ob_size)-1] (the most significant
-   digit) is never zero.  Also, in all cases, for all valid i,
-        0 <= ob_digit[i] <= MASK.
-   The allocation function takes care of allocating extra memory
-   so that ob_digit[0] ... ob_digit[abs(ob_size)-1] are actually available.
-   We always allocate memory for at least one digit, so accessing ob_digit[0]
-   is always safe. However, in the case ob_size == 0, the contents of
-   ob_digit[0] may be undefined.
-
-   CAUTION:  Generic code manipulating subtypes of PyVarObject has to
-   aware that ints abuse  ob_size's sign bit.
-*/
+ * The Python3 struct _longobject is on a trajectory to become an
+ * opaque type.  Part of this move towards opacity was begun in the
+ * release of Python 3.12.  However, efficient conversion from a
+ * Pari GEN to a Python int requires access to the array of digits
+ * within the _longobject and an understanding of how those digits
+ * are formatted. (Currently they are base 2^30 digits, each being
+ * stored in a 32 bit int.) Functions defined in this file are copied
+ * from internal Python code, and depend on the Python version.
+ * Note that the code below calls the function Py_SET_SIZE which
+ * was introduced in Python 3.9.
+ */
 
 /*
-typedef struct _PyLongValue {
-    uintptr_t lv_tag; // Number of digits, sign and flags
-    digit ob_digit[1];
-} _PyLongValue;
-
-struct _longobject {
-    PyObject_HEAD
-    _PyLongValue long_value;
-};
-*/
+ * Prior to Python 3.12 the ob_size field in in the HEAD of the
+ * struct _longobject was used to store the number of digits and
+ * the sign of the integer.  A negative size indicated a negative
+ * integer and the number of digits was equal to the abolute value
+ * of ob_size.
+ *
+ * struct _longobject {
+ *    PyObject_VAR_HEAD
+ *    digit ob_digit[1];
+ * };
+ *
+ * Starting with Python 3.12 the sign and the number of digits
+ * were encoded in a separate field, along with some other
+ * information about the integer.
+ *
+ * typedef struct _PyLongValue {
+ *     uintptr_t lv_tag; // Number of digits, sign and flags
+ *     digit ob_digit[1];
+ * } _PyLongValue;
+ *
+ * struct _longobject {
+ *     PyObject_HEAD
+ *    _PyLongValue long_value;
+ * };
+ *
+ * See longintrepr.h for more details.
+ */
 
 typedef struct _longobject* py_long;
+
+inline Py_ssize_t CyPari_Sign(PyObject *op) {
+    return _PyLong_Sign(op);
+}
+
 #if PY_VERSION_HEX >= 0x030C00A5
 
 #define OB_DIGIT(obj) (obj->long_value.ob_digit)
@@ -52,7 +55,7 @@ typedef struct _longobject* py_long;
 #define SIGN_MASK 3
 #define TAG_FROM_SIGN_AND_SIZE(sign, size) ((1 - (sign)) | ((size) << NON_SIZE_BITS))
 inline void
-_PyLong_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
+CyPari_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
 {
     assert(size >= 0);
     assert(-1 <= sign && sign <= 1);
@@ -60,7 +63,7 @@ _PyLong_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
     op->long_value.lv_tag = TAG_FROM_SIGN_AND_SIZE(sign, (size_t)size);
 }
 inline Py_ssize_t
-_PyLong_DigitCount(PyLongObject *op)
+CyPari_DigitCount(PyLongObject *op)
 {
     assert(PyLong_Check(op));
     return op->long_value.lv_tag >> NON_SIZE_BITS;
@@ -69,7 +72,7 @@ _PyLong_DigitCount(PyLongObject *op)
 
 #define OB_DIGIT(o) (o->ob_digit)
 inline void
-_PyLong_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
+CyPari_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
 {
     assert(size >= 0);
     assert(-1 <= sign && sign <= 1);
@@ -81,12 +84,16 @@ _PyLong_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
     }
 }
 inline Py_ssize_t
-_PyLong_DigitCount(PyLongObject *op)
+CyPari_DigitCount(PyLongObject *op)
 {
     assert(PyLong_Check(op));
     return labs(Py_SIZE(op));
 }
 #endif
+
+/*
+ * In Windows longs are 32 bits.
+ */
 
 #if defined(_WIN32) || defined(WIN32) || defined(MS_WINDOWS)
 #define LONG_MAX 2147483647L

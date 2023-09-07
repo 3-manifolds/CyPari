@@ -55,9 +55,9 @@ from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK,
 
 cdef extern from "pylong_support.h":
     digit* OB_DIGIT(py_long o)
-    void _PyLong_SetSignAndDigitCount(py_long o, int sign, Py_ssize_t size)
-    Py_ssize_t _PyLong_DigitCount(py_long op)
-    Py_ssize_t _PyLong_Sign(object op)
+    void CyPari_SetSignAndDigitCount(py_long o, int sign, Py_ssize_t size)
+    Py_ssize_t CyPari_DigitCount(py_long op)
+    Py_ssize_t CyPari_Sign(object op)
     cdef int LONG_MAX, LONG_MIN
 
 ####################################
@@ -134,7 +134,7 @@ cdef PyLong_FromINT(GEN g):
         if d:
             sizedigits_final = i+1
 
-    _PyLong_SetSignAndDigitCount(x, signe(g), sizedigits_final)
+    CyPari_SetSignAndDigitCount(x, signe(g), sizedigits_final)
     return x
 
 cpdef gen_to_integer(Gen x):
@@ -266,8 +266,8 @@ cdef GEN PyLong_AsGEN(py_long x):
     cdef Py_ssize_t sign
     cdef pari_longword sgn
 
-    sizedigits = _PyLong_DigitCount(x)
-    sign = _PyLong_Sign(<object>x)
+    sizedigits = CyPari_DigitCount(x)
+    sign = CyPari_Sign(<object>x)
     if sign == 0:
         return gen_0
     sgn = evalsigne(sign)
