@@ -69,14 +69,19 @@ if [ "$2" != "nogmp" ] && [ ! -e ${GMPPREFIX} ] ; then
 	else
             BUILD_SYSTEM=x86_64-none-darwin
         fi
-	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
-	./configure --with-pic --build=${BUILD_SYSTEM} --host=arm64-none-darwin --prefix=${GMPPREFIX}/arm
-	make install
-	make distclean
+	# Use the old linker for x86_64 to avoid a spurious "branch8 out of range" error.
+	if [ `/usr/bin/ld -ld_classic 2> >(grep -c warning)` != "0" ] ; then
+	    export LDFLAGS="-ld_classic"
+	fi
 	export CFLAGS="-arch x86_64 -mmacosx-version-min=10.9 -mno-avx -mno-avx2 -mno-bmi2"
 	./configure --with-pic --build=${BUILD_SYSTEM} --host=x86_64-none-darwin --enable-fat --prefix=${GMPPREFIX}/intel
 	make install
         make distclean
+	export CFLAGS="-arch arm64 -mmacosx-version-min=10.9"
+        export LDFLAGS=""
+	./configure --with-pic --build=${BUILD_SYSTEM} --host=arm64-none-darwin --prefix=${GMPPREFIX}/arm
+	make install
+	make distclean
 	cd ../../libcache
         mkdir -p gmp/lib
         mv $2/arm/{include,share} gmp
