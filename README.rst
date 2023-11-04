@@ -21,15 +21,14 @@ used in Sage.  First it embeds the relevant parts of the cysignals
 module, since cysignals is not distributable as a wheel.  Second, it
 is statically linked with the pari library so that it does not depend
 on or interfere with the user's PARI installation. Finally, it uses a
-single shared library for the extension module, due to the fact that
-Windows does not allow functions in one shared library to access
-global data in another shared library.
+single shared library for the extension module.  This avoids sharing
+global variables across DLLs and avoids creating modules which are not
+useful by themselves.
 
-On linux or macOS the module should build and/or install with the
-usual commands::
+The module ia built and installed by the following commands::
 
-    python setup.py build
-    python setup.py install
+    python3 setup.py build
+    python3 -m pip install .
 
 To run doctests use::
 
@@ -42,16 +41,10 @@ To clean up the build area (but not remove PARI) use::
     python setup.py clean
 
 For building on Windows we expect an msys64 system with the
-toolchains::
+UCRT64 environment installed.  For building the extension module
+we expect Microsoft Visual Studio 2022 with the 10.0.22000.0
+SDK installed, as well as the Universal CRT SDK. The build
+process uses the mingw UCRT64 toolchain to build libpari.a and
+libgmp.a but the Python extension is built with MSVC.
 
-    mingw-w64\i686-6.3.0-posix-dwarf-rt_v5-rev1 (for 32-bit builds)
-    mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0 (for 64-bit builds)
-
-These toolchains support Microsoft's Universal C Runtime, which means
-that CyPari no longer requires installation of any special C runtime
-dll files.  The build process uses the mingw toolchains to build libpari.a
-but the Python extension is built with an appropriate version of
-MSVC.
-
-Currently we support 32 and 64 bit Python 3.6-3.11 on linux,
-macOS and Windows.
+Currently we support 64 bit Python 3.6 - 3.12 on linux, macOS and Windows.
