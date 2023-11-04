@@ -1,5 +1,3 @@
-$#! /bin/bash
-
 # On macOS this builds both arm and x86_64 PARI librariies for OS X >=
 # 10.9.  On Windows it uses the ucrt64 toolchain in Msys2. On linux
 # the default system gcc is used to build for the host architecture.
