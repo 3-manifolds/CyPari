@@ -1,4 +1,4 @@
-#! /bin/bash
+$#! /bin/bash
 
 # On macOS this builds both arm and x86_64 PARI librariies for OS X >=
 # 10.9.  On Windows it uses the ucrt64 toolchain in Msys2. On linux
@@ -6,23 +6,6 @@
 
 set -e
 
-if [ $# != 2 ]; then
-    usage=failed;
-fi
-# if [ "$1" != "pari32" ] && [ "$1" != "pari64" ] && [ "$1" != "pari" ]; then
-#     usage=failed;
-# fi
-# if [ "$2" != "gmp32" ] && [ "$2" != "gmp64" ] && [ "$2" != "gmp" ]; then
-#     usage=failed;
-# fi
-# if [ "$usage" = "failed" ]; then
-#     echo "usage: build_pari.sh pari32|pari64|pari gmp32|gmp64|gmp"
-#     echo "For macOS use pari and gmp as arguments to build universal binaries."
-#     exit
-# fi
-
-#PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.11/
-#PARIVERSION=pari-2.11.4
 PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
 PARIVERSION=pari-2.15.4
 GMPURL=https://ftp.gnu.org/gnu/gmp/
@@ -81,36 +64,23 @@ if [ ! -e ${GMPPREFIX} ] ; then
 	make distclean
 	cd ../../libcache
         mkdir -p gmp/lib
-        mv $2/arm/{include,share} gmp
-	lipo -create $2/arm/lib/libgmp.10.dylib $2/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
-	lipo -create $2/arm/lib/libgmp.a $2/intel/lib/libgmp.a -output gmp/lib/libgmp.a
+        mv gmp/arm/{include,share} gmp
+	lipo -create gmp/arm/lib/libgmp.10.dylib gmp/intel/lib/libgmp.10.dylib -output gmp/lib/libgmp.dylib
+	lipo -create gmp/arm/lib/libgmp.a gmp/intel/lib/libgmp.a -output gmp/lib/libgmp.a
 	cd ..
     else
 	if [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
 	# Windows
-	    if [ "$2" = "gmp32" ] ; then
-		export MSYSTEM=MINGW32
-		export ABI=32
-		BUILD=i686-w32-mingw32
-	    else
-		export PATH=/c/msys64/ucrt64/bin:$PATH
-		export MSYSTEM=UCRT64
-		export CC=/c/msys64/ucrt64/bin/gcc
-		export ABI=64
-		BUILD=x86_64-pc-mingw64
-	    fi
+	    export PATH=/c/msys64/ucrt64/bin:$PATH
+	    export MSYSTEM=UCRT64
+	    export CC=/c/msys64/ucrt64/bin/gcc
+	    export ABI=64
+	    BUILD=x86_64-pc-mingw64
 	else
 	# linux
-	    if [ "$2" = "gmp32" ] ; then
-		export ABI=32
-		BUILD=i686-none-none
-	    else
-		export ABI=64
-		BUILD=x86_64-none-none
-	    fi
+	    export ABI=64
+	    BUILD=x86_64-none-none
 	fi
-#	echo compiler is `which gcc`
-#	echo linker is `which ld`
 	echo Configuring gmp with ./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	make install
@@ -154,9 +124,7 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     export MSYSTEM=UCRT64
     export CC=/c/msys64/ucrt64/bin/gcc
     # Disable avx and sse2.
-    if [ "$1" == "pari64" ]; then
-        export CFLAGS="-U HAS_AVX -U HAS_AVX512 -U HAS_SSE2"
-    fi
+    export CFLAGS="-U HAS_AVX -U HAS_AVX512 -U HAS_SSE2"
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
     cd Omingw-*
     make install-lib-sta
