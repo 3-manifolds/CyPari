@@ -1,4 +1,4 @@
-name: Windows wheels for 64 bit Python
+name: Windows wheels
 
 on: [push, pull_request]
 
