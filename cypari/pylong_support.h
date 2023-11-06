@@ -42,6 +42,15 @@
  * See longintrepr.h for more details.
  */
 
+#if PY_MINOR_VERSION < 9
+
+static inline void _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size) {
+    ob->ob_size = size;
+}
+#define Py_SET_SIZE(ob, size) _Py_SET_SIZE(_PyVarObject_CAST(ob), size)
+
+#endif
+
 typedef struct _longobject* py_long;
 
 inline Py_ssize_t CyPari_Sign(PyObject *op) {
