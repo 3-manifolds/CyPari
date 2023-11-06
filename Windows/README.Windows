@@ -1,37 +1,15 @@
 Introduction
 ------------
 
-Version 2 of CyPari for Windows is built using MSys2 and the mingw32
+CyPari is built for 64 bit Windows using MSys2 and the ucrt64
 gcc toolchain.  It passes the doctests at essentially the same rate as
 the linux and macOS versions, and supports SIGINT interrupts via
-control-C.  However, there are some caveats:
-
-1) The mingw32 toolchain must be modified to produce a Python
-extension module which does not segfault while being loaded.  (See the
-explanation in "About Segfaults" below.)  To deal with this issue, the
-script install_files_32.sh in the toolchain directory adds the needed
-files to your mingw32 toolchain.  (The mingw64 version has not been
-tested, but may work.)
-
-2) To be able to interrupt a long computation by typing control-C
-requires two non-trivial things: (i) the module must have appropriate
-SIGINT handlers and (see "About longjmp" below); and (ii) the terminal
-must send a SIGINT signal (see "About SIGINT" below).  The caveat here
-is that the Cygwin Mintty terminal provided with MSys2 does not handle
-sending a SIGINT in the same way as the Windows console, which causes
-different behavior. More importantly, it is not possible to run python
-interactively in Mintty at all, unless you run the python process
-within a winpty wrapper:
-$ winpty python
-
-One way to handle this is to add something like the following to the
-end of the .bash_profile in your msys2 home directory:
-
-export PATH="/c/Python27:/c/Python27/Scripts:/c/emacs-2.4.v/bin:/c/Program Files (x86)/Common Files/Microsoft/Visual C++ for Python/9.0/VC/bin:$PATH"
-winpty bash; exit
-
-(The second line runs bash in a winpty wrapper and exits when that shell
-is killed.)
+control-C.  Using the ucrt64 toolchain means that CyPari no longer
+depends on the out-dated msvcrt.dll and instead will use the
+Universal C Runtime which ships with Windows 10 and later.  The
+UCRT is compliant with C99 and is designed to avoid the headaches
+and compatibility issues that come with using a C runtime from
+a specific version of Visual Studio.
 
 About Segfaults
 ---------------
@@ -57,48 +35,6 @@ Python, but it does not inherit realloc since that is still
 unresolved.  When realloc is needed in initprimes, the symbol is
 resolved against the msvcrt.dll.  The two runtimes do not allocate
 memory in compatible ways - hence the segfault.
-
-There is a reason why mingw32 uses the out-of-date msvcrt runtime, and
-it has to do with Microsoft's attempt to deal with the "DLL Hell"
-caused by having many incompatible DLL's on the same system, all with
-the same name.  Their solution was called "Side by Side Assemblies"
-which consist of a DLL, which has been assigned a cryprographic key
-uniquely identifying its precise version, and an xml "Manifest file"
-which specifies the key.  These must appear in the same subdirectory
-of the C:\Windows\winsxs directory.  In order for a third party DLL or
-EXE to call functions from a dll in a side-by-side assemply, the
-library must have its own manifest file which matches the one in
-winsxs.  This user manifest file must either appear in the same
-directory as the DLL or EXE, or else be embedded in it as a Windows
-"Resource".  The gcc linker is able to embed these resource files, if
-they are supplied on the command line.
-
-So, to ensure that our cypari extension module gets its C runtime
-functions from the same DLL as the Python executable we need to do two
-things (and possible a third, even more technical one).  First, we
-need to prevent gcc from linking against its default msvcrt runtime.
-This is done by providing gcc with a "specs" file which specifies
-things such as which "hidden" link libraries (e.g. C runtimes) are
-linked before the user-supplied libraries.  Our specs file specifies
-that gcc should link agains the msvcr90 runtime. Second, we need to
-provide a resource file that matches the msvcr90 runtime so that the
-OS will allow the extension module to access the runtime.  The final
-technical item is that one of the hidden libraries, called
-libmoldname, which has the job of mapping names of runtime functions
-to the older name which has an underscore prepended, probably has to
-be replaced with one that has symbols matching msvcr90 instead of
-msvcrt.  To accomplish all this we need to add three files to the
-mingw32 toolchain.  Thes files are named specs90, mscvr90.res and
-libmoldname90.a. In addition, to make gcc use the specs file, we need
-to pass the option specs=specs90 to the mingw32 linker.  Our spec
-file is a modified version of the one developed by the mingwpy
-project (https://mingwpy.github.io/).  Instructions for using the
-gnu dlltool to build libmoldname90.a can be found on the pygame
-website (http://www.pygame.org/wiki/PreparingMinGW).  The tool used
-to convert an xml file to a windows resource is called windres
-(see http://www.mingw.org/wiki/MS_resource_compiler).  The structure
-of a manifest file is described on the Microsoft developer site
-(https://msdn.microsoft.com/en-us/library/windows/desktop/aa375365(v=vs.85).aspx).
 
 About longjmp
 -------------
