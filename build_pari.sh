@@ -7,7 +7,7 @@ set -e
 PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
 PARIVERSION=pari-2.15.4
 GMPURL=https://ftp.gnu.org/gnu/gmp/
-GMPVERSION=gmp-6.2.1
+GMPVERSION=gmp-6.3.0
 
 if [[ $(pwd) =~ " " ]]; then
     echo "Fatal Error: Sorry, the path:"
