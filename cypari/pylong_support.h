@@ -80,7 +80,7 @@ CyPari_DigitCount(PyLongObject *op)
 #else
 
 #define OB_DIGIT(o) (o->ob_digit)
-inline void
+static inline void
 CyPari_SetSignAndDigitCount(PyLongObject *op, int sign, Py_ssize_t size)
 {
     assert(size >= 0);
