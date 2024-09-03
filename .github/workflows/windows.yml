@@ -39,7 +39,7 @@ jobs:
 
       - name: Install cibuildwheel
         run: |
-          python3.12 -m pip install cibuildwheel
+          python3 -m pip install cibuildwheel
           
       - name: Build gmp and pari
         run: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Build many wheels
         run: |
-          python3.12 -m cibuildwheel --output-dir wheelhouse
+          python3 -m cibuildwheel --output-dir wheelhouse
         env:
           CIBW_ARCHS: AMD64
           CIBW_BUILD: cp312-* cp311-* cp310-* cp39-* 
