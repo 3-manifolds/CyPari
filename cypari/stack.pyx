@@ -40,6 +40,15 @@ cdef inline GEN deepcopy_to_python_heap(GEN x, pari_sp* address):
     address[0] = tmp_bot
     return gcopy_avma(x, &tmp_top)
 
+cdef inline Gen new_dynamic_gen(GEN x):
+    """
+    Create a new Gen with new_gen, but set a flag to indicate that gunclone_deep shoule
+    be used in the __dealloc__ method.
+    """
+    cdef Gen g = new_gen(x)
+    g.is_dynamic = True
+    return g
+    
 cdef inline Gen new_gen(GEN x):
     """
     Create a new Gen wrapping `x`, then call ``clear_stack()``.

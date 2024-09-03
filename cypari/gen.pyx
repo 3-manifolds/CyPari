@@ -102,8 +102,10 @@ cdef class Gen(Gen_base):
 
     def __dealloc__(self):
         if self.is_ref == False and isclone(self.g):
-            # Using deep avoids memory leaks when the GEN has been modified.
-            gunclone_deep(self.g)
+            if self.is_dynamic:
+                gunclone_deep(self.g)
+            else:
+                gunclone(self.g)
         #sig_free(<void*>self.b)
 
     def __repr__(self):

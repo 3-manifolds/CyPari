@@ -8,6 +8,7 @@ cdef class Gen_base(RingElement):
     cdef GEN g
     cdef int is_ref
     cdef dict refers_to
+    cdef int is_dynamic
 
 @cython.final
 cdef class Gen(Gen_base):
@@ -41,6 +42,7 @@ cdef Pari pari_instance
 
 # stack.pyx
 cdef GEN deepcopy_to_python_heap(GEN x, pari_sp* address)
+cdef Gen new_dynamic_gen(GEN x)
 cdef Gen new_gen(GEN x)
 cdef Gen new_gen_noclear(GEN x)
 cdef void clear_stack()

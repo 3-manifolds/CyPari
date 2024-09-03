@@ -38,7 +38,7 @@ class PariReturn(object):
         s  = "        cdef {ctype} {name} = {value}\n"
         return s.format(ctype=self.ctype(), name=self.name, value=value)
 
-    def return_code(self):
+    def return_code(self, **kwargs):
         """
         Return code to return from the Cython wrapper.
         """
@@ -50,14 +50,17 @@ class PariReturn(object):
 class PariReturnGEN(PariReturn):
     def ctype(self):
         return "GEN"
-    def return_code(self):
-        s = "        return new_gen({name})\n"
+    def return_code(self, dynamic=False):
+        if dynamic:
+            s = "        return new_dynamic_gen({name})\n"
+        else:
+            s = "        return new_gen({name})\n"
         return s.format(name=self.name)
 
 class PariReturnmGEN(PariReturn):
     def ctype(self):
         return "GEN"
-    def return_code(self):
+    def return_code(self, **kwargs):
         s = "        {name} = gcopy({name})\n"
         s += "        return new_gen({name})\n"
         return s.format(name=self.name)
@@ -79,7 +82,7 @@ class PariReturnVoid(PariReturn):
         return "void"
     def assign_code(self, value):
         return "        {value}\n".format(value=value)
-    def return_code(self):
+    def return_code(self, **kwargs):
         s = "        clear_stack()\n"
         return s
 

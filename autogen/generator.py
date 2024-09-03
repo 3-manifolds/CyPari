@@ -79,6 +79,16 @@ class PariFunctionGenerator(object):
     are written as methods of either :class:`Gen` or
     :class:`Pari`.
     """
+    # Known functions which return a "lazy" GEN, which has components
+    # that are initialized to pointers to the Pari Zero but may get
+    # overwritten as needed later on.  The overwritten entries are
+    # pointers to GENs on the pari heap.  These dynamically generated
+    # components do not get deleted by gunclone, leading to memory
+    # leaks.  They must be handled differently when the Gen object
+    # managing the GEN is dealloc'ed.
+    
+    _lazy = ['ellinit']
+
     def __init__(self):
         self.gen_filename = os.path.join('cypari', 'auto_gen.pxi')
         self.instance_filename = os.path.join('cypari', 'auto_instance.pxi')
@@ -309,8 +319,7 @@ class PariFunctionGenerator(object):
         for a in args:
             s += a.c_convert_code()
         s += ret.assign_code("{cname}({callargs})")
-        s += ret.return_code()
-
+        s += ret.return_code(dynamic=(function in self._lazy))
         s = s.format(function=function, protoargs=protoargs, cname=cname, callargs=callargs, doc=doc, obsolete=obsolete)
         print(s, file=file)
 
