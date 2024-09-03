@@ -267,15 +267,16 @@ class CyPariBuildExt(build_ext):
                 output.write(code)
 
         # If we have Cython, check that .c files are up to date
-        try:
-            import cython
-            print('Using cython version %s.' % cython.__version__)
-            from Cython.Build import cythonize
-            cythonize([os.path.join('cypari', '_pari.pyx')],
-                      compiler_directives={'language_level':2})
-        except ImportError:
-            if not os.path.exists(os.path.join('cypari', '_pari.c')):
-                sys.exit(no_cython_message)
+        # try:
+        #     from Cython.Build import cythonize
+        #     cythonize([os.path.join('cypari', '_pari.pyx')],
+        #               compiler_directives={'language_level':2})
+        # except ImportError:
+        #     if not os.path.exists(os.path.join('cypari', '_pari.c')):
+        #         sys.exit(no_cython_message)
+        from Cython.Build import cythonize
+        cythonize([os.path.join('cypari', '_pari.pyx')],
+                       compiler_directives={'language_level':2})
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
