@@ -19,7 +19,7 @@ jobs:
           python-version: 3.12
       - name: Install cibuildwheel
         run: |
- 	  python3 -m pip install Cython>=3.0.0
+          python3 -m pip install Cython>=3.0.0
           python3 -m pip install cibuildwheel
 
       - name: Build wheels
