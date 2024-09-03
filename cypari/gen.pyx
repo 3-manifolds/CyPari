@@ -103,9 +103,8 @@ cdef class Gen(Gen_base):
     def __dealloc__(self):
         if self.is_ref == False and isclone(self.g):
             if self.is_dynamic:
-                gunclone_deep(self.g)
-            else:
-                gunclone(self.g)
+                obj_free(self.g)
+            gunclone(self.g)
         #sig_free(<void*>self.b)
 
     def __repr__(self):
