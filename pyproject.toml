@@ -1,0 +1,7 @@
+[build-system]
+requires = ["setuptools", "wheel", "cython"]
+
+[tool.cibuildwheel]
+build = "cp312-*"
+test-command = "python -m cypari.test"
+
