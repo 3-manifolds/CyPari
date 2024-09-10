@@ -11,3 +11,6 @@
 #define set_gmael(x, i, j, z)    (gmael((x), (i), (j)) = (z))
 #define set_gcoeff(x, i, j, z)   (gcoeff((x), (i), (j)) = (z))
 #define set_uel(x, n, z)         (uel((x), (n)) = (z))
+
+/* Undo the damage caused by Pari's ridiculous hack for 64 bit windows.*/
+#undef long
