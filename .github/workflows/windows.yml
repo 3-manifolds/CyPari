@@ -55,7 +55,7 @@ jobs:
             pip install Cython>=3.0.0
           CIBW_TEST_COMMAND: python -m cypari.test
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Save the wheels as artifacts
         with:
           path: ./wheelhouse/*.whl
