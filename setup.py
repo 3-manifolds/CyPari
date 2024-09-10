@@ -46,7 +46,7 @@ if sys.platform == 'win32':
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
-    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\13.2.0\libgcc.a'
+    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\14.2.0\libgcc.a'
     ]
 else:
     ext_compiler = ''
