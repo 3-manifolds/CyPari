@@ -1,0 +1,8 @@
+[build-system]
+requires = ["setuptools", "wheel", "cython"]
+
+[tool.cibuildwheel]
+build = "cp39* cp310* cp311* cp312* cp313*"
+archs = "auto64"
+test-command = "python -m cypari.test"
+

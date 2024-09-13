@@ -73,6 +73,18 @@ from cpython.object cimport Py_EQ, Py_NE, Py_LE, Py_GE, Py_LT, Py_GT
 
 from .paridecl cimport *
 from .paripriv cimport *
+
+# cdef extern from *:
+#     """
+#     /* Undo the damage caused by PARI's ridiculous
+#      * #define long long long
+#      */
+#     #if defined long
+#     #undef long
+#     #endif
+#     """
+#     pass
+
 cimport libc.stdlib
 from libc.stdio cimport *
 
@@ -116,5 +128,3 @@ include "convert.pyx"
 include "handle_error.pyx"
 include "closure.pyx"
 include "gen.pyx"
-
-

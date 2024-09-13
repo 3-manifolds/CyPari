@@ -46,7 +46,7 @@ if sys.platform == 'win32':
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
     r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
-    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\13.2.0\libgcc.a'
+    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\14.2.0\libgcc.a'
     ]
 else:
     ext_compiler = ''
@@ -275,8 +275,23 @@ class CyPariBuildExt(build_ext):
         #     if not os.path.exists(os.path.join('cypari', '_pari.c')):
         #         sys.exit(no_cython_message)
         from Cython.Build import cythonize
-        cythonize([os.path.join('cypari', '_pari.pyx')],
-                       compiler_directives={'language_level':2})
+        _pari_pyx = os.path.join('cypari', '_pari.pyx')
+        _pari_c = os.path.join('cypari', '_pari.c')
+        cythonize([_pari_pyx],
+                  compiler_directives={'language_level':2})
+        if sys.platform == 'win32':
+            # patch _pari.c to deal with #define long long long
+            with open('_pari.c', 'w') as outfile:
+                with open(_pari_c) as infile:
+                    for line in infile.readlines():
+                        if line.find('pycore') >= 0:
+                            outfile.write(
+                                '  #undef long\n%s'
+                                '  #define long long long\n' %line)
+                        else:
+                            outfile.write(line)
+            os.unlink(_pari_c)
+            os.rename('_pari.c', _pari_c)
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
