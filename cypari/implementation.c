@@ -44,6 +44,11 @@ Interrupt and signal handling for Cython
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#if (defined(__APPLE__) || defined(__UCLIBC__) || defined(__GLIBC__)) /* Not musl. */
+ #include <execinfo.h>
+#else
+ #define NO_BACKTRACE 1
+#endif
 #include <execinfo.h>
 #include <Python.h>
 #include <pari/pari.h>
@@ -282,11 +287,13 @@ static void print_sep(void)
 /* Print a backtrace if supported by libc */
 static void print_backtrace()
 {
+#if !defined(NO_BACKTRACE)
     void* backtracebuffer[1024];
     fflush(stderr);
     int btsize = backtrace(backtracebuffer, 1024);
     backtrace_symbols_fd(backtracebuffer, btsize, 2);
     print_sep();
+#endif
 }
 
 /* Print a message s and kill ourselves with signal sig */
