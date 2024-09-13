@@ -49,7 +49,6 @@ Interrupt and signal handling for Cython
 #else
  #define NO_BACKTRACE 1
 #endif
-#include <execinfo.h>
 #include <Python.h>
 #include <pari/pari.h>
 #include "struct_signals.h"
