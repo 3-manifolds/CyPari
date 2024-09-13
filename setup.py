@@ -275,8 +275,21 @@ class CyPariBuildExt(build_ext):
         #     if not os.path.exists(os.path.join('cypari', '_pari.c')):
         #         sys.exit(no_cython_message)
         from Cython.Build import cythonize
-        cythonize([os.path.join('cypari', '_pari.pyx')],
-                       compiler_directives={'language_level':2})
+        _pari_pyx = os.path.join('cypari', '_pari.pyx')
+        _pari_c = os.path.join('cypari', '_pari.c')
+        cythonize([_pari_pyx],
+                  compiler_directives={'language_level':2})
+        with open('_pari.c', 'w') as outfile:
+            with open(_pari_c) as infile:
+                for line in infile.readlines():
+                    if line.find('pycore') >= 0:
+                        outfile.write(
+                            '  #undef long\n%s'
+                            '  #define long long long\n' %line)
+                    else:
+                        outfile.write(line)
+        os.unlink(_pari_c)
+        os.rename('_pari.c', _pari_c)
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
