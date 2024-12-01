@@ -4,7 +4,7 @@
 
 set -e
 
-PARIURL=http://pari.math.u-bordeaux.fr/pub/pari/unix/
+PARIURL=https://pari.math.u-bordeaux.fr/pub/pari/OLD/2.15/
 PARIVERSION=pari-2.15.4
 GMPURL=https://ftp.gnu.org/gnu/gmp/
 GMPVERSION=gmp-6.3.0
