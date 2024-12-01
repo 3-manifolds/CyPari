@@ -9,7 +9,7 @@ def total_ram():
         out, err = Popen(['free', '-b'],
                          stdin=PIPE, stdout=PIPE, stderr=PIPE).communicate()
         out = out.decode()
-        lines = out.split('\n')
+        lines = out.split(r'\n')
         for line in lines:
             words = line.split()
             if words[0] == 'Mem:':
