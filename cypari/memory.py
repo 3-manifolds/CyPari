@@ -2,7 +2,7 @@ from sys import platform
 import subprocess
 from subprocess import Popen, PIPE
 
-wmic = 'C:\Windows\System32\wbem\wmic'
+wmic = r'C:\Windows\System32\wbem\wmic'
 
 def total_ram():
     if platform.startswith('linux'):
