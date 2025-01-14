@@ -7,3 +7,5 @@ skip = "*musllinux*"
 archs = "auto64"
 test-command = "python -m cypari.test"
 
+[tool.cibuildwheel.windows]
+archs = "auto"
