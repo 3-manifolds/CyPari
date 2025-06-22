@@ -68,12 +68,17 @@ if [ ! -e ${GMPPREFIX} ] ; then
 	cd ..
     else
 	if [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
-	# Windows
-	    export PATH=/c/msys64/ucrt64/bin:$PATH
+	    # Windows
 	    export MSYSTEM=UCRT64
-	    export CC=/c/msys64/ucrt64/bin/gcc
-	    export ABI=64
 	    BUILD=x86_64-pc-mingw64
+	    export ABI=64
+	    if [ -d "/c/msys64/ucrt64/bin" ] ; then
+		export PATH=/c/msys64/ucrt64/bin:$PATH
+		export CC=/c/msys64/ucrt64/bin/gcc
+	    else
+		# Assumes msys2 has been setup correctly.
+		export CC=gcc
+	    fi
 	else
 	# linux
 	    export ABI=64
