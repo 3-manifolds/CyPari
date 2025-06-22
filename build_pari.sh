@@ -82,7 +82,7 @@ if [ ! -e ${GMPPREFIX} ] ; then
 	else
 	# linux
 	    export ABI=64
-	    BUILD=x86_64-none-none
+      BUILD=$(uname -m)-none-none
 	fi
 	echo Configuring gmp with ./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
 	./configure --build=${BUILD} --prefix=${GMPPREFIX} --with-pic
