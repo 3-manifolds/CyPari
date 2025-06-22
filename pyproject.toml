@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "cython"]
+requires = ["setuptools", "wheel", "cython==3.0.12"]
 
 [tool.cibuildwheel]
 build = "cp38* cp39* cp310* cp311* cp312* cp313*"
