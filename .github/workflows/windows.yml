@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build_wheels:
     name: Build Windows wheels for 64 bit Python
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: msys2 {0}
