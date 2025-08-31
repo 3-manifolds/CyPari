@@ -50,16 +50,15 @@ from .stack cimport new_gen
 
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
-from cpython.long cimport PyLong_FromLongLong
-from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT,
-    PyLong_MASK, py_long)
+from cpython.long cimport PyLong_AsLong, PyLong_FromLong
+from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK, py_long)
 
 cdef extern from "pylong_support.h":
     digit* OB_DIGIT(py_long o)
     void CyPari_SetSignAndDigitCount(py_long o, int sign, Py_ssize_t size)
     Py_ssize_t CyPari_DigitCount(py_long op)
     Py_ssize_t CyPari_Sign(object op)
-    cdef int LLONG_MAX, LLONG_MIN
+    cdef int LONG_MAX, LONG_MIN
 
 ####################################
 # Integers
@@ -217,11 +216,11 @@ cpdef gen_to_integer(Gen x):
         u = g[2]         # u = abs(x)
         # Check that <long>(u) or <long>(-u) does not overflow
         if signe(g) >= 0:
-            if u <= <ulong>LLONG_MAX:
-                return PyLong_FromLongLong(u)
+            if u <= <ulong>LONG_MAX:
+                return PyLong_FromLong(u)
         else:
-            if u <= -<ulong>LLONG_MIN:
-                return PyLong_FromLongLong(-u)
+            if u <= -<ulong>LONG_MIN:
+                return PyLong_FromLong(-u)
 
     # Result does not fit in a C long
     res = PyLong_FromINT(g)
