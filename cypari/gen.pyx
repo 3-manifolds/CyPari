@@ -64,7 +64,6 @@ from __future__ import absolute_import, division, print_function
 import types
 cimport cython
 
-from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.bytes cimport PyBytes_Check
 from cpython.unicode cimport PyUnicode_Check
@@ -4683,7 +4682,7 @@ cpdef Gen objtogen(s):
             clear_stack()
             return None
         return new_gen(g)
-    if PyInt_Check(s) | PyLong_Check(s):
+    if PyLong_Check(s):
         return integer_to_gen(s)
     if isinstance(s, float):
         return new_gen_from_double(PyFloat_AS_DOUBLE(s))

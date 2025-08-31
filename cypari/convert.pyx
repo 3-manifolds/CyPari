@@ -50,7 +50,7 @@ from .stack cimport new_gen
 
 from cpython.version cimport PY_MAJOR_VERSION
 from cpython.ref cimport PyObject
-from cpython.int cimport PyInt_AS_LONG, PyInt_FromLong
+from cpython.long cimport PyLong_AsLong, PyLong_FromLong
 from cpython.longintrepr cimport (_PyLong_New, digit, PyLong_SHIFT, PyLong_MASK, py_long)
 
 cdef extern from "pylong_support.h":
@@ -221,10 +221,10 @@ cpdef gen_to_integer(Gen x):
             # Check that <long>(u) or <long>(-u) does not overflow
             if signe(g) >= 0:
                 if u <= <ulong>LONG_MAX:
-                    return PyInt_FromLong(u)
+                    return PyLong_FromLong(u)
             else:
                 if u <= -<ulong>LONG_MIN:
-                    return PyInt_FromLong(-u)
+                    return PyLong_FromLong(-u)
 
     # Result does not fit in a C long
     res = PyLong_FromINT(g)
