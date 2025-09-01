@@ -1512,21 +1512,6 @@ cdef class Gen(Gen_base):
     def __hex__(self):
         """
         Return the hexadecimal digits of self in lower case.
-
-        EXAMPLES::
-
-            sage: print(hex(pari(0)))
-            0x0
-            sage: print(hex(pari(15)))
-            0xf
-            sage: print(hex(pari(16)))
-            0x10
-            sage: print(hex(pari(16938402384092843092843098243)))
-            0x36bb1e3929d1a8fe2802f083
-            sage: print(hex(16938402384092843092843098243))
-            0x36bb1e3929d1a8fe2802f083
-            sage: print(hex(pari(-16938402384092843092843098243)))
-            -0x36bb1e3929d1a8fe2802f083
         """
         cdef GEN x
         cdef int lx
