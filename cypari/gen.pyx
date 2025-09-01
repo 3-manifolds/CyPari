@@ -1446,9 +1446,9 @@ cdef class Gen(Gen_base):
         sig_off()
         return r
 
-    def __cmp__(self, Gen other):
+    def cmp(self, right):
         """
-        Compare ``left`` and ``right``.
+        Compare ``self`` and ``right``.
 
         This uses PARI's ``cmp_universal()`` routine, which defines
         a total ordering on the set of all PARI objects (up to the
@@ -1463,29 +1463,23 @@ cdef class Gen(Gen_base):
 
         EXAMPLES::
 
-            sage: cmp(pari(5), 5)
+            sage: pari(5).cmp(pari(5))
             0
-            sage: cmp(pari(5), 10)
-            -1
-            sage: cmp(pari(2.5), None)
+            sage: pari('x^2 + 1').cmp(pari('I-1'))
             1
-            sage: cmp(pari(3), pari(3))
-            0
-            sage: cmp(pari('x^2 + 1'), pari('I-1'))
-            1
-            sage: cmp(pari('I'), pari('I'))
+            sage: pari('I').cmp(pari('I'))
             0
 
         Beware when comparing rationals or reals::
 
-            sage: cmp(pari('2/3'), pari('2/5'))
+            sage: pari('2/3').cmp(pari('2/5'))
             -1
             sage: two = pari('2.000000000000000000000000')
-            sage: cmp(two, pari(1.0))
+            sage: two.cmp(pari(1.0))
             1
-            sage: cmp(two, pari(2.0))
+            sage: two.cmp(pari(2.0))
             1
-            sage: cmp(two, pari(3.0))
+            sage: two.cmp(pari(3.0))
             1
 
         Since :trac:`17026`, different elements with the same string
@@ -1495,28 +1489,19 @@ cdef class Gen(Gen_base):
             0
             sage: b = pari("0*ffgen(ffinit(29, 10))"); b
             0
-            sage: cmp(a, b)
+            sage: a.cmp(b)
             -1
 
             sage: x = pari("x"); x
             x
             sage: y = pari("ffgen(ffinit(3, 5))"); y
             x
-            sage: cmp(x, y)
+            sage: x.cmp(y)
             1
         """
+        other = <Gen_base?>right
         sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
-        sig_off()
-        return r
-
-    def cmp_universal(Gen self, Gen other):
-        """
-        Provide access to Pari's cmp_universal function in Python 3.  In
-        Python 2 cmp_universal is used by the __cmp__ method.
-        """
-        sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
+        r = cmp_universal(self.g, other.g)
         sig_off()
         return r
 
