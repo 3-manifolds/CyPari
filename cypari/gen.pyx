@@ -1446,13 +1446,62 @@ cdef class Gen(Gen_base):
         sig_off()
         return r
 
-    def cmp_universal(Gen self, Gen other):
+    def cmp(self, right):
         """
-        Provide access to Pari's cmp_universal function in Python 3.  In
-        Python 2 cmp_universal is used by the __cmp__ method.
+        Compare ``self`` and ``right``.
+
+        This uses PARI's ``cmp_universal()`` routine, which defines
+        a total ordering on the set of all PARI objects (up to the
+        indistinguishability relation given by ``gidentical()``).
+
+        .. WARNING::
+
+            This comparison is only mathematically meaningful when
+            comparing 2 integers. In particular, when comparing
+            rationals or reals, this does not correspond to the natural
+            ordering.
+
+        EXAMPLES::
+
+            sage: pari(5).cmp(pari(5))
+            0
+            sage: pari('x^2 + 1').cmp(pari('I-1'))
+            1
+            sage: pari('I').cmp(pari('I'))
+            0
+
+        Beware when comparing rationals or reals::
+
+            sage: pari('2/3').cmp(pari('2/5'))
+            -1
+            sage: two = pari('2.000000000000000000000000')
+            sage: two.cmp(pari(1.0))
+            1
+            sage: two.cmp(pari(2.0))
+            1
+            sage: two.cmp(pari(3.0))
+            1
+
+        Since :trac:`17026`, different elements with the same string
+        representation can be distinguished by ``cmp()``::
+
+            sage: a = pari(0); a
+            0
+            sage: b = pari("0*ffgen(ffinit(29, 10))"); b
+            0
+            sage: a.cmp(b)
+            -1
+
+            sage: x = pari("x"); x
+            x
+            sage: y = pari("ffgen(ffinit(3, 5))"); y
+            x
+            sage: x.cmp(y)
+            1
         """
+        other = <Gen_base?>right
         sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
+        r = cmp_universal(self.g, other.g)
         sig_off()
         return r
 
