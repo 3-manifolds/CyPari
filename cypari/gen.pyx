@@ -1710,37 +1710,6 @@ cdef class Gen(Gen_base):
         """
         return gen_to_python(self)
 
-    def __long__(self):
-        """
-        Convert ``self`` to a Python ``long``.
-
-        EXAMPLES::
-
-            sage: long(pari(0))
-            0L
-            sage: long(pari(10))
-            10L
-            sage: long(pari(-10))
-            -10L
-            sage: long(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            sage: long(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
-            sage: long(pari(2**31-1))
-            2147483647L
-            sage: long(pari(-2**31))
-            -2147483648L
-            sage: long(pari("Pol(10)"))
-            10L
-            sage: long(pari("Mod(2, 7)"))
-            2L
-        """
-        x = gen_to_integer(self)
-        if isinstance(x, long):
-            return x
-        else:
-            return long(x)
-
     def __float__(self):
         """
         Return Python float.
