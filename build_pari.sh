@@ -72,6 +72,8 @@ if [ ! -e ${GMPPREFIX} ] ; then
 	    export MSYSTEM=UCRT64
 	    BUILD=x86_64-pc-mingw64
 	    export ABI=64
+	    # See https://gcc.gnu.org/pipermail/gcc/2025-February/245542.html
+	    export CFLAGS="-std=gnu17"
 	    if [ -d "/c/msys64/ucrt64/bin" ] ; then
 		export PATH=/c/msys64/ucrt64/bin:$PATH
 		export CC=/c/msys64/ucrt64/bin/gcc
