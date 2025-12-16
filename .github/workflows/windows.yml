@@ -23,6 +23,7 @@ jobs:
         with:
           msystem: UCRT64
           release: false
+          update: true
           install: >-
             base-devel
             m4
