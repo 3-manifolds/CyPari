@@ -36,7 +36,7 @@ jobs:
 
       - name: Downgrade binutils so that it works
         run: |
-          pacman -U https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-binutils-2.43.1-1-any.pkg.tar.zst
+          pacman -U --noconfirm https://repo.msys2.org/mingw/ucrt64/mingw-w64-ucrt-x86_64-binutils-2.43.1-1-any.pkg.tar.zst
           
       - name: Expand the path for Visual Studio 2019
         run: |
