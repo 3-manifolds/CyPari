@@ -2,7 +2,7 @@
 requires = ["setuptools", "wheel", "cython==3.0.12"]
 
 [tool.cibuildwheel]
-build = "cp311* cp314*"
+build = "cp314*"
 skip = "*musllinux* cp313t* cp314t*"
 archs = "auto64"
 test-command = "python -m cypari.test"
