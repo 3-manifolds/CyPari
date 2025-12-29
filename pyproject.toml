@@ -1,8 +1,8 @@
 [build-system]
-requires = ["setuptools", "wheel", "cython==3.0.11"]
+requires = ["setuptools", "wheel", "cython==3.0.12"]
 
 [tool.cibuildwheel]
-build = "cp314*"
+build = "cp313* cp314*"
 skip = "*musllinux* cp313t* cp314t*"
 archs = "auto64"
 test-command = "python -m cypari.test"
