@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools", "wheel", "cython==3.0.12"]
+requires = ["setuptools", "wheel", "cython==3.0.11"]
 
 [tool.cibuildwheel]
-build = "cp313* cp314*"
-skip = "*musllinux* cp313t* cp314t*"
+build = "cp311* cp313*"
+skip = "*musllinux* cp313t* cp314t* cp314*"
 archs = "auto64"
 test-command = "python -m cypari.test"
 manylinux-x86_64-image = "manylinux2014"
