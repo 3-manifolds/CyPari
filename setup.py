@@ -318,7 +318,7 @@ if sys.platform == 'darwin':
                       '-Wno-unreachable-code-fallthrough']
 elif sys.platform == 'win32':
     # Ignore the assembly language inlines when building the extension.
-    compile_args = ['/DDISABLE_INLINE']
+    compile_args = ['/DDISABLE_INLINE', '/DWINDOWS_IGNORE_PACKING_MISMATCH']
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
         link_args += ['/DEBUG']
