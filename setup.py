@@ -43,9 +43,6 @@ if sys.platform == 'win32':
 
     ext_compiler = 'msvc'
     MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
     r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\14.2.0\libgcc.a'
     ]
 else:
@@ -73,11 +70,11 @@ pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
-MSVC_include_dirs = [
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
-]
+MSVC_include_dirs = []
+#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
+#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
+#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
+#]
 
 class CyPariClean(Command):
     user_options = []
