@@ -38,11 +38,24 @@ from subprocess import Popen, PIPE
 if sys.platform == 'win32':
     # We expect to be using:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
-    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26000.0)
-    # * An MSYS-2 with the UCRT64 environment installed for gcc 
-    ext_compiler = 'msvc'
-else:
-    ext_compiler = ''
+    #   Windows 11 SDK 10.0.22621.0 installed.
+    # * An MSYS-2 with the UCRT64 environment installed for gcc
+    #
+    # For mysterious reasons, CyPari will not compile with the more
+    # recent Windows 11 SDK 10.0.26000.0.  Setuptools will always use
+    # the most recent version of the Windows 11 SDK, which is what MS
+    # recommends since the result will still work on any earlier
+    # version of Windows.  Therefore, we do a monkeypatch hack to
+    # force the use of 10.0.22621.0 even if the newer version is
+    # available.
+
+    @staticmethod
+    def _parse_path_hack(val):
+        return [dir.rstrip(os.sep).replace('10.0.26100.0', '10.0.22621.0')
+                for dir in val.split(os.pathsep) if dir]
+    import distutils.compilers.C.msvc  # really setuptools._distutils.compilers.C.msvc
+    distutils.compilers.C.msvc.Compiler._parse_path = _parse_path_hack
+
 
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32' and not os.path.exists('libcache/pari'):
@@ -70,7 +83,7 @@ gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -101,7 +114,7 @@ class CyPariClean(Command):
 class CyPariTest(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -195,10 +208,10 @@ decls = b'''
 '''
 
 class CyPariBuildExt(build_ext):
-        
+
     def run(self):
         building_sdist = False
-        
+
         if os.path.exists('pari_src'):
             # We are building an sdist.  Move the Pari source code into build.
             if not os.path.exists('build'):
@@ -206,7 +219,7 @@ class CyPariBuildExt(build_ext):
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
             building_sdist = True
-        
+
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
@@ -225,7 +238,7 @@ class CyPariBuildExt(build_ext):
             not os.path.exists(os.path.join('cypari', 'auto_instance.pxi'))):
             import autogen
             autogen.rebuild()
-            
+
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
         # which version of Python we are using.  We need to handle 64
@@ -283,7 +296,7 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
-    
+
     def _tarball_info(self, lib):
         lib_re = re.compile(r'(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
@@ -291,7 +304,7 @@ class CyPariSourceDist(sdist):
             if lib_match:
                 break
         return lib_match.group(), lib_match.groups()[0]
-    
+
     def run(self):
         tarball, dir = self._tarball_info('pari')
         check_call(['tar', 'xfz', tarball])
