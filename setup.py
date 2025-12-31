@@ -38,13 +38,11 @@ from subprocess import Popen, PIPE
 if sys.platform == 'win32':
     # We expect to be using:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
-    #   Windows 11 SDK 10.0.22000.0 installed.
-    # * An Msys-2 with the UCRT64 environment installed for gcc 13.2.0
+    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26000.0)
+    # * An MSYS-2 with the UCRT64 environment installed for gcc 
 
     ext_compiler = 'msvc'
-    MSVC_extra_objects = [
-    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\14.2.0\libgcc.a'
-    ]
+    MSVC_extra_objects = []
 else:
     ext_compiler = ''
 
@@ -71,10 +69,6 @@ gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
 MSVC_include_dirs = []
-#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
-#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
-#    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
-#]
 
 class CyPariClean(Command):
     user_options = []
@@ -318,12 +312,12 @@ if sys.platform == 'darwin':
                       '-Wno-unreachable-code-fallthrough']
 elif sys.platform == 'win32':
     # Ignore the assembly language inlines when building the extension.
-    compile_args = ['/DDISABLE_INLINE', '/DWINDOWS_IGNORE_PACKING_MISMATCH']
+    compile_args = ['/DDISABLE_INLINE']
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
         link_args += ['/DEBUG']
     # # Add the mingw crt objects needed by libpari.
-    link_args += [
+    link_args += ['/alternatename:stat64i32=_stat64i32',
         os.path.join('Windows', 'crt', 'libparicrt64.a'),
         'advapi32.lib',
         'legacy_stdio_definitions.lib',

@@ -53,7 +53,11 @@ will never be handled and always causes Python to exit.
 extern "C" {
 #endif
 
-
+/* Deal with a missing symbol observed with MSVC 2022 17.11.3 and mingw gcc 15.2. */   
+#ifdef _MSC_VER
+int (*__imp__setjmp)(jmp_buf) = _setjmp;
+#endif
+  
 /**********************************************************************
  * IMPLEMENTATION OF SIG_ON/SIG_OFF                                   *
  **********************************************************************/
