@@ -38,7 +38,7 @@ from subprocess import Popen, PIPE
 if sys.platform == 'win32':
     # We expect to be using:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
-    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26000.0)
+    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26100.0)
     # * An MSYS-2 with the UCRT64 environment installed for gcc 
 
     ext_compiler = 'msvc'
