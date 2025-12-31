@@ -38,11 +38,9 @@ from subprocess import Popen, PIPE
 if sys.platform == 'win32':
     # We expect to be using:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
-    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26100.0)
+    #   Windows 11 SDK 10.0.22621.0 installed (it will not work with 10.0.26000.0)
     # * An MSYS-2 with the UCRT64 environment installed for gcc 
-
     ext_compiler = 'msvc'
-    MSVC_extra_objects = []
 else:
     ext_compiler = ''
 
@@ -68,7 +66,6 @@ pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
-MSVC_include_dirs = []
 
 class CyPariClean(Command):
     user_options = []
@@ -316,13 +313,14 @@ elif sys.platform == 'win32':
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
         link_args += ['/DEBUG']
-    # # Add the mingw crt objects needed by libpari.
+
+    # libpari relies on a few mingw library functions not present in MSCV's default
+    # libraries, so we need to add these:
     link_args += ['/alternatename:stat64i32=_stat64i32',
-        os.path.join('Windows', 'crt', 'libparicrt64.a'),
-        'advapi32.lib',
-        'legacy_stdio_definitions.lib',
-        os.path.join('Windows', 'crt', 'get_output_format64.o')
-    ]
+                  '/alternatename:___chkstk_ms=__chkstk',
+                  '/alternatename:__mingw_sprintf=sprintf',
+                  'advapi32.lib',
+                  'legacy_stdio_definitions.lib']
 else:
     compile_args = []
 
@@ -331,17 +329,12 @@ if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
 include_dirs = [pari_include_dir]
-extra_objects = []
-if sys.platform == 'win32':
-    include_dirs += MSVC_include_dirs
-    extra_objects += MSVC_extra_objects
 
 _pari = Extension(name='cypari._pari',
-                     sources=['cypari/_pari.c'],
-                     include_dirs=include_dirs,
-                     extra_objects=extra_objects,
-                     extra_link_args=link_args,
-                     extra_compile_args=compile_args)
+                  sources=['cypari/_pari.c'],
+                  include_dirs=include_dirs,
+                  extra_link_args=link_args,
+                  extra_compile_args=compile_args)
 
 # Load the version number.
 sys.path.insert(0, 'cypari')
