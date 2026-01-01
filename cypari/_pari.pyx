@@ -63,7 +63,6 @@ else:
 
 cimport cython
 
-from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.bytes cimport PyBytes_Check
 from cpython.unicode cimport PyUnicode_Check
