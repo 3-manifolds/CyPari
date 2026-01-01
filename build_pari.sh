@@ -72,6 +72,8 @@ if [ ! -e ${GMPPREFIX} ] ; then
 	    export MSYSTEM=UCRT64
 	    BUILD=x86_64-pc-mingw64
 	    export ABI=64
+	    # See https://gcc.gnu.org/pipermail/gcc/2025-February/245542.html
+	    export CFLAGS="-std=gnu17"
 	    if [ -d "/c/msys64/ucrt64/bin" ] ; then
 		export PATH=/c/msys64/ucrt64/bin:$PATH
 		export CC=/c/msys64/ucrt64/bin/gcc
@@ -130,6 +132,8 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     export CFLAGS="-U HAS_AVX -U HAS_AVX512 -U HAS_SSE2"
     ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
     cd Omingw-*
+    # gettimeofday is POSIX and not inclued in MSVC libraries.
+    sed -i '/#define USE_GETTIMEOFDAY 1/c\' paricfg.h
     make install-lib-sta
     make install-include
     make install-doc

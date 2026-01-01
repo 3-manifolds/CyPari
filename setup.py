@@ -38,18 +38,24 @@ from subprocess import Popen, PIPE
 if sys.platform == 'win32':
     # We expect to be using:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
-    #   Windows 11 SDK 10.0.22000.0 installed.
-    # * An Msys-2 with the UCRT64 environment installed for gcc 13.2.0
+    #   Windows 11 SDK 10.0.22621.0 installed.
+    # * An MSYS-2 with the UCRT64 environment installed for gcc
+    #
+    # For mysterious reasons, CyPari will not compile with the more
+    # recent Windows 11 SDK 10.0.26000.0.  Setuptools will always use
+    # the most recent version of the Windows 11 SDK, which is what MS
+    # recommends since the result will still work on any earlier
+    # version of Windows.  Therefore, we do a monkeypatch hack to
+    # force the use of 10.0.22621.0 even if the newer version is
+    # available.
 
-    ext_compiler = 'msvc'
-    MSVC_extra_objects = [
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\Uuid.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\um\x64\kernel32.lib',
-    r'C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22000.0\ucrt\x64\ucrt.lib',
-    r'C:\msys64\ucrt64\lib\gcc\x86_64-w64-mingw32\14.2.0\libgcc.a'
-    ]
-else:
-    ext_compiler = ''
+    @staticmethod
+    def _parse_path_hack(val):
+        return [dir.rstrip(os.sep).replace('10.0.26100.0', '10.0.22621.0')
+                for dir in val.split(os.pathsep) if dir]
+    import distutils.compilers.C.msvc  # really setuptools._distutils.compilers.C.msvc
+    distutils.compilers.C.msvc.Compiler._parse_path = _parse_path_hack
+
 
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32' and not os.path.exists('libcache/pari'):
@@ -73,16 +79,11 @@ pari_static_library = os.path.join(pari_library_dir, 'libpari.a')
 gmp_library_dir = os.path.join('libcache', GMPDIR, 'lib')
 gmp_static_library = os.path.join(gmp_library_dir, 'libgmp.a')
 
-MSVC_include_dirs = [
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\um',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\ucrt',
-    r'C:\Program Files (x86)\Windows Kits\10\Include\10.0.22000.0\shared'
-]
 
 class CyPariClean(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -113,7 +114,7 @@ class CyPariClean(Command):
 class CyPariTest(Command):
     user_options = []
     def initialize_options(self):
-        pass 
+        pass
     def finalize_options(self):
         pass
     def run(self):
@@ -207,10 +208,10 @@ decls = b'''
 '''
 
 class CyPariBuildExt(build_ext):
-        
+
     def run(self):
         building_sdist = False
-        
+
         if os.path.exists('pari_src'):
             # We are building an sdist.  Move the Pari source code into build.
             if not os.path.exists('build'):
@@ -218,7 +219,7 @@ class CyPariBuildExt(build_ext):
             os.rename('pari_src', os.path.join('build', 'pari_src'))
             os.rename('gmp_src', os.path.join('build', 'gmp_src'))
             building_sdist = True
-        
+
         if (not os.path.exists(os.path.join('libcache', PARIDIR))
             or not os.path.exists(os.path.join('libcache', GMPDIR))):
             if sys.platform == 'win32':
@@ -237,7 +238,7 @@ class CyPariBuildExt(build_ext):
             not os.path.exists(os.path.join('cypari', 'auto_instance.pxi'))):
             import autogen
             autogen.rebuild()
-            
+
         # Provide declarations in an included .pxi file which indicate
         # whether we are building for 64 bit Python on Windows, and
         # which version of Python we are using.  We need to handle 64
@@ -295,7 +296,7 @@ class CyPariBuildExt(build_ext):
         build_ext.run(self)
 
 class CyPariSourceDist(sdist):
-    
+
     def _tarball_info(self, lib):
         lib_re = re.compile(r'(%s-[0-9\.]+)\.tar\.[bg]z2*'%lib)
         for f in os.listdir('.'):
@@ -303,7 +304,7 @@ class CyPariSourceDist(sdist):
             if lib_match:
                 break
         return lib_match.group(), lib_match.groups()[0]
-    
+
     def run(self):
         tarball, dir = self._tarball_info('pari')
         check_call(['tar', 'xfz', tarball])
@@ -325,13 +326,14 @@ elif sys.platform == 'win32':
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
         link_args += ['/DEBUG']
-    # # Add the mingw crt objects needed by libpari.
-    link_args += [
-        os.path.join('Windows', 'crt', 'libparicrt64.a'),
-        'advapi32.lib',
-        'legacy_stdio_definitions.lib',
-        os.path.join('Windows', 'crt', 'get_output_format64.o')
-    ]
+
+    # libpari relies on a few mingw library functions not present in MSCV's default
+    # libraries, so we need to add these:
+    link_args += ['/alternatename:stat64i32=_stat64i32',
+                  '/alternatename:___chkstk_ms=__chkstk',
+                  '/alternatename:__mingw_sprintf=sprintf',
+                  'advapi32.lib',
+                  'legacy_stdio_definitions.lib']
 else:
     compile_args = []
 
@@ -340,17 +342,12 @@ if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
 include_dirs = [pari_include_dir]
-extra_objects = []
-if sys.platform == 'win32':
-    include_dirs += MSVC_include_dirs
-    extra_objects += MSVC_extra_objects
 
 _pari = Extension(name='cypari._pari',
-                     sources=['cypari/_pari.c'],
-                     include_dirs=include_dirs,
-                     extra_objects=extra_objects,
-                     extra_link_args=link_args,
-                     extra_compile_args=compile_args)
+                  sources=['cypari/_pari.c'],
+                  include_dirs=include_dirs,
+                  extra_link_args=link_args,
+                  extra_compile_args=compile_args)
 
 # Load the version number.
 sys.path.insert(0, 'cypari')
