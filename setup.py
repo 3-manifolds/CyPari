@@ -285,7 +285,7 @@ class CyPariBuildExt(build_ext):
             with open('_pari.c', 'w') as outfile:
                 with open(_pari_c) as infile:
                     for line in infile.readlines():
-                        if line.find('pycore') >= 0:
+                        if line.find('intrin.h') >= 0:
                             outfile.write(
                                 '  #undef long\n%s'
                                 '  #define long long long\n' %line)
@@ -325,13 +325,13 @@ elif sys.platform == 'win32':
     compile_args = ['/DDISABLE_INLINE']
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
-        link_args += ['/DEBUG']
 
     # libpari relies on a few mingw library functions not present in MSCV's default
     # libraries, so we need to add these:
     link_args += ['/alternatename:stat64i32=_stat64i32',
                   '/alternatename:___chkstk_ms=__chkstk',
                   '/alternatename:__mingw_sprintf=sprintf',
+                  '/alternatename:__mingw_vsprintf=vsprintf',
                   'advapi32.lib',
                   'legacy_stdio_definitions.lib']
 else:
