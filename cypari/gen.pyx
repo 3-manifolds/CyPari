@@ -64,7 +64,6 @@ from __future__ import absolute_import, division, print_function
 import types
 cimport cython
 
-from cpython.int cimport PyInt_Check
 from cpython.long cimport PyLong_Check
 from cpython.bytes cimport PyBytes_Check
 from cpython.unicode cimport PyUnicode_Check
@@ -1447,70 +1446,6 @@ cdef class Gen(Gen_base):
         sig_off()
         return r
 
-    def __cmp__(self, Gen other):
-        """
-        Compare ``left`` and ``right``.
-
-        This uses PARI's ``cmp_universal()`` routine, which defines
-        a total ordering on the set of all PARI objects (up to the
-        indistinguishability relation given by ``gidentical()``).
-
-        .. WARNING::
-
-            This comparison is only mathematically meaningful when
-            comparing 2 integers. In particular, when comparing
-            rationals or reals, this does not correspond to the natural
-            ordering.
-
-        EXAMPLES::
-
-            sage: cmp(pari(5), 5)
-            0
-            sage: cmp(pari(5), 10)
-            -1
-            sage: cmp(pari(2.5), None)
-            1
-            sage: cmp(pari(3), pari(3))
-            0
-            sage: cmp(pari('x^2 + 1'), pari('I-1'))
-            1
-            sage: cmp(pari('I'), pari('I'))
-            0
-
-        Beware when comparing rationals or reals::
-
-            sage: cmp(pari('2/3'), pari('2/5'))
-            -1
-            sage: two = pari('2.000000000000000000000000')
-            sage: cmp(two, pari(1.0))
-            1
-            sage: cmp(two, pari(2.0))
-            1
-            sage: cmp(two, pari(3.0))
-            1
-
-        Since :trac:`17026`, different elements with the same string
-        representation can be distinguished by ``cmp()``::
-
-            sage: a = pari(0); a
-            0
-            sage: b = pari("0*ffgen(ffinit(29, 10))"); b
-            0
-            sage: cmp(a, b)
-            -1
-
-            sage: x = pari("x"); x
-            x
-            sage: y = pari("ffgen(ffinit(3, 5))"); y
-            x
-            sage: cmp(x, y)
-            1
-        """
-        sig_on()
-        cdef int r = cmp_universal(self.g, other.g)
-        sig_off()
-        return r
-
     def cmp_universal(Gen self, Gen other):
         """
         Provide access to Pari's cmp_universal function in Python 3.  In
@@ -1532,17 +1467,17 @@ cdef class Gen(Gen_base):
         EXAMPLES::
 
             sage: print(hex(pari(0)))
-            0
+            0x0
             sage: print(hex(pari(15)))
-            f
+            0xf
             sage: print(hex(pari(16)))
-            10
+            0x10
             sage: print(hex(pari(16938402384092843092843098243)))
-            36bb1e3929d1a8fe2802f083
-            sage: print(hex(long(16938402384092843092843098243)))
-            0x36bb1e3929d1a8fe2802f083L
+            0x36bb1e3929d1a8fe2802f083
+            sage: print(hex(16938402384092843092843098243))
+            0x36bb1e3929d1a8fe2802f083
             sage: print(hex(pari(-16938402384092843092843098243)))
-            -36bb1e3929d1a8fe2802f083
+            -0x36bb1e3929d1a8fe2802f083
         """
         cdef GEN x
         cdef int lx
@@ -1584,10 +1519,7 @@ cdef class Gen(Gen_base):
     
     def __int__(self):
         """
-        Convert ``self`` to a Python integer.
-
-        If the number is too large to fit into a Python ``int``, a
-        Python ``long`` is returned instead.
+        Convert ``self`` to a Python int.
 
         EXAMPLES::
 
@@ -1711,36 +1643,32 @@ cdef class Gen(Gen_base):
         """
         return gen_to_python(self)
 
-    def __long__(self):
+    def __int__(self):
         """
-        Convert ``self`` to a Python ``long``.
+        Convert ``self`` to a Python ``int``.
 
         EXAMPLES::
 
-            sage: long(pari(0))
-            0L
-            sage: long(pari(10))
-            10L
-            sage: long(pari(-10))
-            -10L
-            sage: long(pari(123456789012345678901234567890))
-            123456789012345678901234567890L
-            sage: long(pari(-123456789012345678901234567890))
-            -123456789012345678901234567890L
-            sage: long(pari(2**31-1))
-            2147483647L
-            sage: long(pari(-2**31))
-            -2147483648L
-            sage: long(pari("Pol(10)"))
-            10L
-            sage: long(pari("Mod(2, 7)"))
-            2L
+            sage: int(pari(0))
+            0
+            sage: int(pari(10))
+            10
+            sage: int(pari(-10))
+            -10
+            sage: int(pari(123456789012345678901234567890))
+            123456789012345678901234567890
+            sage: int(pari(-123456789012345678901234567890))
+            -123456789012345678901234567890
+            sage: int(pari(2**31-1))
+            2147483647
+            sage: int(pari(-2**31))
+            -2147483648
+            sage: int(pari("Pol(10)"))
+            10
+            sage: int(pari("Mod(2, 7)"))
+            2
         """
-        x = gen_to_integer(self)
-        if isinstance(x, long):
-            return x
-        else:
-            return long(x)
+        return gen_to_integer(self)
 
     def __float__(self):
         """
@@ -4683,7 +4611,7 @@ cpdef Gen objtogen(s):
             clear_stack()
             return None
         return new_gen(g)
-    if PyInt_Check(s) | PyLong_Check(s):
+    if PyLong_Check(s):
         return integer_to_gen(s)
     if isinstance(s, float):
         return new_gen_from_double(PyFloat_AS_DOUBLE(s))

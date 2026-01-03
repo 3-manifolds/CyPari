@@ -373,11 +373,10 @@ setup(
     url = 'https://bitbucket.org/t3m/cypari',
     author = 'Marc Culler and Nathan M. Dunfield',
     author_email = 'culler@uic.edu, nathan@dunfield.info',
-    license='GPLv2+',
+    license = 'GPL-2.0-or-later',
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
         'Operating System :: OS Independent',
         'Programming Language :: C',
         'Programming Language :: Python',
