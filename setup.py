@@ -285,7 +285,8 @@ class CyPariBuildExt(build_ext):
             with open('_pari.c', 'w') as outfile:
                 with open(_pari_c) as infile:
                     for line in infile.readlines():
-                        if line.find('intrin.h') >= 0:
+                        if (line.find('intrin.h') >= 0 or
+                            line.find('pycore_lock.h') >= 0):
                             outfile.write(
                                 '  #undef long\n%s'
                                 '  #define long long long\n' %line)
