@@ -53,7 +53,7 @@ if sys.platform == 'win32':
     def _parse_path_hack(val):
         return [dir.rstrip(os.sep).replace('10.0.26100.0', '10.0.22621.0')
                 for dir in val.split(os.pathsep) if dir]
-    import distutils.compilers.C.msvc  # really setuptools._distutils.compilers.C.msvc
+    import distutils.compilers.C.msvc
     distutils.compilers.C.msvc.Compiler._parse_path = _parse_path_hack
 
 
@@ -280,13 +280,12 @@ class CyPariBuildExt(build_ext):
         _pari_c = os.path.join('cypari', '_pari.c')
         cythonize([_pari_pyx],
                   compiler_directives={'language_level':2})
-        if sys.platform == 'win32':
+        if sys.platform == 'win32' and sys.version_info.minor < 13:
             # patch _pari.c to deal with #define long long long
             with open('_pari.c', 'w') as outfile:
                 with open(_pari_c) as infile:
                     for line in infile.readlines():
-                        if (line.find('intrin.h') >= 0 or
-                            line.find('pythread.h') >= 0):
+                        if line.find('intrin.h') >= 0:
                             outfile.write(
                                 '  #undef long\n%s'
                                 '  #define long long long\n' %line)
