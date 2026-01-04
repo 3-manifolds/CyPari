@@ -342,7 +342,10 @@ link_args += [pari_static_library, gmp_static_library]
 if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
-include_dirs = [pari_include_dir]
+include_dirs = []
+if sys.platform == 'win32':
+    include_dirs += ['longlonglong']
+include_dirs += [pari_include_dir]
 
 _pari = Extension(name='cypari._pari',
                   sources=['cypari/_pari.c'],

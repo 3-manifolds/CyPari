@@ -61,30 +61,6 @@ if sys.version_info.major > 2:
 else:
     iterable_types = (list, tuple, types.XRangeType, types.GeneratorType)
 
-
-cdef extern from *:
-    """
-    /* This comment is embeded verbatim as C code in _pari.c
-     *
-     * Pari's workaround fo the fact that Windows has a 32 bit long
-     * and a 64 bit long long, while Unix uses 64 bit integers for
-     * both, is the following, amazingly dangerous, hack:
-     *     #define long long long
-     * Amazingly, the only Python header in which this hack currently
-     * wreaks havoc is  internal/pycore_lock.h, introduced in
-     * Python 3.13.  Our hack to work around Pari's hack is to include
-     * that file before the pari header containing the hack is
-     * included.  In the future it may be necessary to add other files
-     * here.  Note: There are also Windows headers which are broken by
-     * the Pari hack.  Those are dealt with in setup.py.
-     */
-    #include "patchlevel.h"
-    #if PY_MINOR_VERSION >= 13
-      #define Py_BUILD_CORE
-      #include "internal/pycore_lock.h"
-      #undef Py_BUILD_CORE
-    #endif
-    """
 cimport cython
 
 from cpython.long cimport PyLong_Check
