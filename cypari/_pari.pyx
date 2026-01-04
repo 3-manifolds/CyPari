@@ -71,14 +71,17 @@ cdef extern from *:
      * the following amazingly dangerous hack:
      * #define long long long 
      * Amazingly, the only file in which this hack currently causes havoc
-     * is Python's internal/pycore_lock.h.
+     * is Python's internal/pycore_lock.h, introduced in Python 3.13.
      * Our hack to work around Pari's hack is to include that file before
      * the pari header containing the hack is included.  In the future it
      * may be necessary to add other files here.
      */
-    #define Py_BUILD_CORE
-    #include "internal/pycore_lock.h"
-    #undef Py_BUILD_CORE
+    #include "patchlevel.h"
+    #if PY_MINOR_VERSION >= 13
+      #define Py_BUILD_CORE
+      #include "internal/pycore_lock.h"
+      #undef Py_BUILD_CORE
+    #endif
     """
 cimport cython
 
