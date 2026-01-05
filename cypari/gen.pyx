@@ -1710,18 +1710,18 @@ cdef class Gen(Gen_base):
         sig_off()
         return complex(re, im)
 
-    def __nonzero__(self):
+    def __bool__(self):
         """
         EXAMPLES::
 
-            sage: pari('1').__nonzero__()
+            sage: pari('1').__bool__()
             True
-            sage: pari('x').__nonzero__()
+            sage: pari('x').__bool__()
             True
             sage: bool(pari(0))
             False
             sage: a = pari('Mod(0,3)')
-            sage: a.__nonzero__()
+            sage: a.__bool__()
             False
         """
         return not gequal0(self.g)
