@@ -1,4 +1,5 @@
 include build_pari.sh
+include LICENSE
 include README.rst
 include cypari/*.h
 include cypari/*.c
