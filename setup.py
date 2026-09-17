@@ -48,14 +48,28 @@ if sys.platform == 'win32':
     # version of Windows.  Therefore, we do a monkeypatch hack to
     # force the use of 10.0.22621.0 even if the newer version is
     # available.
+    #
+    # Newer versions of setuptools changed the name of the distutils
+    # module, so now we need two versions of the monkey-patch.
 
     @staticmethod
     def _parse_path_hack(val):
         return [dir.rstrip(os.sep).replace('10.0.26100.0', '10.0.22621.0')
                 for dir in val.split(os.pathsep) if dir]
-    import distutils.compilers.C.msvc
-    distutils.compilers.C.msvc.Compiler._parse_path = _parse_path_hack
 
+    # Gemini's suggestion for monkey-patching setuptools>=84.0.0
+    try:
+        import setuptools._distutils.compilers.C.msvc as new_msvc
+        new_msvc.Compiler._parse_path = _parse_path_hack
+    except ImportError:
+        pass
+
+    # The monkey-patch we used for setuptools<84.0.0
+    try:
+        import distutils.compilers.C.msvc as old_msvc
+        old_msvc.Compiler._parse_path = _parse_path_hack
+    except ImportError:
+        pass
 
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32' and not os.path.exists('libcache/pari'):
