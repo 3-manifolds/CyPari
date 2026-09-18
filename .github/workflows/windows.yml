@@ -47,11 +47,13 @@ jobs:
           bash build_pari.sh pari64 gmp64
 
       - name: Build many wheels
-        shell: cmd
-        env:
-          DISTUTILS_USE_SDK: "1"
+      env:
+        CIBW_ENVIRONMENT_WINDOWS: >
+          DISTUTILS_USE_SDK="1"
+          WindowsSdkVersion="10.0.22621.0"
+          INCLUDE="C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\shared"
+          LIB="C:\Program Files (x86)\Windows Kits\10\lib\10.0.22621.0\ucrt\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.22621.0\um\x64"
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64 10.0.22621.0
           python -m cibuildwheel --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
