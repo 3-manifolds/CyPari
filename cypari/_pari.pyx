@@ -1,4 +1,4 @@
-cython: c_api_binop_methods=False
+# cython: c_api_binop_methods=False
 
 # Use sys.getdefaultencoding() to convert Unicode strings to <char*>
 #
