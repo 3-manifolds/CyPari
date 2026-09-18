@@ -389,6 +389,7 @@ setup(
     author = 'Marc Culler and Nathan M. Dunfield',
     author_email = 'culler@uic.edu, nathan@dunfield.info',
     license = 'GPL-2.0-or-later',
+    license_files = ['LICENSE'],
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
