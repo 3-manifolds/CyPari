@@ -48,7 +48,8 @@ jobs:
 
       - name: Build many wheels
         env:
-          CIBW_BUILD_VERBOSITY: 3
+          CIBW_BUILD_FRONTEND: "pip"
+          CIBW_ENVIRONMENT_PASS: "PATH SystemRoot WINDIR COMSPEC"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
