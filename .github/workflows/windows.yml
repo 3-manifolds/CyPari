@@ -47,6 +47,8 @@ jobs:
           bash build_pari.sh pari64 gmp64
 
       - name: Build many wheels
+        env:
+          CIBW_SKIP: "cp39-* cp310-* cp311-*"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
