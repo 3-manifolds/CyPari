@@ -48,7 +48,7 @@ jobs:
 
       - name: Build many wheels
         env:
-          CIBW_SKIP: "cp39-* cp310-* cp311-*"
+	  CIBW_BUILD_VERBOSITY: 3
         run: |
           python -m cibuildwheel --output-dir wheelhouse
 
