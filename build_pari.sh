@@ -130,7 +130,7 @@ elif [ `python -c "import sys; print(sys.platform)"` = 'win32' ] ; then
     export CC=/c/msys64/ucrt64/bin/gcc
     # Disable avx and sse2.
     export CFLAGS="-U HAS_AVX -U HAS_AVX512 -U HAS_SSE2"
-    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX}
+    ./Configure --prefix=${PARIPREFIX} --libdir=${PARILIBDIR} --without-readline --with-gmp=${GMPPREFIX} --time=ftime
     cd Omingw-*
     # gettimeofday is POSIX and not inclued in MSVC libraries.
     sed -i '/#define USE_GETTIMEOFDAY 1/c\' paricfg.h

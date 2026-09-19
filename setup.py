@@ -35,26 +35,65 @@ from distutils.command.sdist import sdist
 from distutils.util import get_platform
 from subprocess import Popen, PIPE
 
-# Test if SDK 10.0.26100.0 can compile CyPari
-#if sys.platform == 'win32':
-    # We expect to be using:
+    # This build worked fine with:
     # * Windows Visual Studio 2022 with the Universal C Runtime and the
     #   Windows 11 SDK 10.0.22621.0 installed.
     # * An MSYS-2 with the UCRT64 environment installed for gcc
     #
-    # For mysterious reasons, CyPari will not compile with the more
-    # recent Windows 11 SDK 10.0.26000.0.  Setuptools will always use
-    # the most recent version of the Windows 11 SDK, which is what MS
-    # recommends since the result will still work on any earlier
-    # version of Windows.  Therefore, we do a monkeypatch hack to
-    # force the use of 10.0.22621.0 even if the newer version is
-    # available.
+    # We found that, for mysterious reasons, CyPari would not compile
+    # with the more recent Windows 11 SDK 10.0.26000.0 or later.
+    # Setuptools will always use the most recent version of the
+    # Windows 11 SDK, which is what MS recommends since the result
+    # will still work on any earlier version of Windows.  As a
+    # workaround we were doing a monkeypatch hack to force the use of
+    # 10.0.22621.0 even if the newer version were available.  That
+    # hack is below.
     #
+    # The mystery failure turned out to be caused by an assertion error
+    # in winnt.h, which checks whether the type LARGE_INTEGER is aligned
+    # to 8 bytes. The test used in that header was getting confused by
+    # the infamous and ridiculous macro which appears in the pari.h header
+    # for windows, namely:
+    #    #define long long long
+    # That macro caused the alignment of the LARGE_INTEGER type to change.
+    # That type is a union, defined as follows:
+    #
+    # typedef union _LARGE_INTEGER {
+    #     struct {
+    #         DWORD LowPart;
+    #         LONG HighPart;
+    #      } u;
+    #      LONGLONG QuadPart;
+    # } LARGE_INTEGER;
+    #
+    # The crazy pari macro turns the HighPart into a 64 bit int, causing
+    # the struct u to be 96 bits, so the size of the union became 12 bytes
+    # which is not a multiple of 8.  This broke the test in winnt.h. 
+    #
+    # The ultimate fix was to force windows.h to be included before
+    # anything else, so  the alignment check would happen before pari.h
+    # introduced its crazy macro. This is done by adding the extra
+    # compiler argument '/FIwindows.h'.
+    #
+    # For the record, here is the now-defunct hack, updated for recent
+    # versions of setuptools which renamed the distutils module.
+    #
+    # @staticmethod
+    # def _parse_path_hack(val):
+    #     return [dir.rstrip(os.sep).replace('10.0.26100.0', '10.0.22621.0')
+    #             for dir in val.split(os.pathsep) if dir]
     # try:
     #     import distutils.compilers.C.msvc as old_msvc
     #     old_msvc.Compiler._parse_path = _parse_path_hack
     # except ImportError:
-    #     pass
+    #      pass
+    # try:
+    #     import setuptools._distutils.compilers.C.msvc as new_msvc
+    #     new_msvc.Compiler._parse_path = _parse_path_hack
+    # except ImportError:
+    #      pass
+    #
+    # This issue was debugged with help from the Gemini chatbot.
 
 # Path setup for building with the mingw C compiler on Windows.
 if sys.platform == 'win32' and not os.path.exists('libcache/pari'):
@@ -322,7 +361,7 @@ if sys.platform == 'darwin':
                       '-Wno-unreachable-code-fallthrough']
 elif sys.platform == 'win32':
     # Ignore the assembly language inlines when building the extension.
-    compile_args = ['/DDISABLE_INLINE']
+    compile_args = ['/DDISABLE_INLINE', '/FIwindows.h']
     if False:  # Toggle for debugging symbols
         compile_args += ['/Zi']
 
@@ -342,12 +381,13 @@ if sys.platform.startswith('linux'):
     link_args += ['-Wl,-Bsymbolic-functions', '-Wl,-Bsymbolic']
 
 include_dirs = [pari_include_dir]
-
+    
 _pari = Extension(name='cypari._pari',
                   sources=['cypari/_pari.c'],
                   include_dirs=include_dirs,
                   extra_link_args=link_args,
-                  extra_compile_args=compile_args)
+                  extra_compile_args=compile_args,
+                  )
 
 # Load the version number.
 sys.path.insert(0, 'cypari')
