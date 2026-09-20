@@ -49,7 +49,7 @@ jobs:
       - name: Build many wheels
         env:
           # We need perl to be in the path.
-          CIBW_ENVIRONMENT_WINDOWS: "PATH=$PATH"
+          CIBW_ENVIRONMENT_WINDOWS: "PATH=$PATH CIBW_SANDBOX_ROOT=$(pwd)"
           # Copy libcache into the cibuildwheel sandbox.  
           CIBW_BEFORE_BUILD_WINDOWS: "robocopy \"{package}\\libcache\" \"libcache\" /E || exit 0"
           CIBW_DEBUG_TRACEBACK: "1"
