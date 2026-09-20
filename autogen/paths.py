@@ -26,7 +26,7 @@ if not PARIDIR:
     raise RuntimeError('No gphelp found!')
 
 prefix = os.path.join('libcache', PARIDIR)
-gphelp = os.path.abspath(gphelp)
+#gphelp = os.path.abspath(gphelp)
 perl = 'perl'
 
 def pari_share():
