@@ -22,6 +22,9 @@ if CIBW_SANDBOX_ROOT:
 else:
     AUTOGEN = os.path.dirname(os.path.abspath(__file__))
     LIBCACHE = os.path.join(AUTOGEN, os.path.pardir, 'libcache')
+if not os.path.exists(LIBCACHE):
+    raise RuntimeError('%s does not exist!' % LIBCACHE)
+
 PARIDIR = None
 for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
     gphelp = os.path.join(LIBCACHE, paridir, 'bin', 'gphelp')
