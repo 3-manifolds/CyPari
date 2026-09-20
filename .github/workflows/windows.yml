@@ -48,6 +48,7 @@ jobs:
 
       - name: Build many wheels
         env:
+          CIBW_ENVIRONMENT_WINDOWS: "PATH='$PATH'"
           CIBW_DEBUG_TRACEBACK: "1"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
