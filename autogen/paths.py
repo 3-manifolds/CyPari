@@ -16,8 +16,12 @@ from __future__ import absolute_import, unicode_literals
 import os, sys
 from glob import glob
 
-AUTOGEN = os.path.dirname(os.path.abspath(__file__))
-LIBCACHE = os.path.join(AUTOGEN, os.path.pardir, 'libcache')
+CIBW_SANDBOX_ROOT = os.environ.get('CIBW_SANDBOX_ROOT', '')
+if CIBW_SANDBOX_ROOT:
+    LIBCACHE = os.path.join(CIBW_SANDBOX_ROOT, 'libcache')
+else:
+    AUTOGEN = os.path.dirname(os.path.abspath(__file__))
+    LIBCACHE = os.path.join(AUTOGEN, os.path.pardir, 'libcache')
 PARIDIR = None
 for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
     gphelp = os.path.join(LIBCACHE, paridir, 'bin', 'gphelp')
