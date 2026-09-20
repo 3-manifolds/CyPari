@@ -16,17 +16,18 @@ from __future__ import absolute_import, unicode_literals
 import os, sys
 from glob import glob
 
+AUTOGEN = os.path.dirname(os.path.abspath(__file__))
+LIBCACHE = os.path.join(AUTOGEN, os.path.pardir, 'libcache')
 PARIDIR = None
 for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
-    gphelp = os.path.join('libcache', paridir, 'bin', 'gphelp')
+    gphelp = os.path.join(LIBCACHE, paridir, 'bin', 'gphelp')
     if os.path.exists(gphelp):
         PARIDIR = paridir
         break
 if not PARIDIR:
     raise RuntimeError('No gphelp found!')
 
-prefix = os.path.join('libcache', PARIDIR)
-#gphelp = os.path.abspath(gphelp)
+prefix = os.path.join(LIBCACHE, PARIDIR)
 perl = 'perl'
 
 def pari_share():
