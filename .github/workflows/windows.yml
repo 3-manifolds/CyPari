@@ -51,7 +51,7 @@ jobs:
           # We need perl to be in the path.
           CIBW_ENVIRONMENT_WINDOWS: "PATH=$PATH"
           # Copy libcache into the cibuildwheel sandbox.  
-          CIBW_BEFORE_BUILD_WINDOWS: "xcopy /E /I /Y \"{package}\\libcache\" \".\\libcache\\\"
+          CIBW_BEFORE_BUILD_WINDOWS: "xcopy /E /I /Y \"{package}\\libcache\" \".\\libcache\\\""
           CIBW_DEBUG_TRACEBACK: "1"
         run: |
           python -m cibuildwheel --output-dir wheelhouse
