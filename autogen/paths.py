@@ -27,7 +27,11 @@ if not PARIDIR:
 
 prefix = os.path.join('libcache', PARIDIR)
 gphelp = os.path.abspath(gphelp)
-perl = os.path.join(r'C:\msys64', 'usr', 'bin', 'perl') if sys.platform == 'win32' else 'perl'
+if sys.platform == 'win32':
+    msys = os.environ.get('MSYS2_LOCATION', r'C:\msys64') 
+    perl = os.path.join(msys, 'usr', 'bin', 'perl')
+else:
+    perl = 'perl'
 
 def pari_share():
     r"""
