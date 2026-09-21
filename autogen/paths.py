@@ -16,26 +16,18 @@ from __future__ import absolute_import, unicode_literals
 import os, sys
 from glob import glob
 
-CIBW_SANDBOX_ROOT = os.environ.get('CIBW_SANDBOX_ROOT', '')
-if CIBW_SANDBOX_ROOT:
-    LIBCACHE = os.path.join(CIBW_SANDBOX_ROOT, 'libcache')
-else:
-    AUTOGEN = os.path.dirname(os.path.abspath(__file__))
-    LIBCACHE = os.path.join(AUTOGEN, os.path.pardir, 'libcache')
-if not os.path.exists(LIBCACHE):
-    raise RuntimeError('%s does not exist!' % LIBCACHE)
-
 PARIDIR = None
 for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
-    gphelp = os.path.join(LIBCACHE, paridir, 'bin', 'gphelp')
+    gphelp = os.path.join('libcache', paridir, 'bin', 'gphelp')
     if os.path.exists(gphelp):
         PARIDIR = paridir
         break
 if not PARIDIR:
     raise RuntimeError('No gphelp found!')
 
-prefix = os.path.join(LIBCACHE, PARIDIR)
-perl = 'perl'
+prefix = os.path.join('libcache', PARIDIR)
+gphelp = os.path.abspath(gphelp)
+perl = os.path.join(r'C:\msys64', 'usr', 'bin', 'perl') if sys.platform == 'win32' else 'perl'
 
 def pari_share():
     r"""
