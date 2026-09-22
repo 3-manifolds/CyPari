@@ -27,9 +27,14 @@ if not PARIDIR:
 
 prefix = os.path.join('libcache', PARIDIR)
 gphelp = os.path.abspath(gphelp)
+if not os.path.exists(gphelp):
+    raise RuntimeError('gphelp not found at %s' % gphelp)
+
 if sys.platform == 'win32':
-    msys = os.environ.get('MSYS2_LOCATION', r'C:\msys64') 
-    perl = os.path.join(msys, 'usr', 'bin', 'perl')
+    msys = os.environ.get('MSYS2_LOCATION', 'C:/msys64')
+    perl = os.path.join(msys, 'usr', 'bin', 'perl.exe')
+    if not os.path.exists(perl):
+        raise RuntimeError('perl not found at %s' % perl)
 else:
     perl = 'perl'
 
