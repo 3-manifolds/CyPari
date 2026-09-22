@@ -24,24 +24,25 @@ for paridir in ('pari64', 'pari32', 'pari64u', 'pari32u', 'pari'):
         break
 if not PARIDIR:
     raise RuntimeError('No gphelp found!')
+if not os.path.exists(gphelp):
+    raise RuntimeError('gphelp not found at %s' % gphelp)
 
 prefix = os.path.join('libcache', PARIDIR)
-#gphelp = os.path.abspath(gphelp)
-#if not os.path.exists(gphelp):
-#    raise RuntimeError('gphelp not found at %s' % gphelp)
+perl = 'perl'
 
-if sys.platform == 'win32':
-    perl = shutil.which('perl') or r'C:\msys64\usr\bin\perl.exe'
-    if not os.path.exists(perl):
-        raise RuntimeError('perl not found at %s' % perl)
-else:
-    perl = 'perl'
+#Now we are using python3 from the msys distribution, so this is not needed.
+#if sys.platform == 'win32':
+#    perl = shutil.which('perl') or r'C:\msys64\usr\bin\perl.exe'
+#    if not os.path.exists(perl):
+#        raise RuntimeError('perl not found at %s' % perl)
+#else:
+#    perl = 'perl'
 
 def pari_share():
     r"""
     Return the directory where the PARI data files are stored.
 
-    EXAMPLES::
+    EXAMPLES:
 
         >>> import os
         >>> from autogen.parser import pari_share
