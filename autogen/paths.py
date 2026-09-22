@@ -13,7 +13,7 @@ Find out installation paths of PARI/GP
 #*****************************************************************************
 from __future__ import absolute_import, unicode_literals
 
-import os, sys
+import os, sys, shutil
 from glob import glob
 
 PARIDIR = None
@@ -31,8 +31,7 @@ if not os.path.exists(gphelp):
     raise RuntimeError('gphelp not found at %s' % gphelp)
 
 if sys.platform == 'win32':
-    msys = os.environ.get('MSYS2_LOCATION', 'C:/msys64')
-    perl = os.path.join(msys, 'usr', 'bin', 'perl.exe')
+    perl = shutil.which('perl') or r'C:\msys64\usr\bin\perl.exe'
     if not os.path.exists(perl):
         raise RuntimeError('perl not found at %s' % perl)
 else:
