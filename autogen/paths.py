@@ -29,7 +29,8 @@ if not os.path.exists(gphelp):
 
 prefix = os.path.join('libcache', PARIDIR)
 if sys.platform == 'win32':
-    perl = r'C:\msys64\usr\bin\perl.exe'
+    msys = os.environ.get('MSYS_LOCATION', r'C:\msys64')
+    perl = os.path.join(msys, 'usr', 'bin', 'perl.exe')
     if not os.path.exists(perl):
         raise RuntimeError('perl not found at %s' % perl)
 else:
