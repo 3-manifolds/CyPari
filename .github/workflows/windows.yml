@@ -31,7 +31,6 @@ jobs:
             make
             patch
             sed
-            mingw-w64-ucrt-x86_64-python
           pacboy: gcc:p
           path-type: inherit
 
