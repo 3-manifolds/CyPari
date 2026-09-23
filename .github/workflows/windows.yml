@@ -32,6 +32,7 @@ jobs:
             make
             patch
             sed
+            perl
           pacboy: gcc:p
           path-type: inherit
 
@@ -51,7 +52,6 @@ jobs:
         # The new cibuildwheel sandbox breaks the autogen step.
         # But we can run it now; each setup.py will then skip the rebuild.
         run: |
-          cp /usr/bin/perl.exe libcache/pari/bin	
           python -c "import autogen; autogen.rebuild()"
 
       - name: Build many wheels
