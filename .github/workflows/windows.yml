@@ -33,8 +33,8 @@ jobs:
             sed
             mingw-w64-ucrt-x86_64-python
           pacboy: >-
-	    gcc:p
-	    python:p
+            gcc:p
+            python:p
           path-type: inherit
 
       - name: Downgrade binutils so that it works
