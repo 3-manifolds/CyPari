@@ -371,7 +371,9 @@ elif sys.platform == 'win32':
                   '/alternatename:___chkstk_ms=__chkstk',
                   '/alternatename:__mingw_sprintf=sprintf',
                   '/alternatename:__mingw_vsprintf=vsprintf',
+                  '/alternatename:ftime64=_ftime64',
                   'advapi32.lib',
+                  '/verbose:lib',
                   'legacy_stdio_definitions.lib']
 else:
     compile_args = []
