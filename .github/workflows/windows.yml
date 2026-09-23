@@ -31,7 +31,8 @@ jobs:
             make
             patch
             sed
-          pacboy: gcc:p
+            mingw-w64-ucrt-x86_64-python
+            pacboy: gcc:p
           path-type: inherit
 
       - name: Downgrade binutils so that it works
@@ -52,7 +53,7 @@ jobs:
         # We use the msys64 python3 for this so that it will find the
         # msys2 perl instead of Strawberry perl, which does not work here. 
         run: |
-          /usr/bin/python3 -c "import autogen; autogen.rebuild()"
+          /ucrt64/bin/python -c "import autogen; autogen.rebuild()"
 
       - name: Build many wheels
         env:
