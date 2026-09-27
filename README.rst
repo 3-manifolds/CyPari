@@ -47,4 +47,4 @@ SDK installed, as well as the Universal CRT SDK. The build
 process uses the mingw UCRT64 toolchain to build libpari.a and
 libgmp.a but the Python extension is built with MSVC.
 
-Currently we support 64 bit Python 3.6 - 3.12 on linux, macOS and Windows.
+Currently we support 64 bit Python 3.9 - 3.14 on linux, macOS and Windows.
