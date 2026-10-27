@@ -5,7 +5,7 @@ CyPari is a standalone version of Sage's pari module which is largely
 consistent with the Sage cypari2 package that it inspired, but which
 can be distributed in binary form as a pip wheel and also works on
 Windows.  In particular, CyPari uses the automated build scripts
-written by Jeroen DeMeyer for cypari2.  Currently it uses Pari 2.15.
+written by Jeroen DeMeyer for cypari2.  Currently it uses Pari 2.17.
 The fact that the build process continues to work with each new
 release of PARI is a strong validation of Jeroen's flexible build
 scheme.

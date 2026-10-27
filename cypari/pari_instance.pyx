@@ -313,9 +313,9 @@ cdef bytes to_bytes(s):
 cdef extern from *:
     int sig_on_count "cysigs.sig_on_count"
 
-# Default precision (in PARI words) for the PARI library interface,
-# when no explicit precision is given and the inputs are exact.
-cdef long prec = prec_bits_to_words(53)
+# Default precision for the PARI library interface, when no explicit
+# precision is given and the inputs are exact.
+cdef long prec = prec_bits_to_pari(53)
 
 #################################################################
 # conversions between various real precision models
@@ -352,32 +352,28 @@ def prec_dec_to_bits(long prec_in_dec):
     cdef double log_10 = 3.32192809488736
     return int(prec_in_dec*log_10 + 1.0)  # Add one to round up
 
-cpdef long prec_bits_to_words(unsigned long prec_in_bits):
+cpdef long prec_bits_to_pari(unsigned long prec_in_bits):
     r"""
-    Convert from precision expressed in bits to pari real precision
-    expressed in words. Note: this rounds up to the nearest word,
-    adjusts for the two codewords of a pari real, and is
-    architecture-dependent.
+    Convert from precision expressed in bits to the precision argument
+    of the PARI library, using the default precision if ``prec_in_bits``
+    is 0.  This rounds up to a multiple of the word size.
 
     EXAMPLES::
 
-        sage: from cypari._pari import prec_bits_to_words
-        sage: prec_bits_to_words(70)
-        5   # 32-bit
-        4   # 64-bit
+        sage: from cypari._pari import prec_bits_to_pari
+        sage: prec_bits_to_pari(70)
+        96    # 32-bit
+        128   # 64-bit
 
     ::
 
-        sage: [(32*n, prec_bits_to_words(32*n)) for n in range(1, 9)]
-        [(32, 3), (64, 4), (96, 5), (128, 6), (160, 7), (192, 8), (224, 9), (256, 10)] # 32-bit
-        [(32, 3), (64, 3), (96, 4), (128, 4), (160, 5), (192, 5), (224, 6), (256, 6)] # 64-bit
+        sage: [(32*n, prec_bits_to_pari(32*n)) for n in range(1, 9)]
+        [(32, 32), (64, 64), (96, 96), (128, 128), (160, 160), (192, 192), (224, 224), (256, 256)] # 32-bit
+        [(32, 64), (64, 64), (96, 128), (128, 128), (160, 192), (192, 192), (224, 256), (256, 256)] # 64-bit
     """
     if not prec_in_bits:
         return prec
-    cdef unsigned long wordsize = BITS_IN_LONG
-
-    # This equals ceil(prec_in_bits/wordsize) + 2
-    return (prec_in_bits - 1)//wordsize + 3
+    return nbits2prec(prec_in_bits)
 
 cpdef long prec_words_to_bits(long prec_in_words):
     r"""
@@ -413,26 +409,8 @@ cpdef long default_bitprec(long bitprec=-1):
     global prec
     cdef long old_prec = prec
     if bitprec >= 0:
-        prec = prec_bits_to_words(bitprec)
-    return (old_prec - 2) * BITS_IN_LONG
-
-def prec_dec_to_words(long prec_in_dec):
-    r"""
-    Convert from precision expressed in decimal to precision expressed
-    in words. Note: this rounds up to the nearest word, adjusts for the
-    two codewords of a pari real, and is architecture-dependent.
-
-    EXAMPLES::
-
-        sage: from cypari._pari import prec_dec_to_words
-        sage: prec_dec_to_words(38)
-        6   # 32-bit
-        4   # 64-bit
-        sage: [(n, prec_dec_to_words(n)) for n in range(10, 90, 10)]
-        [(10, 4), (20, 5), (30, 6), (40, 7), (50, 8), (60, 9), (70, 10), (80, 11)] # 32-bit
-        [(10, 3), (20, 4), (30, 4), (40, 5), (50, 5), (60, 6), (70, 6), (80, 7)] # 64-bit
-    """
-    return prec_bits_to_words(prec_dec_to_bits(prec_in_dec))
+        prec = prec_bits_to_pari(bitprec)
+    return prec2nbits(old_prec)
 
 def prec_words_to_dec(long prec_in_words):
     r"""
@@ -806,8 +784,7 @@ cdef class Pari(Pari_auto):
         >>> pari.pi()
         3.14159265358979
         >>> pari.pi().precision()
-        3  # 64-bit
-        4  # 32-bit
+        64
         >>> pari.set_default_bit_precision(212)
         64
         >>> pari.get_default_bit_precision()
@@ -816,8 +793,8 @@ cdef class Pari(Pari_auto):
         >>> pari.pi()
         3.14159265358979
         >>> pari.pi().precision()
-        6  # 64-bit
-        9  # 32-bit
+        256 # 64-bit
+        224 # 32-bit
         >>> old_real_precision = pari.set_real_precision(50)
         >>> pari.pi()
         3.1415926535897932384626433832795028841971693993751
@@ -866,13 +843,12 @@ cdef class Pari(Pari_auto):
         will have word length (not including codewords) which is large
         enough to provide the requested number of bits, but no larger.
 
-        >>> from cypari._pari import prec_bits_to_words
         >>> old_precision = pari.set_real_precision(64)
         >>> x = pari._real_coerced_to_bits_prec(1.23456789012345678, 100)
         >>> x
         1.23456789012345669043213547411141917109
-        >>> x.length() == prec_bits_to_words(100) - 2
-        True
+        >>> x.bitprecision()
+        128
         >>> pari.set_real_precision(old_precision)
         64
 
@@ -880,14 +856,14 @@ cdef class Pari(Pari_auto):
         100 bits of precision.  This can be used, for example, to convert
         quad-double numbers to pari numbers.
         """
-        cdef long words = prec_bits_to_words(bits)
+        cdef long pari_prec = prec_bits_to_pari(bits)
         cdef GEN g
         sig_on()
         if x == 0:
             return new_gen(real_0_bit(-bits))
         else:
             g = dbltor(x)
-            return new_gen(gtofp(g, words))
+            return new_gen(gtofp(g, pari_prec))
 
     def complex(self, re, im):
         """

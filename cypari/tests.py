@@ -1296,7 +1296,7 @@ Quadratic class numbers::
     >>> pari(-104).quadclassunit()
     [6, [6], [Qfb(5, -4, 6)], 1]
     >>> pari(109).quadclassunit()
-    [1, [], [], 5.56453508676047]
+    [1, [], [], 5.56453508676047, -1]
     >>> pari(10001).quadclassunit() # random generators
     [16, [16], [Qfb(5, 99, -10, 0.E-19)], 5.29834236561059]
     >>> pari(10001).quadclassunit()[0]
@@ -1620,13 +1620,13 @@ General number fields::
     >>> x = pari('zz') # this one will have lower priority
     >>> nf = pari(x**2 + 2).nfinit()
     >>> nf.nfroots(y**2 + 2)
-    [Mod(-zz, zz^2 + 2), Mod(zz, zz^2 + 2)]
+    [Mod(-zz, zz^2 + 2), Mod(zz, zz^2 + 2)]~
     >>> nf = pari(x**3 + 2).nfinit()
     >>> nf.nfroots(y**3 + 2)
-    [Mod(zz, zz^3 + 2)]
+    [Mod(zz, zz^3 + 2)]~
     >>> nf = pari(x**4 + 2).nfinit()
     >>> nf.nfroots(y**4 + 2)
-    [Mod(-zz, zz^4 + 2), Mod(zz, zz^4 + 2)]
+    [Mod(-zz, zz^4 + 2), Mod(zz, zz^4 + 2)]~
 
     >>> nf = pari('x^2 + 1').nfinit()
     >>> [nf.nfbasistoalg_lift(r) for r in nf.nfrootsof1()]

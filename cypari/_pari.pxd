@@ -20,7 +20,7 @@ cdef Gen new_gen_from_double(double)
 cdef Gen new_t_POL_from_int_star(int* vals, unsigned long length, long varnum)
 
 # pari_instance.pyx
-cpdef long prec_bits_to_words(unsigned long prec_in_bits)
+cpdef long prec_bits_to_pari(unsigned long prec_in_bits)
 cpdef long prec_words_to_bits(long prec_in_words)
 cpdef long default_bitprec(long bitprec=*)
 

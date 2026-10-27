@@ -78,8 +78,7 @@ from .paridecl cimport *
 from .paripriv cimport *
 from .convert cimport (integer_to_gen, gen_to_integer,
                        new_gen_from_double, new_t_COMPLEX_from_double)
-from .pari_instance cimport (prec_bits_to_words, prec_words_to_bits,
-                             default_bitprec, get_var)
+from .pari_instance cimport (prec_words_to_bits, default_bitprec, get_var)
 from .stack cimport new_gen, new_gen_noclear, clear_stack
 from .closure cimport objtoclosure
 """
@@ -556,7 +555,7 @@ cdef class Gen(Gen_base):
             return NotImplemented
         t0 = left.Mod(m) if m is not None else left
         sig_on()
-        return new_gen(gpow(t0.g, t1.g, prec_bits_to_words(0)))
+        return new_gen(gpow(t0.g, t1.g, prec_bits_to_pari(0)))
 
     def __rpow__(Gen right, left, m):
         cdef Gen t
@@ -567,7 +566,7 @@ cdef class Gen(Gen_base):
         if m is not None:
             t = t.Mod(m)
         sig_on()
-        return new_gen(gpow(t.g, right.g, prec_bits_to_words(0)))
+        return new_gen(gpow(t.g, right.g, prec_bits_to_pari(0)))
 
     def __neg__(self):
         sig_on()
@@ -2792,7 +2791,7 @@ cdef class Gen(Gen_base):
             192
         """
         sig_on()
-        return new_gen(bernreal(self, prec_bits_to_words(precision)))
+        return new_gen(bernreal(self, prec_bits_to_pari(precision)))
 
     def besselk(Gen nu, x, flag=None, unsigned long precision=0):
         """
@@ -2830,7 +2829,7 @@ cdef class Gen(Gen_base):
         """
         cdef Gen t0 = objtogen(x)
         sig_on()
-        return new_gen(kbessel(nu.g, t0.g, prec_bits_to_words(precision)))
+        return new_gen(kbessel(nu.g, t0.g, prec_bits_to_pari(precision)))
 
     def eint1(x, long n=0, unsigned long precision=0):
         r"""
@@ -2858,9 +2857,9 @@ cdef class Gen(Gen_base):
         """
         sig_on()
         if n <= 0:
-            return new_gen(eint1(x.g, prec_bits_to_words(precision)))
+            return new_gen(eint1(x.g, prec_bits_to_pari(precision)))
         else:
-            return new_gen(veceint1(x.g, stoi(n), prec_bits_to_words(precision)))
+            return new_gen(veceint1(x.g, stoi(n), prec_bits_to_pari(precision)))
 
     log_gamma = Gen_base.lngamma
 
@@ -2890,7 +2889,7 @@ cdef class Gen(Gen_base):
             -0.400459056163451
         """
         sig_on()
-        return new_gen(polylog0(m, x.g, flag, prec_bits_to_words(precision)))
+        return new_gen(polylog0(m, x.g, flag, prec_bits_to_pari(precision)))
 
     def sqrtint(x):
         r"""Returns the integer square root of x, i.e. the largest integer y
@@ -2958,7 +2957,7 @@ cdef class Gen(Gen_base):
         cdef GEN zetan
         cdef Gen t0 = objtogen(n)
         sig_on()
-        ans = new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_words(precision)))
+        ans = new_gen_noclear(gsqrtn(x.g, t0.g, &zetan, prec_bits_to_pari(precision)))
         return ans, new_gen(zetan)
 
     def ffprimroot(self):
@@ -3322,7 +3321,7 @@ cdef class Gen(Gen_base):
         sig_on()
         return new_gen(elltors(self.g))
 
-    def omega(self, unsigned long precision=0):
+    def omega(self):
         """
         Return the basis for the period lattice of this elliptic curve.
 
@@ -3331,9 +3330,20 @@ cdef class Gen(Gen_base):
             sage: e = pari([0, -1, 1, -10, -20]).ellinit()
             sage: e.omega()
             [1.26920930427955, 0.634604652139777 - 1.45881661693850*I]
+
+        The precision is determined by the ``ellinit`` call::
+
+            sage: e = pari([0, -1, 1, -10, -20]).ellinit(precision=256)
+            sage: e.omega().bitprecision()
+            256
+
+        This also works over quadratic imaginary number fields::
+
+            sage: e = pari.ellinit([0, -1, 1, -10, -20], "nfinit(y^2 - 2)")
+            sage: w = e.omega()
         """
         sig_on()
-        return new_gen(ellR_omega(self.g, prec_bits_to_words(precision)))
+        return new_gen(member_omega(self.g))
 
     def disc(self):
         """
@@ -3904,38 +3914,6 @@ cdef class Gen(Gen_base):
         sig_on()
         return new_gen(factorpadic(self.g, t0.g, r))
 
-    def poldegree(self, var=-1):
-        """
-        Return the degree of this polynomial.
-        """
-        sig_on()
-        cdef long n = <long>poldegree(self.g, get_var(var))
-        sig_off()
-        return n
-
-    def polisirreducible(self):
-        """
-        f.polisirreducible(): Returns True if f is an irreducible
-        non-constant polynomial, or False if f is reducible or constant.
-        """
-        sig_on()
-        cdef long t = <long>polisirreducible(self.g)
-        clear_stack()
-        return t != 0
-
-    def polroots(self, unsigned long precision=0):
-        """
-        Complex roots of the given polynomial using Schonhage's method,
-        as modified by Gourdon.
-        """
-        sig_on()
-        return new_gen(cleanroots(self.g, prec_bits_to_words(precision)))
-
-    def rnfisnorm(self, T, long flag=0):
-        cdef Gen t0 = objtogen(T)
-        sig_on()
-        return new_gen(rnfisnorm(t0.g, self.g, flag))
-
     def ncols(self):
         """
         Return the number of columns of self.
@@ -4369,7 +4347,7 @@ cdef class Gen(Gen_base):
             g0 = RgX_to_ser(g0, n+4)
         elif typ(g0) == t_RFRAC:
             g0 = rfrac_to_ser(g0, n+4)
-        return new_gen(ellwp0(self.g, g0, flag, prec_bits_to_words(precision)))
+        return new_gen(ellwp0(self.g, g0, flag, prec_bits_to_pari(precision)))
 
     def debug(self, long depth = -1):
         r"""
@@ -4518,15 +4496,13 @@ cpdef Gen objtogen(s):
     Conversion from reals uses the real's own precision::
 
         sage: a = pari(1.2); a, a.type(), a.precision()
-        (1.20000000000000, 't_REAL', 4) # 32-bit
-        (1.20000000000000, 't_REAL', 3) # 64-bit
+        (1.20000000000000, 't_REAL', 64)
 
     Conversion from strings uses the current PARI real precision.
     By default, this is 64 bits::
 
         sage: a = pari('1.2'); a, a.type(), a.precision()
-        (1.20000000000000, 't_REAL', 4)  # 32-bit
-        (1.20000000000000, 't_REAL', 3)  # 64-bit
+        (1.20000000000000, 't_REAL', 64)
 
     Unicode and bytes work fine::
 
@@ -4540,8 +4516,7 @@ cpdef Gen objtogen(s):
         sage: pari.set_real_precision(35)  # precision in decimal digits
         15
         sage: a = pari('1.2'); a, a.type(), a.precision()
-        (1.2000000000000000000000000000000000, 't_REAL', 6)  # 32-bit
-        (1.2000000000000000000000000000000000, 't_REAL', 4)  # 64-bit
+        (1.2000000000000000000000000000000000, 't_REAL', 128)
 
     Set the precision to 15 digits for the remaining tests::
 

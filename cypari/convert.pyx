@@ -382,10 +382,10 @@ cdef Gen new_gen_from_double(double x):
         g = real_0_bit(-53)
     else:
         g = dbltor(x)
-    if prec - 2 == 64 / BITS_IN_LONG:
+    if prec == 64:
         return new_gen(g)
     else:
-        G = bitprecision0(g, (prec - 2)*BITS_IN_LONG)
+        G = bitprecision0(g, prec2nbits(prec))
         return new_gen(G)
 
 cdef Gen new_t_COMPLEX_from_double(double re, double im):
@@ -399,10 +399,10 @@ cdef Gen new_t_COMPLEX_from_double(double re, double im):
         set_gel(g, 2, gen_0)
     else:
         set_gel(g, 2, dbltor(im))
-    if prec - 2 == 64 / BITS_IN_LONG:
+    if prec == 64:
         return new_gen(g)
     else:
-        G = bitprecision0(g, (prec - 2)*BITS_IN_LONG)
+        G = bitprecision0(g, prec2nbits(prec))
         return new_gen(G)
 
 
